@@ -1,0 +1,127 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{A6079867-2A41-4C5C-8AD4-50F4C72020D0}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AgXUnity</RootNamespace>
+    <AssemblyName>AgXUnity</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile>Unity Full v3.5</TargetFrameworkProfile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\output\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\output\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>..\output\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>..\output\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="agxDotNet">
+      <HintPath>..\..\agx_x64\installed\bin\x64\agxDotNet.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="UnityEngine">
+      <HintPath>..\..\..\..\Program Files\Unity5\Editor\Data\Managed\UnityEngine.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Attributes.cs" />
+    <Compile Include="Collide\Box.cs" />
+    <Compile Include="Collide\Capsule.cs" />
+    <Compile Include="Collide\Cylinder.cs" />
+    <Compile Include="Collide\HeightField.cs" />
+    <Compile Include="Collide\Mesh.cs" />
+    <Compile Include="Collide\Plane.cs" />
+    <Compile Include="Collide\Shape.cs" />
+    <Compile Include="Collide\Sphere.cs" />
+    <Compile Include="CollisionGroups.cs" />
+    <Compile Include="CollisionGroupsManager.cs" />
+    <Compile Include="Constraint.cs" />
+    <Compile Include="ConstraintDebugRenderData.cs" />
+    <Compile Include="ContactMaterial.cs" />
+    <Compile Include="ContactMaterialManager.cs" />
+    <Compile Include="DebugRenderData.cs" />
+    <Compile Include="DebugRenderManager.cs" />
+    <Compile Include="DefaultAndUserValue.cs" />
+    <Compile Include="Exception.cs" />
+    <Compile Include="Factory.cs" />
+    <Compile Include="FrictionModel.cs" />
+    <Compile Include="MassProperties.cs" />
+    <Compile Include="NativeHandler.cs" />
+    <Compile Include="PrefabLoader.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RangeReal.cs" />
+    <Compile Include="Rendering\SimpleLineRenderer.cs" />
+    <Compile Include="Rendering\Spawner.cs" />
+    <Compile Include="Rendering\WireRenderer.cs" />
+    <Compile Include="RigidBody.cs" />
+    <Compile Include="ScriptAsset.cs" />
+    <Compile Include="ScriptAssetManager.cs" />
+    <Compile Include="ScriptComponent.cs" />
+    <Compile Include="ShapeDebugRenderData.cs" />
+    <Compile Include="ShapeMaterial.cs" />
+    <Compile Include="Simulation.cs" />
+    <Compile Include="UniqueGameObject.cs" />
+    <Compile Include="Utils\AverageQuaternion.cs" />
+    <Compile Include="Utils\Extensions.cs" />
+    <Compile Include="Utils\Find.cs" />
+    <Compile Include="Utils\Math.cs" />
+    <Compile Include="Utils\PropertySynchronizer.cs" />
+    <Compile Include="WindAndWaterManager.cs" />
+    <Compile Include="Wire.cs" />
+    <Compile Include="WireRoute.cs" />
+    <Compile Include="WireWinch.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "D:\Projects\Unity\AgXUnityTest02\Assets\AgXUnity\Plugins\" /Y
+</PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
