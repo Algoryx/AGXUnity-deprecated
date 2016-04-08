@@ -13,9 +13,11 @@ The AgXUnity plugin is preferably developed in Visual Studio with the latest ver
 [https://msdn.microsoft.com/en-us/library/dn940025.aspx](https://msdn.microsoft.com/en-us/library/dn940025.aspx)
 3. Checkout AgXUnity
 4.	Open AgXUnity.sln in Visual Studio
-5.	Verify all references in the AgXUnity project:
-a.	agxDotNet.dll: *“<AgX install path>\bin\x64\agxDotNet.dll”*
-b.	UnityEngine.dll: *“<Unity 3D install path>\Editor\Data\Managed\UnityEngine.dll”*
+5.	Verify all references in the AgXUnity project (Browse for the correct dll files usng the Reference Manager)
+	
+	a.	agxDotNet.dll: *[AgX install path]\bin\x64\agxDotNet.dll*
+
+	b.	UnityEngine.dll: *[Unity 3D install path]\Editor\Data\Managed\UnityEngine.dll*
 6.	Build!
 7.	The output is AgXUnity.dll.
 AgXUnity.dll, agxDotNet.dll (from the AgX Dynamics installation) and AgXUnity.pdb (to enable debugging of the plugin) must be copied to a folder named “Plugins” somewhere in the “Assets” folder hierarchy. For example:
@@ -225,5 +227,3 @@ class TestComponentEditor : AgXUnityEditor.BaseEditor<TestComponent>
 }
 </pre>
 The TestComponent will be rendered the same in the Inspector tab, but when changing the value, the new value will be printed in the Console tab.
-
-
