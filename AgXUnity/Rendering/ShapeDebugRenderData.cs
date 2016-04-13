@@ -5,19 +5,37 @@ using AgXUnity.Utils;
 
 namespace AgXUnity.Rendering
 {
+  /// <summary>
+  /// Debug rendering component which is added to all game objects
+  /// containing Collide.Shape components. DebugRenderManager manages
+  /// these objects.
+  /// </summary>
   [GenerateCustomEditor]
   public class ShapeDebugRenderData : DebugRenderData
   {
+    /// <summary>
+    /// Typename is shape type - prefabs in Resources folder has been
+    /// named to fit these names.
+    /// </summary>
+    /// <returns></returns>
     public override string GetTypeName()
     {
       return GetShape().GetType().Name;
     }
 
+    /// <summary>
+    /// True if the shape type is mesh.
+    /// </summary>
     [HideInInspector]
     public bool IsMesh { get { return PrefabName.Contains( "Mesh" ) || PrefabName.Contains( "HeightField" ); } }
 
+    /// <returns>The Collide.Shape component.</returns>
     public Shape GetShape() { return GetComponent<Shape>(); }
 
+    /// <summary>
+    /// Creates debug rendering node (if not already created) and
+    /// synchronizes the transform.
+    /// </summary>
     public override void Synchronize()
     {
       try {
@@ -32,6 +50,10 @@ namespace AgXUnity.Rendering
       }
     }
 
+    /// <summary>
+    /// If no "Node" instance, this method tries to create one
+    /// given the Collide.Shape component in this game object.
+    /// </summary>
     private void TryInitialize()
     {
       if ( Node != null )
@@ -45,6 +67,11 @@ namespace AgXUnity.Rendering
       }
     }
 
+    /// <summary>
+    /// Initializes and returns a game object if the Collide.Shape type
+    /// is of type mesh. Fails the the shape type is different from mesh.
+    /// </summary>
+    /// <returns>Game object with mesh renderer.</returns>
     private GameObject InitializeMesh()
     {
       Shape shape = GetShape();
@@ -54,13 +81,13 @@ namespace AgXUnity.Rendering
       if ( shape as Collide.HeightField != null )
         return InitializeHeightField( shape as Collide.HeightField );
 
-      bool useSourceObjectMesh = true;
-      if ( useSourceObjectMesh )
-        return InitializeMeshGivenSourceObject( shape as Collide.Mesh );
-      else
-        return InitializeMeshGivenNative( shape as Collide.Mesh );
+      return InitializeMeshGivenSourceObject( shape as Collide.Mesh );
     }
 
+    /// <summary>
+    /// Initializes debug render object given the source object of the
+    /// Collide.Mesh component.
+    /// </summary>
     private GameObject InitializeMeshGivenSourceObject( Collide.Mesh mesh )
     {
       if ( mesh == null )
@@ -79,45 +106,10 @@ namespace AgXUnity.Rendering
       return meshData;
     }
 
-    private GameObject InitializeMeshGivenNative( Collide.Mesh mesh )
-    {
-      if ( mesh == null )
-        throw new ArgumentNullException( "mesh" );
-
-      agxCollide.Mesh nativeMesh = mesh.CreateTemporaryNative() as agxCollide.Mesh;
-      if ( nativeMesh == null || nativeMesh.getNumVertices() == 0 )
-        throw new Exception( "Mesh not initialized." );
-
-      Vector3[] vertices = new Vector3[ nativeMesh.getNumVertices() ];
-      for ( uint i = 0; i < nativeMesh.getNumVertices(); ++i )
-        vertices[ i ] = nativeMesh.getVertex( i ).AsVector3();
-
-      int[] triangles = new int[ 3 * nativeMesh.getNumTriangles() ];
-      for ( uint i = 0; i < nativeMesh.getNumTriangles(); ++i ) {
-        triangles[ 3 * i + 0 ] = Convert.ToInt32( nativeMesh.getGlobalVertexIndex( i, 0 ) );
-        triangles[ 3 * i + 1 ] = Convert.ToInt32( nativeMesh.getGlobalVertexIndex( i, 1 ) );
-        triangles[ 3 * i + 2 ] = Convert.ToInt32( nativeMesh.getGlobalVertexIndex( i, 2 ) );
-      }
-
-      Vector2[] uv = new Vector2[ vertices.Length ];
-      for ( int i = 0; i < vertices.Length; ++i )
-        uv[ i ] = new Vector2( vertices[ i ].x, vertices[ i ].z );
-
-      UnityEngine.Mesh unityMesh = new UnityEngine.Mesh();
-      unityMesh.vertices = vertices;
-      unityMesh.triangles = triangles;
-      unityMesh.uv = uv;
-      unityMesh.RecalculateNormals();
-
-      GameObject meshData = new GameObject( "MeshData", typeof( MeshFilter ), typeof( MeshRenderer ) );
-      meshData.GetComponent<MeshFilter>().mesh = unityMesh;
-      Material material = Resources.Load<UnityEngine.Material>( "Debug/DebugRendererMaterial" );
-      meshData.GetComponent<MeshRenderer>().material = material;
-
-      return meshData;
-    }
-
-    public GameObject InitializeHeightField( HeightField hf )
+    /// <summary>
+    /// Debug rendering of HeightField is currently not supported.
+    /// </summary>
+    private GameObject InitializeHeightField( HeightField hf )
     {
       return new GameObject( "HeightFieldData" );
     }

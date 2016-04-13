@@ -8,6 +8,7 @@ namespace AgXUnity
   /// Mass properties of a RigidBody. This component is a required
   /// component in the RigidBody class.
   /// </summary>
+  [DisallowMultipleComponent]
   [GenerateCustomEditor]
   public class MassProperties : RigidBodyComponent
   {

@@ -139,8 +139,8 @@ namespace AgXUnityEditor
     {
       // It's possible to detect when this editor/object is being deleted
       // e.g., when the user presses delete.
-      //if ( Application.isEditor && target == null )
-      //  Debug.Log( "DESTROY" );
+      if ( !Application.isPlaying && Application.isEditor && target == null )
+        AgXUnity.Rendering.DebugRenderManager.OnEditorDestroy();
     }
 
     public static bool Update( T obj )

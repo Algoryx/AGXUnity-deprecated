@@ -7,6 +7,7 @@ namespace AgXUnity.Collide
   /// Mesh object, convex or general trimesh, given source object
   /// render data.
   /// </summary>
+  [AddComponentMenu( "AgXUnity/Shapes/Mesh" )]
   [GenerateCustomEditor]
   public sealed class Mesh : Shape
   {
