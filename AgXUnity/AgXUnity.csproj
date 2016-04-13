@@ -57,11 +57,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="agxDotNet">
-      <HintPath>..\..\agx_x64\installed\bin\x64\agxDotNet.dll</HintPath>
+      <HintPath>..\..\trunk\installed\bin\x64\agxDotNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
-      <HintPath>..\..\..\..\Program Files\Unity5\Editor\Data\Managed\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\..\Program Files\Unity\Editor\Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -77,11 +77,10 @@
     <Compile Include="CollisionGroups.cs" />
     <Compile Include="CollisionGroupsManager.cs" />
     <Compile Include="Constraint.cs" />
-    <Compile Include="ConstraintDebugRenderData.cs" />
     <Compile Include="ContactMaterial.cs" />
     <Compile Include="ContactMaterialManager.cs" />
-    <Compile Include="DebugRenderData.cs" />
-    <Compile Include="DebugRenderManager.cs" />
+    <Compile Include="Rendering\DebugRenderData.cs" />
+    <Compile Include="Rendering\DebugRenderManager.cs" />
     <Compile Include="DefaultAndUserValue.cs" />
     <Compile Include="Exception.cs" />
     <Compile Include="Factory.cs" />
@@ -98,10 +97,11 @@
     <Compile Include="ScriptAsset.cs" />
     <Compile Include="ScriptAssetManager.cs" />
     <Compile Include="ScriptComponent.cs" />
-    <Compile Include="ShapeDebugRenderData.cs" />
+    <Compile Include="Rendering\ShapeDebugRenderData.cs" />
     <Compile Include="ShapeMaterial.cs" />
     <Compile Include="Simulation.cs" />
     <Compile Include="UniqueGameObject.cs" />
+    <Compile Include="Utils\OnSelectionProxy.cs" />
     <Compile Include="Utils\AverageQuaternion.cs" />
     <Compile Include="Utils\Extensions.cs" />
     <Compile Include="Utils\Find.cs" />
@@ -114,7 +114,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "D:\Projects\Unity\AgXUnityTest02\Assets\AgXUnity\Plugins\" /Y
+    <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "C:\Projects\Unity\AgXUnityDev01\Assets\AgXUnity\Plugins" /Y
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

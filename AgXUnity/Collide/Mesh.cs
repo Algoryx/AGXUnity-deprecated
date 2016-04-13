@@ -38,7 +38,7 @@ namespace AgXUnity.Collide
 
         // New source, destroy current debug rendering data.
         if ( m_sourceObject != null ) {
-          ShapeDebugRenderData data = GetComponentInChildren<ShapeDebugRenderData>();
+          Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
           if ( data != null )
             GameObject.DestroyImmediate( data.Node );
           m_sourceObject = null;

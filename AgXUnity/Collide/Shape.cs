@@ -202,7 +202,7 @@ namespace AgXUnity.Collide
     /// </summary>
     protected virtual void SyncDebugRenderingScale()
     {
-      ShapeDebugRenderData debugData = GetComponentInChildren<ShapeDebugRenderData>();
+      Rendering.ShapeDebugRenderData debugData = GetComponentInChildren<Rendering.ShapeDebugRenderData>();
       if ( debugData != null )
         debugData.Synchronize();
     }

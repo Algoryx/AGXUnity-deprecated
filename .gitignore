@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/AgXUnity/obj
+/.vs/AgXUnity/v14
+/AgXUnityEditor/obj/Debug
+/output

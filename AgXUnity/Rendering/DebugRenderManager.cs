@@ -2,7 +2,7 @@
 using UnityEngine;
 using AgXUnity.Utils;
 
-namespace AgXUnity
+namespace AgXUnity.Rendering
 {
   [ExecuteInEditMode]
   [GenerateCustomEditor]
@@ -21,11 +21,19 @@ namespace AgXUnity
     protected void Update()
     {
       UnityEngine.Object.FindObjectsOfType<Collide.Shape>().ToList().ForEach(
-        shape => shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>().Synchronize()
-      );
+        shape =>
+        {
+          var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
 
-      UnityEngine.Object.FindObjectsOfType<Constraint>().ToList().ForEach(
-        constraint => constraint.gameObject.GetOrCreateComponent<ConstraintDebugRenderData>().Synchronize()
+          bool hadNode = data.Node != null;
+          data.Synchronize();
+          bool debugDataCreated = !hadNode && data.Node != null;
+
+          if ( debugDataCreated ) {
+            gameObject.AddChild( data.Node );
+            data.Node.AddComponent<OnSelectionProxy>().Target = shape.gameObject;
+          }
+        }
       );
     }
   }

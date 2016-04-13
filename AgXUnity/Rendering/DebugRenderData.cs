@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using UnityEngine;
-using AgXUnity.Collide;
-using AgXUnity.Utils;
+﻿using UnityEngine;
 
-namespace AgXUnity
+namespace AgXUnity.Rendering
 {
   [GenerateCustomEditor]
   public abstract class DebugRenderData : ScriptComponent
@@ -22,20 +16,8 @@ namespace AgXUnity
       }
     }
 
-    [SerializeField]
-    private bool m_visible = true;
-    public bool Visible
-    {
-      get { return m_visible; }
-      set
-      {
-        m_visible = value;
-        if ( m_node != null )
-          m_node.SetActive( m_visible );
-      }
-    }
-
     public abstract string GetTypeName();
+
     public abstract void Synchronize();
 
     [HideInInspector]

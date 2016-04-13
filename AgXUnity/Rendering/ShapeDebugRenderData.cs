@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 using AgXUnity.Collide;
 using AgXUnity.Utils;
 
-namespace AgXUnity
+namespace AgXUnity.Rendering
 {
   [GenerateCustomEditor]
   public class ShapeDebugRenderData : DebugRenderData
@@ -26,8 +23,10 @@ namespace AgXUnity
       try {
         TryInitialize();
 
-        Shape shape = GetShape();
+        Shape shape               = GetShape();
         Node.transform.localScale = shape.GetScale();
+        Node.transform.position   = shape.transform.position;
+        Node.transform.rotation   = shape.transform.rotation;
       }
       catch ( System.Exception ) {
       }
@@ -44,12 +43,6 @@ namespace AgXUnity
         Node = PrefabLoader.Instantiate( PrefabName );
         Node.transform.localScale = GetShape().GetScale();
       }
-
-      Node.hideFlags = HideFlags.HideAndDontSave;
-      foreach ( Transform child in Node.transform )
-        child.gameObject.hideFlags = HideFlags.HideAndDontSave;
-
-      gameObject.AddChild( Node );
     }
 
     private GameObject InitializeMesh()
