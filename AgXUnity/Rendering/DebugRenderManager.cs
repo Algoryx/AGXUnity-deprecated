@@ -77,18 +77,22 @@ namespace AgXUnity.Rendering
 
     protected override bool Initialize()
     {
-      gameObject.transform.position = Vector3.zero;
-      gameObject.transform.rotation = Quaternion.identity;
-      gameObject.isStatic           = true;
-      gameObject.hideFlags          = HideFlags.None;
+      gameObject.isStatic  = true;
+      gameObject.hideFlags = HideFlags.None;
 
       return base.Initialize();
     }
 
     protected void Update()
     {
-      gameObject.transform.position = Vector3.zero;
-      gameObject.transform.rotation = Quaternion.identity;
+      gameObject.transform.position   = Vector3.zero;
+      gameObject.transform.rotation   = Quaternion.identity;
+      // Change parent before scale is set - otherwise scale will be preserved.
+      // E.g., move "this" to a parent with scale x, scale will be set,
+      // parent = null will remove the parent but the scale will be preserved.
+      // Fix - set scale after set parent.
+      gameObject.transform.parent     = null;
+      gameObject.transform.localScale = Vector3.one;
 
       // When the application is playing we rely on callbacks
       // from the objects when they've synchronized their
