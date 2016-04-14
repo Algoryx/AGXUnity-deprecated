@@ -267,6 +267,8 @@ namespace AgXUnity
     {
       SyncUnityTransform();
       SyncProperties();
+
+      Rendering.DebugRenderManager.OnLateUpdate( this );
     }
     #endregion
 

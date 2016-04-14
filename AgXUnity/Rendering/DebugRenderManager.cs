@@ -38,6 +38,43 @@ namespace AgXUnity.Rendering
       }
     }
 
+    /// <summary>
+    /// Called on LateUpdate from shapes without rigid bodies.
+    /// </summary>
+    public static void OnLateUpdate( Collide.Shape shape )
+    {
+      if ( !HasInstance )
+        return;
+
+      Instance.SynchronizeShape( shape );
+    }
+
+    /// <summary>
+    /// Called on LateUpdate from bodies to synchronize debug rendering of the shapes.
+    /// </summary>
+    public static void OnLateUpdate( RigidBody rb )
+    {
+      if ( !HasInstance )
+        return;
+
+      Collide.Shape[] shapes = rb.GetComponentsInChildren<Collide.Shape>();
+      foreach ( Collide.Shape shape in shapes )
+        Instance.SynchronizeShape( shape );
+    }
+
+    [SerializeField]
+    private bool m_visible = true;
+    public bool Visible
+    {
+      get { return m_visible; }
+      set
+      {
+        if ( m_visible != value )
+          gameObject.SetActive( value );
+        m_visible = value;
+      }
+    }
+
     protected override bool Initialize()
     {
       gameObject.transform.position = Vector3.zero;
@@ -53,22 +90,30 @@ namespace AgXUnity.Rendering
       gameObject.transform.position = Vector3.zero;
       gameObject.transform.rotation = Quaternion.identity;
 
+      // When the application is playing we rely on callbacks
+      // from the objects when they've synchronized their
+      // transforms.
+      if ( Application.isPlaying )
+        return;
+
       UnityEngine.Object.FindObjectsOfType<Collide.Shape>().ToList().ForEach(
-        shape =>
-        {
-          var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
-
-          data.Synchronize();
-          if ( data.Node == null )
-            return;
-
-          data.Node.hideFlags = HideFlags.DontSave;
-          data.Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
-
-          if ( data.Node && data.Node.transform.parent != gameObject.transform )
-            gameObject.AddChild( data.Node );
-        }
+        shape => SynchronizeShape( shape )
       );
+    }
+
+    private void SynchronizeShape( Collide.Shape shape )
+    {
+      var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
+
+      data.Synchronize();
+      if ( data.Node == null )
+        return;
+
+      data.Node.hideFlags = HideFlags.DontSave;
+      data.Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
+
+      if ( data.Node && data.Node.transform.parent != gameObject.transform )
+        gameObject.AddChild( data.Node );
     }
   }
 }

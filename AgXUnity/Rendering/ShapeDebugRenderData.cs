@@ -100,7 +100,7 @@ namespace AgXUnity.Rendering
       MeshRenderer renderer = meshData.AddComponent<MeshRenderer>();
       MeshFilter filter = meshData.AddComponent<MeshFilter>();
 
-      renderer.sharedMaterial = Resources.Load<UnityEngine.Material>( "Debug/DebugRendererMaterial" );
+      renderer.sharedMaterial = Resources.Load<UnityEngine.Material>( "Materials/DebugRendererMaterial" );
       filter.sharedMesh = mesh.SourceObject;
 
       return meshData;

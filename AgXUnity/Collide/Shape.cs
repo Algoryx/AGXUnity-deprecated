@@ -201,6 +201,9 @@ namespace AgXUnity.Collide
     protected void LateUpdate()
     {
       SyncUnityTransform();
+
+      if ( m_geometry != null && m_geometry.getRigidBody() != null )
+        Rendering.DebugRenderManager.OnLateUpdate( this );
     }
 
     /// <summary>
