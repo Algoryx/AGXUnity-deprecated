@@ -6,6 +6,7 @@ using UnityEngine;
 
 namespace AgXUnity.Rendering
 {
+  [AddComponentMenu( "" )]
   [RequireComponent( typeof( LineRenderer ) )]
   [ExecuteInEditMode]
   public class SimpleLineRenderer : ScriptComponent

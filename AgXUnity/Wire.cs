@@ -6,6 +6,7 @@ namespace AgXUnity
   /// <summary>
   /// Wire object.
   /// </summary>
+  [AddComponentMenu( "" )]
   [RequireComponent( typeof( Rendering.WireRenderer ) )]
   [GenerateCustomEditor]
   public class Wire : ScriptComponent

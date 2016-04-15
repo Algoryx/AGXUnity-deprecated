@@ -18,6 +18,7 @@ namespace AgXUnity
     public CollisionGroupEntry Second = new CollisionGroupEntry();
   }
 
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class CollisionGroupsManager : UniqueGameObject<CollisionGroupsManager>
   {

@@ -10,6 +10,7 @@ namespace AgXUnity.Rendering
   /// containing Collide.Shape components. DebugRenderManager manages
   /// these objects.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class ShapeDebugRenderData : DebugRenderData
   {

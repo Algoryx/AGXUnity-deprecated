@@ -9,6 +9,7 @@ namespace AgXUnity.Rendering
   /// Debug render manager singleton object, managing debug render data.
   /// This object is active in editor.
   /// </summary>
+  [AddComponentMenu( "" )]
   [ExecuteInEditMode]
   [GenerateCustomEditor]
   public class DebugRenderManager : UniqueGameObject<DebugRenderManager>

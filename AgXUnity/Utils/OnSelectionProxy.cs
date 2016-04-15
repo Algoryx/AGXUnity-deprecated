@@ -2,6 +2,7 @@
 
 namespace AgXUnity.Utils
 {
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class OnSelectionProxy : ScriptComponent
   {

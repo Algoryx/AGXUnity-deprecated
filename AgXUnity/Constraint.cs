@@ -9,6 +9,7 @@ namespace AgXUnity
   /// Data object holding compliance, damping and force range
   /// of a single constraint row.
   /// </summary>
+  [AddComponentMenu( "" )]
   [System.Serializable]
   public class ConstraintRowData
   {
@@ -45,6 +46,7 @@ namespace AgXUnity
   /// <summary>
   /// Elementary constraint base class.
   /// </summary>
+  [AddComponentMenu( "" )]
   public class ElementaryConstraint : ScriptComponent
   {
     #region Public Serialized Properties
@@ -241,6 +243,7 @@ namespace AgXUnity
   /// <summary>
   /// Quat lock elementary constraint - three rows.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class ElementaryQuatLock : ElementaryConstraint
   {
@@ -253,6 +256,7 @@ namespace AgXUnity
   /// <summary>
   /// Elementary spherical constraint - three rows.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class ElementarySphericalRel : ElementaryConstraint
   {
@@ -265,6 +269,7 @@ namespace AgXUnity
   /// <summary>
   /// Elementary dot 2 constraint - one row.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class ElementaryDot2 : ElementaryConstraint
   {
@@ -277,6 +282,7 @@ namespace AgXUnity
   /// <summary>
   /// Elementary dot 1 constraint - one row.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class ElementaryDot1 : ElementaryConstraint
   {
@@ -289,6 +295,7 @@ namespace AgXUnity
   /// <summary>
   /// Elementary contact normal constraint - one row.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class ElementaryContactNormal : ElementaryConstraint
   {
@@ -301,6 +308,7 @@ namespace AgXUnity
   /// <summary>
   /// Range controller - one row, disabled by default.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class RangeController : ElementaryConstraint
   {
@@ -336,6 +344,7 @@ namespace AgXUnity
   /// <summary>
   /// Target speed controller - one row, disabled by default.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class TargetSpeedMotor : ElementaryConstraint
   {
@@ -371,6 +380,7 @@ namespace AgXUnity
   /// <summary>
   /// Lock controller - one row, disabled by default.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class LockController : ElementaryConstraint
   {
@@ -475,6 +485,7 @@ namespace AgXUnity
   /// <summary>
   /// Constraint base class.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public abstract class Constraint : ScriptComponent
   {
@@ -808,6 +819,7 @@ namespace AgXUnity
   /// <summary>
   /// Hinge constraint with range, motor and lock.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class Hinge : Constraint
   {
@@ -830,6 +842,7 @@ namespace AgXUnity
   /// <summary>
   /// Prismatic constraint with range, motor and lock.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class Prismatic : Constraint
   {
@@ -852,6 +865,7 @@ namespace AgXUnity
   /// <summary>
   /// Lock constraint.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class LockJoint : Constraint
   {
@@ -870,6 +884,7 @@ namespace AgXUnity
   /// <summary>
   /// Cylindrical constraint with 2 x range, 2 x motor and 2 x lock.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class CylindricalJoint : Constraint
   {
@@ -896,6 +911,7 @@ namespace AgXUnity
   /// <summary>
   /// Ball constraint.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class BallJoint : Constraint
   {
@@ -913,6 +929,7 @@ namespace AgXUnity
   /// <summary>
   /// Angular lock constraint.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class AngularLockJoint : Constraint
   {
@@ -932,6 +949,7 @@ namespace AgXUnity
   /// Lock is enabled by default and the initial rest
   /// length is calculated in the PostCreate method.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class DistanceJoint : Constraint
   {
@@ -965,6 +983,7 @@ namespace AgXUnity
   /// <summary>
   /// Point in plane constraint.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class PlaneJoint : Constraint
   {
