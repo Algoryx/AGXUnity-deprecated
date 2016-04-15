@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace AgXUnity
 {
@@ -9,6 +10,7 @@ namespace AgXUnity
   /// semantics, like obj.GetInitialized<MyScriptAsset>(), since this
   /// manager is holding the state of the script asset.
   /// </summary>
+  [AddComponentMenu( "" )]
   public class ScriptAssetManager : UniqueGameObject<ScriptAssetManager>
   {
     /// <summary>

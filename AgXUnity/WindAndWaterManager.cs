@@ -6,6 +6,7 @@ namespace AgXUnity
   /// Wind and water manager handling agxModel.WindAndWaterController,
   /// and water shapes.
   /// </summary>
+  [AddComponentMenu( "" )]
   [GenerateCustomEditor]
   public class WindAndWaterManager : UniqueGameObject<WindAndWaterManager>
   {
