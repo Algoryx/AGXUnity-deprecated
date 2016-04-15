@@ -93,7 +93,7 @@ namespace AgXUnity.Collide
     /// </summary>
     protected override void SyncDebugRenderingScale()
     {
-      ShapeDebugRenderData debugData = GetComponent<ShapeDebugRenderData>();
+      Rendering.ShapeDebugRenderData debugData = GetComponent<Rendering.ShapeDebugRenderData>();
       if ( debugData != null && debugData.Node ) {
         GameObject prefab = debugData.Node;
         foreach ( Transform child in prefab.transform ) {

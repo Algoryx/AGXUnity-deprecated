@@ -7,6 +7,7 @@ namespace AgXUnity.Collide
   /// Mesh object, convex or general trimesh, given source object
   /// render data.
   /// </summary>
+  [AddComponentMenu( "AgXUnity/Shapes/Mesh" )]
   [GenerateCustomEditor]
   public sealed class Mesh : Shape
   {
@@ -38,7 +39,7 @@ namespace AgXUnity.Collide
 
         // New source, destroy current debug rendering data.
         if ( m_sourceObject != null ) {
-          ShapeDebugRenderData data = GetComponentInChildren<ShapeDebugRenderData>();
+          Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
           if ( data != null )
             GameObject.DestroyImmediate( data.Node );
           m_sourceObject = null;
@@ -62,12 +63,13 @@ namespace AgXUnity.Collide
     public agxCollide.Mesh Native { get { return m_shape as agxCollide.Mesh; } }
 
     /// <summary>
-    /// Debug rendering scale is one. Internally we've created the native
-    /// mesh object given the scale during initialize.
+    /// Debug rendering scale is the lossy scale. This is not defined if
+    /// parent game objects are rotated relative each other and has different
+    /// scales. The lossy scale is used when the native mesh is created.
     /// </summary>
     public override Vector3 GetScale()
     {
-      return Vector3.one;
+      return transform.lossyScale;
     }
 
     /// <summary>
@@ -127,7 +129,7 @@ namespace AgXUnity.Collide
       agx.Vec3Vector agxVertices = new agx.Vec3Vector( vertices.Length );
       agx.UInt32Vector agxIndices = new agx.UInt32Vector( indices.Length );
 
-      Vector3 scale = transform.localScale;
+      Vector3 scale = transform.lossyScale;
       foreach ( var vertex in vertices )
         agxVertices.Add( Vector3.Scale( vertex, scale ).AsVec3() );
 

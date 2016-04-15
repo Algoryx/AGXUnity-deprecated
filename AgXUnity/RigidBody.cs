@@ -29,7 +29,9 @@ namespace AgXUnity
   /// Rigid body object. Dynamic, kinematic or static, carrying mass and
   /// inertia. Possible to constrain and contains in general shapes.
   /// </summary>
+  [AddComponentMenu( "AgXUnity/Rigid Body" )]
   [RequireComponent( typeof( MassProperties ) )]
+  [DisallowMultipleComponent]
   [GenerateCustomEditor]
   public class RigidBody : ScriptComponent
   {
@@ -37,6 +39,7 @@ namespace AgXUnity
     /// Method name, for the shapes added to this body, to use when
     /// e.g., their size has changed, affecting the mass and inertia.
     /// </summary>
+    [HideInInspector]
     public static string UpdateMassMethodName = "UpdateMassProperties";
 
     /// <summary>
@@ -264,6 +267,8 @@ namespace AgXUnity
     {
       SyncUnityTransform();
       SyncProperties();
+
+      Rendering.DebugRenderManager.OnLateUpdate( this );
     }
     #endregion
 

@@ -8,6 +8,7 @@ namespace AgXUnity.Collide
   /// and agxCollide.Shape. I.e., this object contains both an instance
   /// to a native agxCollide::Geometry and an agxCollide::Shape.
   /// </summary>
+  [DisallowMultipleComponent]
   public abstract class Shape : ScriptComponent
   {
     /// <summary>
@@ -95,6 +96,11 @@ namespace AgXUnity.Collide
     /// <returns>Relative transform between rigid body (parent) and this shape, in native format.</returns>
     public agx.AffineMatrix4x4 GetNativeRigidBodyOffset()
     {
+      // If we're on the same level as the rigid body we have by
+      // definition no offset to the body.
+      if ( GetComponent<RigidBody>() != null )
+        return new agx.AffineMatrix4x4();
+
       agx.AffineMatrix4x4 relTransform = new agx.AffineMatrix4x4( transform.localRotation.AsQuat(), transform.localPosition.AsVec3() );
 
       // Go down to the parent rigid body via other game objects.
@@ -195,6 +201,9 @@ namespace AgXUnity.Collide
     protected void LateUpdate()
     {
       SyncUnityTransform();
+
+      if ( m_geometry != null && m_geometry.getRigidBody() != null )
+        Rendering.DebugRenderManager.OnLateUpdate( this );
     }
 
     /// <summary>
@@ -202,7 +211,7 @@ namespace AgXUnity.Collide
     /// </summary>
     protected virtual void SyncDebugRenderingScale()
     {
-      ShapeDebugRenderData debugData = GetComponentInChildren<ShapeDebugRenderData>();
+      Rendering.ShapeDebugRenderData debugData = GetComponent<Rendering.ShapeDebugRenderData>();
       if ( debugData != null )
         debugData.Synchronize();
     }

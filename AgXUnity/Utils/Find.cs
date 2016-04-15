@@ -40,7 +40,7 @@ namespace AgXUnity.Utils
 
       GameObject root = Find.RootGameObject( gameObject );
       RigidBody[] bodies = root.GetComponentsInChildren<RigidBody>();
-      ShapeDebugRenderData[] shapes = root.GetComponentsInChildren<ShapeDebugRenderData>();
+      Collide.Shape[] shapes = root.GetComponentsInChildren<Collide.Shape>();
 
       List<GameObject> gameObjects = new List<GameObject>();
       foreach ( var rb in bodies )
