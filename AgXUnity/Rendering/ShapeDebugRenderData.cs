@@ -124,27 +124,32 @@ namespace AgXUnity.Rendering
 
     private void RescaleRenderedMesh( Collide.Mesh mesh, MeshFilter filter )
     {
-      if ( mesh.SourceObject == null )
+      UnityEngine.Mesh source = mesh.SourceObject;
+      if ( source == null )
         throw new AgXUnity.Exception( "Source object is null during rescale." );
 
       Vector3[] vertices = filter.sharedMesh.vertices;
-      if ( vertices.Length == 0 )
-        vertices = new Vector3[ mesh.SourceObject.vertexCount ];
+      if ( vertices == null || vertices.Length == 0 )
+        vertices = new Vector3[ source.vertexCount ];
 
       int[] triangles = filter.sharedMesh.triangles;
       if ( triangles == null || triangles.Length == 0 )
-        triangles = (int[])mesh.SourceObject.triangles.Clone();
+        triangles = (int[])source.triangles.Clone();
 
-      if ( vertices.Length != mesh.SourceObject.vertexCount )
+      if ( vertices.Length != source.vertexCount )
         throw new AgXUnity.Exception( "Shape debug render mesh mismatch." );
 
-      Matrix4x4 scaledToWorld = mesh.transform.localToWorldMatrix;
+      Matrix4x4 scaledToWorld  = mesh.transform.localToWorldMatrix;
+      Vector3[] sourceVertices = mesh.SourceObject.vertices;
+
+      // Transforms each vertex from local to world given scales, then
+      // transfroms each vertex back to local again - unscaled.
       for ( int i = 0; i < vertices.Length; ++i ) {
-        Vector3 worldVertex = scaledToWorld * mesh.SourceObject.vertices[ i ];
-        vertices[ i ] = mesh.transform.InverseTransformDirection( worldVertex );
+        Vector3 worldVertex = scaledToWorld * sourceVertices[ i ];
+        vertices[ i ]       = mesh.transform.InverseTransformDirection( worldVertex );
       }
 
-      filter.sharedMesh.vertices = vertices;
+      filter.sharedMesh.vertices  = vertices;
       filter.sharedMesh.triangles = triangles;
 
       filter.sharedMesh.RecalculateBounds();
