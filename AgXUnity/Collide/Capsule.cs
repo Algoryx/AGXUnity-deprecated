@@ -3,6 +3,8 @@ using UnityEngine;
 
 namespace AgXUnity.Collide
 {
+  // TODO: Picking capsules doesn't work.
+
   /// <summary>
   /// Capsule shape object given radius and height.
   /// </summary>

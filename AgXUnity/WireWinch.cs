@@ -107,7 +107,7 @@ namespace AgXUnity
     protected override bool Initialize()
     {
       RigidBody rb = Parent.GetInitializedComponentInParent<RigidBody>();
-      Native = new agxWire.WireWinchController( rb != null ? rb.Native : null, LocalPosition.AsVec3(), LocalDirection.AsVec3() );
+      Native = new agxWire.WireWinchController( rb != null ? rb.Native : null, LocalPosition.ToHandedVec3(), LocalDirection.ToHandedVec3() );
 
       return base.Initialize();
     }

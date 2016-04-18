@@ -188,7 +188,7 @@ namespace AgXUnity.Rendering
       agxWire.RenderIterator it    = wire.Native.getRenderBeginIterator();
       agxWire.RenderIterator endIt = wire.Native.getRenderEndIterator();
       while ( !it.EqualWith( endIt ) ) {
-        positions.Add( it.get().getWorldPosition().AsVector3() );
+        positions.Add( it.get().getWorldPosition().ToHandedVector3() );
         it.inc();
       }
 

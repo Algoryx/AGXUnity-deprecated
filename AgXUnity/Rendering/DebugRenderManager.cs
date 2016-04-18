@@ -114,10 +114,14 @@ namespace AgXUnity.Rendering
       if ( data.Node == null )
         return;
 
-      data.Node.hideFlags = HideFlags.DontSave;
+      data.Node.transform.localScale                            = shape.GetScale();
+      data.Node.transform.position                              = shape.transform.position;
+      data.Node.transform.rotation                              = shape.transform.rotation;
+
+      data.Node.hideFlags                                       = HideFlags.DontSave;
       data.Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
 
-      if ( data.Node && data.Node.transform.parent != gameObject.transform )
+      if ( data.Node != null && data.Node.transform.parent != gameObject.transform )
         gameObject.AddChild( data.Node );
     }
   }

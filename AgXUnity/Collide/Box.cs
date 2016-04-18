@@ -28,7 +28,7 @@ namespace AgXUnity.Collide
         m_halfExtents = value.ClampedElementsAbove( MinimumLength );
 
         if ( Native != null )
-          Native.setHalfExtents( m_halfExtents.AsVec3() );
+          Native.setHalfExtents( m_halfExtents.ToVec3() );
 
         SizeUpdated();
       }
@@ -54,7 +54,7 @@ namespace AgXUnity.Collide
     /// <returns>Native box object.</returns>
     protected override agxCollide.Shape CreateNative()
     {
-      return new agxCollide.Box( HalfExtents.AsVec3() );
+      return new agxCollide.Box( HalfExtents.ToVec3() );
     }
   }
 }

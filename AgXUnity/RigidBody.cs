@@ -110,7 +110,7 @@ namespace AgXUnity
       {
         m_linearVelocity = value;
         if ( Native != null )
-          Native.setVelocity( m_linearVelocity.AsVec3() );
+          Native.setVelocity( m_linearVelocity.ToHandedVec3() );
       }
     }
 
@@ -130,7 +130,7 @@ namespace AgXUnity
       {
         m_angularVelocity = value;
         if ( Native != null )
-          Native.setAngularVelocity( m_angularVelocity.AsVec3() );
+          Native.setAngularVelocity( m_angularVelocity.ToHandedVec3() );
       }
     }
 
@@ -151,7 +151,7 @@ namespace AgXUnity
       {
         m_linearVelocityDamping = value;
         if ( Native != null )
-          Native.setLinearVelocityDamping( m_linearVelocityDamping.AsVec3f() );
+          Native.setLinearVelocityDamping( m_linearVelocityDamping.ToVec3f() );
       }
     }
 
@@ -172,7 +172,7 @@ namespace AgXUnity
       {
         m_angularVelocityDamping = value;
         if ( Native != null )
-          Native.setAngularVelocityDamping( m_angularVelocityDamping.AsVec3f() );
+          Native.setAngularVelocityDamping( m_angularVelocityDamping.ToVec3f() );
       }
     }
     #endregion
@@ -250,6 +250,8 @@ namespace AgXUnity
 
       SyncComponents();
 
+      m_rb.updateMassProperties();
+
       return base.Initialize();
     }
 
@@ -301,8 +303,8 @@ namespace AgXUnity
       // Local or global here? If we have a parent that moves?
       // If the parent moves, its transform has to be synced
       // down, and that is hard.
-      transform.position = m_rb.getPosition().AsVector3();
-      transform.rotation = m_rb.getRotation().AsQuaternion();
+      transform.position = m_rb.getPosition().ToHandedVector3();
+      transform.rotation = m_rb.getRotation().ToHandedQuaternion();
     }
 
     private void SyncProperties()
@@ -310,8 +312,8 @@ namespace AgXUnity
       if ( m_rb == null )
         return;
 
-      m_linearVelocity = m_rb.getVelocity().AsVector3();
-      m_angularVelocity = m_rb.getAngularVelocity().AsVector3();
+      m_linearVelocity = m_rb.getVelocity().ToHandedVector3();
+      m_angularVelocity = m_rb.getAngularVelocity().ToHandedVector3();
     }
 
     private void SyncNativeTransform()
@@ -319,8 +321,8 @@ namespace AgXUnity
       if ( m_rb == null )
         return;
 
-      m_rb.setPosition( transform.position.AsVec3() );
-      m_rb.setRotation( transform.rotation.AsQuat() );
+      m_rb.setPosition( transform.position.ToHandedVec3() );
+      m_rb.setRotation( transform.rotation.ToHandedQuat() );
     }
 
     private void UpdateMassProperties( Shape sender )
@@ -351,7 +353,7 @@ namespace AgXUnity
             agxCollide.Geometry geometry = new agxCollide.Geometry( nativeShape );
             if ( shape.Material != null )
               geometry.setMaterial( shape.Material.CreateTemporaryNative() );
-            rb.add( geometry, shape.GetNativeRigidBodyOffset() );
+            rb.add( geometry, shape.GetNativeRigidBodyOffset( this ) );
           }
         }
 
@@ -363,6 +365,25 @@ namespace AgXUnity
             geometry.remove( geometry.getShapes()[ 0 ].get() );
           rb.remove( geometry );
         }
+      }
+    }
+
+    private void VerifyConfiguration()
+    {
+      try {
+        // Verification:
+        // - No parent may be a body.
+        // - No parent may have a scale (since we're moving, we can't move with a scale - not physical).
+        var parent = transform.parent;
+        while ( parent != null ) {
+          bool hasBody = parent.GetComponent<RigidBody>() != null;
+          if ( hasBody )
+            new Exception( "An AgXUnity.RigidBody may not be parent to an AgXUnity.RigidBody." );
+          parent = parent.parent;
+        }
+      }
+      catch ( System.Exception e ) {
+        Debug.LogException( e, this );
       }
     }
   }

@@ -33,6 +33,9 @@ namespace AgXUnity.Rendering
     /// <returns>The Collide.Shape component.</returns>
     public Shape GetShape() { return GetComponent<Shape>(); }
 
+    [SerializeField]
+    private Vector3 m_storedLossyScale = Vector3.one;
+
     /// <summary>
     /// Creates debug rendering node (if not already created) and
     /// synchronizes the transform.
@@ -42,10 +45,10 @@ namespace AgXUnity.Rendering
       try {
         TryInitialize();
 
-        Shape shape               = GetShape();
-        Node.transform.localScale = shape.GetScale();
-        Node.transform.position   = shape.transform.position;
-        Node.transform.rotation   = shape.transform.rotation;
+        if ( IsMesh && m_storedLossyScale != transform.lossyScale ) {
+          RescaleRenderedMesh( GetShape() as Collide.Mesh, Node.GetComponent<MeshFilter>() );
+          m_storedLossyScale = transform.lossyScale;
+        }
       }
       catch ( System.Exception ) {
       }
@@ -101,8 +104,12 @@ namespace AgXUnity.Rendering
       MeshRenderer renderer = meshData.AddComponent<MeshRenderer>();
       MeshFilter filter = meshData.AddComponent<MeshFilter>();
 
+      filter.sharedMesh = new UnityEngine.Mesh();
+
+      RescaleRenderedMesh( mesh, filter );
+
       renderer.sharedMaterial = Resources.Load<UnityEngine.Material>( "Materials/DebugRendererMaterial" );
-      filter.sharedMesh = mesh.SourceObject;
+      m_storedLossyScale = mesh.transform.lossyScale;
 
       return meshData;
     }
@@ -113,6 +120,35 @@ namespace AgXUnity.Rendering
     private GameObject InitializeHeightField( HeightField hf )
     {
       return new GameObject( "HeightFieldData" );
+    }
+
+    private void RescaleRenderedMesh( Collide.Mesh mesh, MeshFilter filter )
+    {
+      if ( mesh.SourceObject == null )
+        throw new AgXUnity.Exception( "Source object is null during rescale." );
+
+      Vector3[] vertices = filter.sharedMesh.vertices;
+      if ( vertices.Length == 0 )
+        vertices = new Vector3[ mesh.SourceObject.vertexCount ];
+
+      int[] triangles = filter.sharedMesh.triangles;
+      if ( triangles == null || triangles.Length == 0 )
+        triangles = (int[])mesh.SourceObject.triangles.Clone();
+
+      if ( vertices.Length != mesh.SourceObject.vertexCount )
+        throw new AgXUnity.Exception( "Shape debug render mesh mismatch." );
+
+      Matrix4x4 scaledToWorld = mesh.transform.localToWorldMatrix;
+      for ( int i = 0; i < vertices.Length; ++i ) {
+        Vector3 worldVertex = scaledToWorld * mesh.SourceObject.vertices[ i ];
+        vertices[ i ] = mesh.transform.InverseTransformDirection( worldVertex );
+      }
+
+      filter.sharedMesh.vertices = vertices;
+      filter.sharedMesh.triangles = triangles;
+
+      filter.sharedMesh.RecalculateBounds();
+      filter.sharedMesh.RecalculateNormals();
     }
   }
 }

@@ -34,7 +34,7 @@ namespace AgXUnity
       {
         m_gravity = value;
         if ( m_simulation != null )
-          m_simulation.setUniformGravity( m_gravity.AsVec3() );
+          m_simulation.setUniformGravity( m_gravity.ToVec3() );
       }
     }
 
@@ -57,6 +57,66 @@ namespace AgXUnity
         if ( m_simulation != null )
           m_simulation.setTimeStep( m_timeStep );
       }
+    }
+
+    [InvokableInInspector( "Open in AgX native viewer" )]
+    public void OpenInAgXViewer()
+    {
+      if ( m_simulation == null ) {
+        Debug.Log( "Unable to open simulation in native viewer.\nEditor has to be in play mode (or paused)." );
+        return;
+      }
+
+      string path           = Application.dataPath + @"/AgXUnity/Resources/";
+      string tmpFilename    = "openedInViewer.agx";
+      string tmpLuaFilename = "openedInViewer.agxLua";
+
+      var cameraData = new
+      {
+        Eye               = Camera.main.transform.position,
+        Center            = Camera.main.transform.position + 25.0f * Camera.main.transform.forward,
+        Up                = Camera.main.transform.up,
+        NearClippingPlane = Camera.main.nearClipPlane,
+        FarClippingPlane  = Camera.main.farClipPlane,
+        FOV               = Camera.main.fieldOfView
+      };
+
+      string luaFileContent = @"
+assert( requestPlugin( ""agxOSG"" ) )
+if not alreadyInitialized then
+  alreadyInitialized = true
+  local app = agxOSG.ExampleApplication()
+  _G[ ""buildScene"" ] = function( sim, app, root )
+                           assert( agxOSG.readFile( """ + path + tmpFilename + @""", sim, root ) )
+
+                           local cameraData             = app:getCameraData()
+                           cameraData.eye               = agx.Vec3( " + cameraData.Eye.x + ", " + cameraData.Eye.y + ", " + cameraData.Eye.z + @" )
+                           cameraData.center            = agx.Vec3( " + cameraData.Center.x + ", " + cameraData.Center.y + ", " + cameraData.Center.z + @" )
+                           cameraData.up                = agx.Vec3( " + cameraData.Up.x + ", " + cameraData.Up.y + ", " + cameraData.Up.z + @" )
+                           cameraData.nearClippingPlane = " + cameraData.NearClippingPlane + @"
+                           cameraData.farClippingPlane  = " + cameraData.FarClippingPlane + @"
+                           cameraData.fieldOfView       = " + cameraData.FOV + @"
+                           app:applyCameraData( cameraData )
+
+                           return root
+                         end
+  app:addScene( arg[ 0 ], ""buildScene"", string.byte( ""1"" ) )
+  local argParser = agxIO.ArgumentParser()
+  argParser:readArguments( arg )
+  if app:init( argParser ) then
+    app:run()
+  end
+end";
+
+      uint numObjects = m_simulation.write( path + tmpFilename );
+      if ( numObjects == 0 ) {
+        Debug.Log( "Unable to start viewer.", this );
+        return;
+      }
+
+      System.IO.File.WriteAllText( path + tmpLuaFilename, luaFileContent );
+
+      System.Diagnostics.Process.Start( "luaagx.exe", path + tmpLuaFilename+ " -p --renderDebug 1" );
     }
 
     /// <summary>
