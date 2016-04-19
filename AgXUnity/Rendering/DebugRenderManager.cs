@@ -44,7 +44,7 @@ namespace AgXUnity.Rendering
     /// </summary>
     public static void OnLateUpdate( Collide.Shape shape )
     {
-      if ( !HasInstance )
+      if ( !ActiveForSynchronize )
         return;
 
       Instance.SynchronizeShape( shape );
@@ -55,25 +55,12 @@ namespace AgXUnity.Rendering
     /// </summary>
     public static void OnLateUpdate( RigidBody rb )
     {
-      if ( !HasInstance )
+      if ( !ActiveForSynchronize )
         return;
 
       Collide.Shape[] shapes = rb.GetComponentsInChildren<Collide.Shape>();
       foreach ( Collide.Shape shape in shapes )
         Instance.SynchronizeShape( shape );
-    }
-
-    [SerializeField]
-    private bool m_visible = true;
-    public bool Visible
-    {
-      get { return m_visible; }
-      set
-      {
-        if ( m_visible != value )
-          gameObject.SetActive( value );
-        m_visible = value;
-      }
     }
 
     protected override bool Initialize()
@@ -106,6 +93,8 @@ namespace AgXUnity.Rendering
       );
     }
 
+    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy; } }
+
     private void SynchronizeShape( Collide.Shape shape )
     {
       var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
@@ -115,6 +104,8 @@ namespace AgXUnity.Rendering
         return;
 
       // TODO: Node still visible when deactivating game object in Inspector.
+      //       During Update in editor we'll not end up here since FindObjectsOfType
+      //       only returns active game objects.
 
       data.Node.hideFlags                                       = HideFlags.DontSave;
       data.Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;

@@ -3,8 +3,6 @@ using UnityEngine;
 
 namespace AgXUnity.Collide
 {
-  // TODO: Picking capsules doesn't work.
-
   /// <summary>
   /// Capsule shape object given radius and height.
   /// </summary>
@@ -96,7 +94,7 @@ namespace AgXUnity.Collide
     protected override void SyncDebugRenderingScale()
     {
       Rendering.ShapeDebugRenderData debugData = GetComponent<Rendering.ShapeDebugRenderData>();
-      if ( debugData != null && debugData.Node ) {
+      if ( debugData != null && debugData.Node != null ) {
         GameObject prefab = debugData.Node;
         foreach ( Transform child in prefab.transform ) {
           if ( child.name.Contains( "Sphere" ) ) {

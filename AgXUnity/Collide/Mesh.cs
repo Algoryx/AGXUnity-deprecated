@@ -49,7 +49,6 @@ namespace AgXUnity.Collide
         if ( m_sourceObject == null ) {
           m_sourceObject = value;
           // Create debug rendering data.
-          SyncDebugRenderingScale();
           SizeUpdated();
         }
       }
