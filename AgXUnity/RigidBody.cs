@@ -237,6 +237,8 @@ namespace AgXUnity
     #region Protected Virtual Methods
     protected override bool Initialize()
     {
+      VerifyConfiguration();
+
       m_rb = new agx.RigidBody();
       m_rb.setName( name );
 
@@ -370,20 +372,14 @@ namespace AgXUnity
 
     private void VerifyConfiguration()
     {
-      try {
-        // Verification:
-        // - No parent may be a body.
-        // - No parent may have a scale (since we're moving, we can't move with a scale - not physical).
-        var parent = transform.parent;
-        while ( parent != null ) {
-          bool hasBody = parent.GetComponent<RigidBody>() != null;
-          if ( hasBody )
-            new Exception( "An AgXUnity.RigidBody may not be parent to an AgXUnity.RigidBody." );
-          parent = parent.parent;
-        }
-      }
-      catch ( System.Exception e ) {
-        Debug.LogException( e, this );
+      // Verification:
+      // - No parent may be a body.
+      var parent = transform.parent;
+      while ( parent != null ) {
+        bool hasBody = parent.GetComponent<RigidBody>() != null;
+        if ( hasBody )
+          throw new Exception( "An AgXUnity.RigidBody may not have an other AgXUnity.RigidBody as parent." );
+        parent = parent.parent;
       }
     }
   }

@@ -132,6 +132,10 @@ namespace AgXUnity.Utils
       return child.transform.IsChildOf( parent.transform );
     }
 
+    /// <summary>
+    /// Fetch component if already present or creates new.
+    /// </summary>
+    /// <typeparam name="T">Component type.</typeparam>
     public static T GetOrCreateComponent<T>( this GameObject gameObject ) where T : Component
     {
       return gameObject.GetComponent<T>() ?? gameObject.AddComponent<T>();
@@ -143,31 +147,52 @@ namespace AgXUnity.Utils
   /// </summary>
   public static partial class Extensions
   {
+    /// <summary>
+    /// Direct convert from agx.Vec3 to Vector3.
+    /// </summary>
+    /// <seealso cref="ToHandedVector3(agx.Vec3)"/>
     public static Vector3 ToVector3( this agx.Vec3 v )
     {
       return new Vector3( (float)v.x, (float)v.y, (float)v.z );
     }
 
+    /// <summary>
+    /// Direct convert from Vector3 to agx.Vec3.
+    /// </summary>
+    /// <seealso cref="ToHandedVec3(Vector3)"/>
     public static agx.Vec3 ToVec3( this Vector3 v )
     {
       return new agx.Vec3( (double)v.x, (double)v.y, (double)v.z );
     }
 
+    /// <summary>
+    /// Direct convert from Vector3 to agx.Vec3f.
+    /// </summary>
     public static agx.Vec3f ToVec3f( this Vector3 v )
     {
       return new agx.Vec3f( v.x, v.y, v.z );
     }
 
+    /// <summary>
+    /// Convert from agx.Vec3 to Vector3 - flipping x axis, transforming from
+    /// left/right handed to right/left handed coordinate system.
+    /// </summary>
+    /// <seealso cref="ToHandedVector3(agx.Vec3)"/>
     public static Vector3 ToHandedVector3( this agx.Vec3 v )
     {
       return new Vector3( -(float)v.x, (float)v.y, (float)v.z );
     }
 
+    /// <summary>
+    /// Convert from Vector3 to agx.Vec3 - flipping x axis, transforming from
+    /// left/right handed to right/left handed coordinate system.
+    /// </summary>
     public static agx.Vec3 ToHandedVec3( this Vector3 v )
     {
       return new agx.Vec3( -(double)v.x, (double)v.y, (double)v.z );
     }
 
+    /// <returns>A new, normalized quaternion.</returns>
     public static Quaternion Normalize( this Quaternion q )
     {
       Quaternion result;
@@ -183,38 +208,24 @@ namespace AgXUnity.Utils
       return result;
     }
 
+    /// <summary>
+    /// Converts an left/right handed agx.Quat to a right/left handed Quaternion.
+    /// </summary>
     public static Quaternion ToHandedQuaternion( this agx.Quat q )
     {
       return new Quaternion( -(float)q.x, (float)q.y, (float)q.z, -(float)q.w );
     }
 
+    /// <summary>
+    /// Converts an left/right handed Quaternion to a right/left handed agx.Quat.
+    /// </summary>
     public static agx.Quat ToHandedQuat( this Quaternion q )
     {
       return new agx.Quat( -(double)q.x, (double)q.y, (double)q.z, -(double)q.w );
     }
 
-    // TODO: Clean this up.
-
-    //public static Matrix4x4 AsMatrix4x4( this agx.AffineMatrix4x4 m )
-    //{
-    //  return Matrix4x4.TRS( m.getTranslate().AsVector3(), m.getRotate().AsQuaternion(), new Vector3( 1, 1, 1 ) );
-    //}
-
-    //public static agx.AffineMatrix4x4 ToHandedAffineMatrix4x4( this Matrix4x4 m )
-    //{
-    //  Vector4 x = m.GetColumn( 0 );
-    //  Vector4 y = m.GetColumn( 1 );
-    //  Vector4 z = m.GetColumn( 2 );
-    //  Vector4 p = m.GetColumn( 3 );
-    //  return new agx.AffineMatrix4x4( x.x, y.x, z.x, 0,
-    //                                  x.y, y.y, z.y, 0,
-    //                                  x.z, y.z, z.z, 0,
-    //                                  p.x, p.y, p.z, 1 );
-    //  //return new agx.AffineMatrix4x4( m.m00, m.m01, m.m02, m.m03,
-    //  //                                m.m10, m.m11, m.m12, m.m13,
-    //  //                                m.m20, m.m21, m.m22, m.m23,
-    //  //                                m.m30, m.m31, m.m32, m.m33 );
-    //}
+    // Extensions GetTranslate, GetRotation and GetScale:
+    //   - http://forum.unity3d.com/threads/how-to-assign-matrix4x4-to-transform.121966/
 
     /// <summary>
     /// Extract translation from transform matrix.

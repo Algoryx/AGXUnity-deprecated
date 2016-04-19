@@ -45,8 +45,13 @@ namespace AgXUnity.Rendering
       try {
         TryInitialize();
 
+        Collide.Shape shape       = GetShape();
+        Node.transform.localScale = shape.GetScale();
+        Node.transform.position   = shape.transform.position;
+        Node.transform.rotation   = shape.transform.rotation;
+
         if ( IsMesh && m_storedLossyScale != transform.lossyScale ) {
-          RescaleRenderedMesh( GetShape() as Collide.Mesh, Node.GetComponent<MeshFilter>() );
+          RescaleRenderedMesh( shape as Collide.Mesh, Node.GetComponent<MeshFilter>() );
           m_storedLossyScale = transform.lossyScale;
         }
       }
