@@ -114,12 +114,12 @@ namespace AgXUnity.Rendering
       if ( data.Node == null )
         return;
 
-      data.Node.transform.localScale                            = shape.GetScale();
-      data.Node.transform.position                              = shape.transform.position;
-      data.Node.transform.rotation                              = shape.transform.rotation;
+      // TODO: Node still visible when deactivating game object in Inspector.
 
       data.Node.hideFlags                                       = HideFlags.DontSave;
       data.Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
+      foreach ( Transform child in data.Node.transform )
+        child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
 
       if ( data.Node != null && data.Node.transform.parent != gameObject.transform )
         gameObject.AddChild( data.Node );
