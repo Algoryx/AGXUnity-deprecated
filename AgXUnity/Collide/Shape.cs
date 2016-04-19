@@ -208,7 +208,10 @@ namespace AgXUnity.Collide
     protected virtual void SyncDebugRenderingScale()
     {
       Rendering.ShapeDebugRenderData debugData = GetComponent<Rendering.ShapeDebugRenderData>();
-      if ( debugData != null )
+      // TODO: We've to use something different from Synchronize since
+      //       synchronize can create visuals even though we don't have
+      //       an active DebugRenderManager.
+      if ( debugData != null && debugData.Node != null )
         debugData.Synchronize();
     }
 
