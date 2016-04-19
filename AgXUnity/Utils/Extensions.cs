@@ -143,34 +143,29 @@ namespace AgXUnity.Utils
   /// </summary>
   public static partial class Extensions
   {
-    public static Vector3 AsVector3( this agx.Vec3 v )
+    public static Vector3 ToVector3( this agx.Vec3 v )
     {
       return new Vector3( (float)v.x, (float)v.y, (float)v.z );
     }
 
-    public static agx.Vec3 AsVec3( this Vector3 v )
+    public static agx.Vec3 ToVec3( this Vector3 v )
     {
       return new agx.Vec3( (double)v.x, (double)v.y, (double)v.z );
     }
 
-    public static agx.Vec3f AsVec3f( this Vector3 v )
+    public static agx.Vec3f ToVec3f( this Vector3 v )
     {
       return new agx.Vec3f( v.x, v.y, v.z );
     }
 
-    public static Vector4 AsVector4( this agx.Vec4 v )
+    public static Vector3 ToHandedVector3( this agx.Vec3 v )
     {
-      return new Vector4( (float)v.x, (float)v.y, (float)v.z, (float)v.w );
+      return new Vector3( -(float)v.x, (float)v.y, (float)v.z );
     }
 
-    public static agx.Vec4 AsVec4( this Vector4 v )
+    public static agx.Vec3 ToHandedVec3( this Vector3 v )
     {
-      return new agx.Vec4( (double)v.x, (double)v.y, (double)v.z, (double)v.w );
-    }
-
-    public static Quaternion AsQuaternion( this agx.Quat q )
-    {
-      return new Quaternion( (float)q.x, (float)q.y, (float)q.z, (float)q.w );
+      return new agx.Vec3( -(double)v.x, (double)v.y, (double)v.z );
     }
 
     public static Quaternion Normalize( this Quaternion q )
@@ -188,22 +183,94 @@ namespace AgXUnity.Utils
       return result;
     }
 
-    public static agx.Quat AsQuat( this Quaternion q )
+    public static Quaternion ToHandedQuaternion( this agx.Quat q )
     {
-      return new agx.Quat( (double)q.x, (double)q.y, (double)q.z, (double)q.w );
+      return new Quaternion( -(float)q.x, (float)q.y, (float)q.z, -(float)q.w );
     }
 
-    public static Matrix4x4 AsMatrix4x4( this agx.AffineMatrix4x4 m )
+    public static agx.Quat ToHandedQuat( this Quaternion q )
     {
-      return Matrix4x4.TRS( m.getTranslate().AsVector3(), m.getRotate().AsQuaternion(), new Vector3( 1, 1, 1 ) );
+      return new agx.Quat( -(double)q.x, (double)q.y, (double)q.z, -(double)q.w );
     }
 
-    public static agx.AffineMatrix4x4 AsAffineMatrix4x4( this Matrix4x4 m )
+    // TODO: Clean this up.
+
+    //public static Matrix4x4 AsMatrix4x4( this agx.AffineMatrix4x4 m )
+    //{
+    //  return Matrix4x4.TRS( m.getTranslate().AsVector3(), m.getRotate().AsQuaternion(), new Vector3( 1, 1, 1 ) );
+    //}
+
+    //public static agx.AffineMatrix4x4 ToHandedAffineMatrix4x4( this Matrix4x4 m )
+    //{
+    //  Vector4 x = m.GetColumn( 0 );
+    //  Vector4 y = m.GetColumn( 1 );
+    //  Vector4 z = m.GetColumn( 2 );
+    //  Vector4 p = m.GetColumn( 3 );
+    //  return new agx.AffineMatrix4x4( x.x, y.x, z.x, 0,
+    //                                  x.y, y.y, z.y, 0,
+    //                                  x.z, y.z, z.z, 0,
+    //                                  p.x, p.y, p.z, 1 );
+    //  //return new agx.AffineMatrix4x4( m.m00, m.m01, m.m02, m.m03,
+    //  //                                m.m10, m.m11, m.m12, m.m13,
+    //  //                                m.m20, m.m21, m.m22, m.m23,
+    //  //                                m.m30, m.m31, m.m32, m.m33 );
+    //}
+
+    /// <summary>
+    /// Extract translation from transform matrix.
+    /// </summary>
+    /// <param name="matrix">Transform matrix. This parameter is passed by reference
+    /// to improve performance; no changes will be made to it.</param>
+    /// <returns>
+    /// Translation offset.
+    /// </returns>
+    public static Vector3 GetTranslate( this Matrix4x4 matrix )
     {
-      return new agx.AffineMatrix4x4( m.m00, m.m01, m.m02, m.m03,
-                                      m.m10, m.m11, m.m12, m.m13,
-                                      m.m20, m.m21, m.m22, m.m23,
-                                      m.m30, m.m31, m.m32, m.m33 );
+      Vector3 translate;
+      translate.x = matrix.m03;
+      translate.y = matrix.m13;
+      translate.z = matrix.m23;
+      return translate;
+    }
+
+    /// <summary>
+    /// Extract rotation quaternion from transform matrix.
+    /// </summary>
+    /// <param name="matrix">Transform matrix. This parameter is passed by reference
+    /// to improve performance; no changes will be made to it.</param>
+    /// <returns>
+    /// Quaternion representation of rotation transform.
+    /// </returns>
+    public static Quaternion GetRotation( this Matrix4x4 matrix )
+    {
+      Vector3 forward;
+      forward.x = matrix.m02;
+      forward.y = matrix.m12;
+      forward.z = matrix.m22;
+
+      Vector3 upwards;
+      upwards.x = matrix.m01;
+      upwards.y = matrix.m11;
+      upwards.z = matrix.m21;
+
+      return Quaternion.LookRotation( forward, upwards );
+    }
+
+    /// <summary>
+    /// Extract scale from transform matrix.
+    /// </summary>
+    /// <param name="matrix">Transform matrix. This parameter is passed by reference
+    /// to improve performance; no changes will be made to it.</param>
+    /// <returns>
+    /// Scale vector.
+    /// </returns>
+    public static Vector3 GetScale( this Matrix4x4 matrix )
+    {
+      Vector3 scale;
+      scale.x = new Vector4( matrix.m00, matrix.m10, matrix.m20, matrix.m30 ).magnitude;
+      scale.y = new Vector4( matrix.m01, matrix.m11, matrix.m21, matrix.m31 ).magnitude;
+      scale.z = new Vector4( matrix.m02, matrix.m12, matrix.m22, matrix.m32 ).magnitude;
+      return scale;
     }
 
     public static float MaxValue( this Vector3 v )

@@ -170,8 +170,8 @@ namespace AgXUnity
         // We don't know if the parent is the rigid body.
         // It could be a mesh, or some other object.
         agx.Vec3 point = rb != null ?
-                          rb.transform.InverseTransformPoint( WorldPosition ).AsVec3() :
-                          WorldPosition.AsVec3();
+                          rb.transform.InverseTransformPoint( WorldPosition ).ToHandedVec3() :
+                          WorldPosition.ToHandedVec3();
 
         agx.RigidBody nativeRb = rb != null ? rb.Native : null;
         if ( Type == NodeType.BodyFixedNode )
@@ -184,7 +184,7 @@ namespace AgXUnity
         else if ( Type == NodeType.EyeNode )
           return new agxWire.EyeNode( nativeRb, point );
         else if ( Type == NodeType.ContactNode )
-          return new agxWire.ContactNode( shape.NativeGeometry, shape.transform.InverseTransformPoint( WorldPosition ).AsVec3() );
+          return new agxWire.ContactNode( shape.NativeGeometry, shape.transform.InverseTransformPoint( WorldPosition ).ToHandedVec3() );
         else if ( Type == NodeType.WinchNode ) {
           if ( m_winch == null )
             throw new AgXUnity.Exception( "No reference to a wire winch component in the winch node." );

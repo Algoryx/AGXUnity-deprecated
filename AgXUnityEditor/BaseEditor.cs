@@ -212,8 +212,15 @@ namespace AgXUnityEditor
       if ( methodInfo == null )
         return false;
 
+      object[] attributes = methodInfo.GetCustomAttributes( typeof( InvokableInInspector ), false );
+      GUIContent label = null;
+      if ( attributes.Length > 0 && ( attributes[ 0 ] as InvokableInInspector ).Label != "" )
+        label = Utils.GUIHelper.MakeLabel( ( attributes[ 0 ] as InvokableInInspector ).Label );
+      else
+        label = MakeLabel( methodInfo );
+
       bool invoked = false;
-      if ( GUILayout.Button( MakeLabel( methodInfo ), Utils.GUIHelper.EditorSkin.button, new GUILayoutOption[]{} ) ) {
+      if ( GUILayout.Button( label, Utils.GUIHelper.EditorSkin.button, new GUILayoutOption[]{} ) ) {
         methodInfo.Invoke( target, new object[] { } );
         invoked = true;
       }

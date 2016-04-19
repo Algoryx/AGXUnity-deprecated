@@ -47,6 +47,9 @@ namespace AgXUnity
   [System.AttributeUsage( System.AttributeTargets.Method, AllowMultiple = false )]
   public class InvokableInInspector : System.Attribute
   {
+    public InvokableInInspector( string label = "" ) { Label = label; }
+
+    public string Label = "";
   }
 
   /// <summary>

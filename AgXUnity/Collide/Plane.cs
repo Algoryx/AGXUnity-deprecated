@@ -29,7 +29,7 @@ namespace AgXUnity.Collide
     /// <returns></returns>
     protected override agxCollide.Shape CreateNative()
     {
-      return new agxCollide.Plane( transform.up.AsVec3(), 0 );
+      return new agxCollide.Plane( transform.up.ToHandedVec3(), 0 );
     }
   }
 }

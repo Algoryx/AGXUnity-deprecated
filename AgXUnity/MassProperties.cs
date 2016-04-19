@@ -55,7 +55,7 @@ namespace AgXUnity
         m_inertiaDiagonal = value;
         agx.RigidBody native = GetNative();
         if ( native != null )
-          native.getMassProperties().setInertiaTensor( m_inertiaDiagonal.Value.AsVec3() );
+          native.getMassProperties().setInertiaTensor( m_inertiaDiagonal.Value.ToVec3() );
       }
     }
 
@@ -70,7 +70,7 @@ namespace AgXUnity
         m_massCoefficients = value;
         agx.RigidBody native = GetNative();
         if ( native != null )
-          native.getMassProperties().setMassCoefficients( m_massCoefficients.AsVec3() );
+          native.getMassProperties().setMassCoefficients( m_massCoefficients.ToVec3() );
       }
     }
 
@@ -85,7 +85,7 @@ namespace AgXUnity
         m_inertiaCoefficients = value;
         agx.RigidBody native = GetNative();
         if ( native != null )
-          native.getMassProperties().setInertiaTensorCoefficients( m_inertiaCoefficients.AsVec3() );
+          native.getMassProperties().setInertiaTensorCoefficients( m_inertiaCoefficients.ToVec3() );
       }
     }
 
@@ -95,7 +95,7 @@ namespace AgXUnity
         return;
 
       Mass.DefaultValue = Convert.ToSingle( nativeRb.getMassProperties().getMass() );
-      InertiaDiagonal.DefaultValue = nativeRb.getMassProperties().getPrincipalInertiae().AsVector3();
+      InertiaDiagonal.DefaultValue = nativeRb.getMassProperties().getPrincipalInertiae().ToVector3();
     }
 
     protected override bool Initialize()

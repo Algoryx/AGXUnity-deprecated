@@ -16,7 +16,6 @@ namespace AgXUnity.Collide
     /// </summary>
     private agxCollide.Shape m_cachedNative = null;
 
-    #region Public Fields
     /// <summary>
     /// Source object paired with property SourceObject.
     /// </summary>
@@ -55,7 +54,6 @@ namespace AgXUnity.Collide
         }
       }
     }
-    #endregion
 
     /// <summary>
     /// Returns native mesh object if created.
@@ -63,13 +61,10 @@ namespace AgXUnity.Collide
     public agxCollide.Mesh Native { get { return m_shape as agxCollide.Mesh; } }
 
     /// <summary>
-    /// Debug rendering scale is the lossy scale. This is not defined if
-    /// parent game objects are rotated relative each other and has different
-    /// scales. The lossy scale is used when the native mesh is created.
     /// </summary>
     public override Vector3 GetScale()
     {
-      return transform.lossyScale;
+      return Vector3.one;
     }
 
     /// <summary>
@@ -120,6 +115,9 @@ namespace AgXUnity.Collide
     /// <summary>
     /// Creates native mesh object given vertices and indices.
     /// </summary>
+    /// <remarks>
+    /// Because of the left handedness of Unity the triangles are "clockwise".
+    /// </remarks>
     /// <param name="vertices">Mesh vertices.</param>
     /// <param name="indices">Mesh indices/triangles.</param>
     /// <param name="isConvex">True if the mesh is convex, otherwise (default) false.</param>
@@ -129,15 +127,21 @@ namespace AgXUnity.Collide
       agx.Vec3Vector agxVertices = new agx.Vec3Vector( vertices.Length );
       agx.UInt32Vector agxIndices = new agx.UInt32Vector( indices.Length );
 
-      Vector3 scale = transform.lossyScale;
-      foreach ( var vertex in vertices )
-        agxVertices.Add( Vector3.Scale( vertex, scale ).AsVec3() );
+      agx.AffineMatrix4x4 toLocalTransform = new agx.AffineMatrix4x4( transform.rotation.ToHandedQuat(), transform.position.ToHandedVec3() ).inverse();
+      foreach ( Vector3 vertex in vertices ) {
+        agx.Vec3 worldVertex = transform.TransformPoint( vertex ).ToHandedVec3();
+        agxVertices.Add( toLocalTransform.preMult( worldVertex ) );
+      }
+
+      //Vector3 scale = transform.lossyScale;
+      //foreach ( var vertex in vertices )
+      //  agxVertices.Add( Vector3.Scale( vertex, scale ).ToHandedVec3() );
 
       foreach ( var index in indices )
         agxIndices.Add( (uint)index );
 
-      return isConvex ? new agxCollide.Convex( agxVertices, agxIndices, "Convex" ) :
-                        new agxCollide.Trimesh( agxVertices, agxIndices, "Trimesh" );
+      return isConvex ? new agxCollide.Convex( agxVertices, agxIndices, "Convex", (uint)agxCollide.Convex.TrimeshOptionsFlags.CLOCKWISE_ORIENTATION ) :
+                        new agxCollide.Trimesh( agxVertices, agxIndices, "Trimesh", (uint)agxCollide.Trimesh.TrimeshOptionsFlags.CLOCKWISE_ORIENTATION );
     }
   }
 }

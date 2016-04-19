@@ -94,23 +94,62 @@ namespace AgXUnity.Collide
     /// The relative transform used between a rigid body and this shape.
     /// </summary>
     /// <returns>Relative transform between rigid body (parent) and this shape, in native format.</returns>
-    public agx.AffineMatrix4x4 GetNativeRigidBodyOffset()
+    public agx.AffineMatrix4x4 GetNativeRigidBodyOffset( RigidBody rb )
     {
+      // TODO: Cleanup this method.
+
       // If we're on the same level as the rigid body we have by
       // definition no offset to the body.
-      if ( GetComponent<RigidBody>() != null )
+      if ( rb == null || rb.gameObject == gameObject )
         return new agx.AffineMatrix4x4();
 
-      agx.AffineMatrix4x4 relTransform = new agx.AffineMatrix4x4( transform.localRotation.AsQuat(), transform.localPosition.AsVec3() );
+      agx.AffineMatrix4x4 shapeInWorld = new agx.AffineMatrix4x4( transform.rotation.ToHandedQuat(), transform.position.ToHandedVec3() );
+      agx.AffineMatrix4x4 rbInWorld    = new agx.AffineMatrix4x4( rb.transform.rotation.ToHandedQuat(), rb.transform.position.ToHandedVec3() );
+      return shapeInWorld.Multiply( rbInWorld.inverse() );
 
-      // Go down to the parent rigid body via other game objects.
-      Transform parent = transform.parent;
-      while ( parent != null && parent.GetComponent<RigidBody>() == null ) {
-        relTransform.MultiplyAssign( new agx.AffineMatrix4x4( parent.localRotation.AsQuat(), parent.localPosition.AsVec3() ) );
-        parent = parent.parent;
-      }
+      //System.Collections.Generic.List<agx.AffineMatrix4x4> transforms = new System.Collections.Generic.List<agx.AffineMatrix4x4>();
+      //// Shape to parent transform.
+      //transforms.Add( new agx.AffineMatrix4x4( transform.localRotation.ToHandedQuat(), Vector3.Scale( transform.localPosition, transform.localScale ).ToHandedVec3() ) );
+      //Transform aParent = transform.parent;
+      //while ( aParent != null && aParent.GetComponent<RigidBody>() == null ) {
+      //  // Intermediate object transform to its parent.
+      //  transforms.Add( new agx.AffineMatrix4x4( aParent.localRotation.ToHandedQuat(), Vector3.Scale( aParent.localPosition, aParent.localScale ).ToHandedVec3() ) );
+      //  aParent = aParent.transform.parent;
+      //}
 
-      return relTransform;
+      //transforms.Reverse();
+      //agx.AffineMatrix4x4 relTransform = new agx.AffineMatrix4x4();
+      //foreach ( var t in transforms )
+      //  relTransform.MultiplyAssign( t );
+
+      //return relTransform;
+
+      //Matrix4x4 relTransform = ( rb.transform.worldToLocalMatrix * transform.localToWorldMatrix );
+      //Debug.Log( relTransform.GetScale() );
+      //return new agx.AffineMatrix4x4( relTransform.GetRotation().ToHandedQuat(), relTransform.GetTranslate().ToHandedVec3() );
+
+      //Quaternion rotation = GetRotation( relTransform ).Normalize();
+      //Vector3 position = new Vector3( relTransform.GetColumn( 3 ).x, relTransform.GetColumn( 3 ).y, relTransform.GetColumn( 3 ).z );
+      //return new agx.AffineMatrix4x4( rotation.ToHandedQuat(), position.ToHandedVec3() );
+
+      //Matrix4x4 relTransform = Matrix4x4.TRS( transform.localPosition, transform.localRotation, transform.localScale );
+      //Transform parent = transform.parent;
+      //while ( parent != null && parent.GetComponent<RigidBody>() == null ) {
+      //  relTransform *= Matrix4x4.TRS( parent.localPosition, parent.localRotation, parent.localScale );
+      //  parent = parent.parent;
+      //}
+
+      //return relTransform.inverse.AsAffineMatrix4x4();
+
+      //agx.AffineMatrix4x4 relTransform = new agx.AffineMatrix4x4( transform.localRotation.ToHandedQuat(), transform.localPosition.ToHandedVec3() );
+      //// Go down to the parent rigid body via other game objects.
+      //Transform parent = transform.parent;
+      //while ( parent != null && parent.GetComponent<RigidBody>() == null ) {
+      //  relTransform.MultiplyAssign( new agx.AffineMatrix4x4( parent.localRotation.ToHandedQuat(), parent.localPosition.ToHandedVec3() ) );
+      //  parent = parent.parent;
+      //}
+
+      //return relTransform;
     }
 
     /// <summary>
@@ -127,7 +166,7 @@ namespace AgXUnity.Collide
       if ( !rb.gameObject.HasChild( gameObject ) )
         throw new Exception( "RigidBody not parent to Shape." );
 
-      rb.Native.add( m_geometry, GetNativeRigidBodyOffset() );
+      rb.Native.add( m_geometry, GetNativeRigidBodyOffset( rb ) );
     }
 
     /// <summary>
@@ -137,6 +176,7 @@ namespace AgXUnity.Collide
     /// </summary>
     public void SizeUpdated()
     {
+      // TODO: This method is called a lot during initialize. E.g., profile with 100 shapes.
       SyncDebugRenderingScale();
 
       SendMessageToAncestor<RigidBody>( RigidBody.UpdateMassMethodName, new object[] { this } );
@@ -202,7 +242,8 @@ namespace AgXUnity.Collide
     {
       SyncUnityTransform();
 
-      if ( m_geometry != null && m_geometry.getRigidBody() != null )
+      // If we have a body the debug rendering synchronization is made from that body.
+      if ( m_geometry != null && m_geometry.getRigidBody() == null )
         Rendering.DebugRenderManager.OnLateUpdate( this );
     }
 
@@ -224,8 +265,8 @@ namespace AgXUnity.Collide
     {
       if ( transform.parent == null && m_geometry != null ) {
         agx.AffineMatrix4x4 t = m_geometry.getTransform();
-        transform.position = t.getTranslate().AsVector3();
-        transform.rotation = t.getRotate().AsQuaternion();
+        transform.position = t.getTranslate().ToHandedVector3();
+        transform.rotation = t.getRotate().ToHandedQuaternion();
       }
     }
 
@@ -237,7 +278,7 @@ namespace AgXUnity.Collide
     {
       // Automatic synchronization if we have a parent.
       if ( m_geometry != null && m_geometry.getRigidBody() == null )
-        m_geometry.setLocalTransform( new agx.AffineMatrix4x4( transform.rotation.AsQuat(), transform.position.AsVec3() ) );
+        m_geometry.setLocalTransform( new agx.AffineMatrix4x4( transform.rotation.ToHandedQuat(), transform.position.ToHandedVec3() ) );
     }
   }
 }

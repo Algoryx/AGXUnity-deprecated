@@ -714,17 +714,17 @@ namespace AgXUnity
       agx.Frame f2 = new agx.Frame();
 
       if ( m_frames[ 0 ].transform != rb1.transform ) {
-        f1.setLocalTranslate( ( rb1.transform.InverseTransformPoint( m_frames[ 0 ].transform.position ) ).AsVec3() );
-        f1.setLocalRotate( ( Quaternion.Inverse( rb1.transform.rotation ) * m_frames[ 0 ].transform.rotation ).AsQuat() );
+        f1.setLocalTranslate( ( rb1.transform.InverseTransformPoint( m_frames[ 0 ].transform.position ) ).ToHandedVec3() );
+        f1.setLocalRotate( ( Quaternion.Inverse( rb1.transform.rotation ) * m_frames[ 0 ].transform.rotation ).ToHandedQuat() );
       }
 
       if ( rb2 != null && m_frames[ 1 ].transform != rb2.transform ) {
-        f2.setLocalTranslate( ( rb2.transform.InverseTransformPoint( m_frames[ 1 ].transform.position ).AsVec3() ) );
-        f2.setLocalRotate( ( Quaternion.Inverse( rb2.transform.rotation ) * m_frames[ 1 ].transform.rotation ).AsQuat() );
+        f2.setLocalTranslate( ( rb2.transform.InverseTransformPoint( m_frames[ 1 ].transform.position ).ToHandedVec3() ) );
+        f2.setLocalRotate( ( Quaternion.Inverse( rb2.transform.rotation ) * m_frames[ 1 ].transform.rotation ).ToHandedQuat() );
       }
       else {
-        f2.setLocalTranslate( m_frames[ 1 ].transform.position.AsVec3() );
-        f2.setLocalRotate( m_frames[ 1 ].transform.rotation.AsQuat() );
+        f2.setLocalTranslate( m_frames[ 1 ].transform.position.ToHandedVec3() );
+        f2.setLocalRotate( m_frames[ 1 ].transform.rotation.ToHandedQuat() );
       }
 
       m_constraint = Instantiate( rb1.Native, f1, rb2 ? rb2.Native : null, f2 );
@@ -751,11 +751,11 @@ namespace AgXUnity
       agx.Frame f1 = m_constraint.getAttachment( m_constraint.getBodyAt( 0 ) ).getFrame();
       agx.Frame f2 = m_constraint.getAttachment( m_constraint.getBodyAt( 1 ) ).getFrame();
 
-      f1.setLocalTranslate( m_frames[ 0 ].transform.localPosition.AsVec3() );
-      f1.setLocalRotate( m_frames[ 0 ].transform.localRotation.AsQuat() );
+      f1.setLocalTranslate( m_frames[ 0 ].transform.localPosition.ToHandedVec3() );
+      f1.setLocalRotate( m_frames[ 0 ].transform.localRotation.ToHandedQuat() );
 
-      f2.setLocalTranslate( m_frames[ 1 ].transform.localPosition.AsVec3() );
-      f2.setLocalRotate( m_frames[ 1 ].transform.localRotation.AsQuat() );
+      f2.setLocalTranslate( m_frames[ 1 ].transform.localPosition.ToHandedVec3() );
+      f2.setLocalRotate( m_frames[ 1 ].transform.localRotation.ToHandedQuat() );
 
       // If we've an animator object attached to this constraint,
       // synchronize properties.
