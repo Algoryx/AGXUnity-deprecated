@@ -57,12 +57,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="agxDotNet">
-      <HintPath>..\..\trunk\installed\bin\x64\agxDotNet.dll</HintPath>
+      <HintPath>D:\Algoryx\AgX-(rc)-2.15.0.3\bin\x64\agxDotNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
-    <Reference Include="UnityEngine, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\Program Files\Unity\Editor\Data\Managed\UnityEngine.dll</HintPath>
+    <Reference Include="UnityEngine">
+      <HintPath>D:\Program Files\Unity\Editor\Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -80,6 +79,7 @@
     <Compile Include="Constraint.cs" />
     <Compile Include="ContactMaterial.cs" />
     <Compile Include="ContactMaterialManager.cs" />
+    <Compile Include="FPSCamera.cs" />
     <Compile Include="Rendering\DebugRenderData.cs" />
     <Compile Include="Rendering\DebugRenderManager.cs" />
     <Compile Include="DefaultAndUserValue.cs" />
@@ -112,6 +112,9 @@
     <Compile Include="Wire.cs" />
     <Compile Include="WireRoute.cs" />
     <Compile Include="WireWinch.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
