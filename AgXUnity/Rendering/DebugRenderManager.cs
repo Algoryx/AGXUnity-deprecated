@@ -40,6 +40,18 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
+    /// Callback from Collide.Shape when the size of a shape has been changed.
+    /// </summary>
+    /// <param name="shape"></param>
+    public static void SynchronizeScale( Collide.Shape shape )
+    {
+      if ( !ActiveForSynchronize )
+        return;
+
+      Instance.SynchronizeScaleIfNodeExist( shape );
+    }
+
+    /// <summary>
     /// Called on LateUpdate from shapes without rigid bodies.
     /// </summary>
     public static void OnLateUpdate( Collide.Shape shape )
@@ -71,6 +83,20 @@ namespace AgXUnity.Rendering
       return base.Initialize();
     }
 
+    protected override void OnEnable()
+    {
+      SetVisible( true );
+
+      base.OnEnable();
+    }
+
+    protected override void OnDisable()
+    {
+      SetVisible( false );
+
+      base.OnDisable();
+    }
+
     protected void Update()
     {
       gameObject.transform.position   = Vector3.zero;
@@ -93,27 +119,25 @@ namespace AgXUnity.Rendering
       );
     }
 
-    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy; } }
+    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy && Instance.isActiveAndEnabled; } }
 
     private void SynchronizeShape( Collide.Shape shape )
     {
       var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
+      data.Synchronize( this );
+    }
 
-      data.Synchronize();
-      if ( data.Node == null )
-        return;
+    private void SynchronizeScaleIfNodeExist( Collide.Shape shape )
+    {
+      var data = shape.gameObject.GetComponent<ShapeDebugRenderData>();
+      if ( data != null )
+        data.SynchronizeScale( shape );
+    }
 
-      // TODO: Node still visible when deactivating game object in Inspector.
-      //       During Update in editor we'll not end up here since FindObjectsOfType
-      //       only returns active game objects.
-
-      data.Node.hideFlags                                       = HideFlags.DontSave;
-      data.Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
-      foreach ( Transform child in data.Node.transform )
-        child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
-
-      if ( data.Node != null && data.Node.transform.parent != gameObject.transform )
-        gameObject.AddChild( data.Node );
+    private void SetVisible( bool visible )
+    {
+      foreach ( Transform child in transform )
+        child.gameObject.SetActive( visible );
     }
   }
 }

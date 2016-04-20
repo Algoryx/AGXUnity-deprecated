@@ -17,6 +17,8 @@ namespace AgXUnityEditor
       var proxyTarget = Selection.activeGameObject != null ? Selection.activeGameObject.GetComponent<OnSelectionProxy>() : null;
       if ( proxyTarget != null )
         Selection.activeGameObject = proxyTarget.Target;
+
+      SceneView.RepaintAll();
     }
   }
 }

@@ -264,6 +264,15 @@ namespace AgXUnity
           }
 
           massProperties.SetDefaultCalculated( rb );
+
+          // Hitting "Update" (mass or inertia in the Inspector) several times
+          // will crash agx if we don't remove the geometries and shapes.
+          while ( rb.getGeometries().Count > 0 ) {
+            agxCollide.Geometry geometry = rb.getGeometries()[ 0 ].get();
+            if ( geometry.getShapes().Count > 0 )
+              geometry.remove( geometry.getShapes()[ 0 ].get() );
+            rb.remove( geometry );
+          }
         }
       }
     }

@@ -83,29 +83,5 @@ namespace AgXUnity.Collide
     {
       return new agxCollide.Capsule( m_radius, m_height );
     }
-
-    /// <summary>
-    /// Synchronizes the two spheres and the cylinder given the current
-    /// radius and height of this capusle.
-    /// 
-    /// The debug render objects assumes to contain two spheres named
-    /// "UpperSphere" and "LowerSphere".
-    /// </summary>
-    protected override void SyncDebugRenderingScale()
-    {
-      Rendering.ShapeDebugRenderData debugData = GetComponent<Rendering.ShapeDebugRenderData>();
-      if ( debugData != null && debugData.Node != null ) {
-        GameObject prefab = debugData.Node;
-        foreach ( Transform child in prefab.transform ) {
-          if ( child.name.Contains( "Sphere" ) ) {
-            child.gameObject.transform.localScale = new Vector3( 2.0f * m_radius, 2.0f * m_radius, 2.0f * m_radius );
-            float sign = 2.0f * Convert.ToSingle( child.name.Contains( "Upper" ) ) - 1.0f;
-            child.gameObject.transform.localPosition = new Vector3( 0, 0.5f * sign * m_height, 0 );
-          }
-          else
-            child.gameObject.transform.localScale = new Vector3( 2.0f * m_radius, 0.5f * m_height, 2.0f * m_radius );
-        }
-      }
-    }
   }
 }

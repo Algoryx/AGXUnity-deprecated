@@ -25,11 +25,13 @@ namespace AgXUnity.Rendering
     public abstract string GetTypeName();
 
     /// <summary>
-    /// Callback from DebugRenderManager each "Update". Synchronize
-    /// the transform of the "Node" game object - create the "Node"
+    /// Callback from the DebugRenderManager each editor "Update" or
+    /// in "LateUpdate" when the application is running.
+    /// 
+    /// Synchronize the transform of the "Node" game object - create the "Node"
     /// instance if it's null.
     /// </summary>
-    public abstract void Synchronize();
+    public abstract void Synchronize( DebugRenderManager manager );
 
     /// <summary>
     /// Name of the prefab in the Debug folder under Resources.

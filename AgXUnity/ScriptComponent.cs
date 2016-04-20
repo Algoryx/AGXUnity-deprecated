@@ -32,6 +32,8 @@ namespace AgXUnity
 
     protected ScriptComponent()
     {
+      IsSynchronizingProperties = false;
+
       NativeHandler.Instance.Register( this );
 
       agx.Thread.registerAsAgxThread();
@@ -58,6 +60,12 @@ namespace AgXUnity
     {
       return (T)InitializeCallback();
     }
+
+    /// <summary>
+    /// True when the property synchronizer is running during (post) initialize.
+    /// </summary>
+    [HideInInspector]
+    public bool IsSynchronizingProperties { get; private set; }
 
     /// <summary>
     /// Internal method when initialize callback should be fired.
@@ -99,7 +107,9 @@ namespace AgXUnity
     {
       InitializeCallback();
 
+      IsSynchronizingProperties = true;
       Utils.PropertySynchronizer.Synchronize( this );
+      IsSynchronizingProperties = false;
     }
 
     protected virtual void OnAwake() { }
