@@ -89,6 +89,14 @@ namespace AgXUnity
       }
     }
 
+    public MassProperties()
+    {
+      // When the user clicks "Update" in the editor we receive
+      // a callback to update mass of the body.
+      Mass.OnForcedUpdate            += OnForcedMassInertiaUpdate;
+      InertiaDiagonal.OnForcedUpdate += OnForcedMassInertiaUpdate;
+    }
+
     public void SetDefaultCalculated( agx.RigidBody nativeRb )
     {
       if ( nativeRb == null )
@@ -110,6 +118,13 @@ namespace AgXUnity
         Debug.LogException( new AgXUnity.Exception( "Rigid body is initializing with non-default mass property. The user values will probably not be propagated correctly." ), rb );
 
       return base.Initialize();
+    }
+
+    private void OnForcedMassInertiaUpdate()
+    {
+      RigidBody rb = GetComponent<RigidBody>();
+      if ( rb != null )
+        rb.UpdateMassProperties();
     }
   }
 }

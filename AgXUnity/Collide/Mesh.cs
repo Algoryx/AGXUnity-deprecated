@@ -132,10 +132,6 @@ namespace AgXUnity.Collide
         agxVertices.Add( toLocalTransform.preMult( worldVertex ) );
       }
 
-      //Vector3 scale = transform.lossyScale;
-      //foreach ( var vertex in vertices )
-      //  agxVertices.Add( Vector3.Scale( vertex, scale ).ToHandedVec3() );
-
       foreach ( var index in indices )
         agxIndices.Add( (uint)index );
 

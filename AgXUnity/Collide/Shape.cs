@@ -134,7 +134,8 @@ namespace AgXUnity.Collide
       // TODO: This method is called a lot during initialize. E.g., profile with 100 shapes.
       SyncDebugRenderingScale();
 
-      SendMessageToAncestor<RigidBody>( RigidBody.UpdateMassMethodName, new object[] { this } );
+      // TODO: init-body-performance cleanup
+      //SendMessageToAncestor<RigidBody>( RigidBody.UpdateMassMethodName, new object[] { this } );
     }
 
     /// <summary>

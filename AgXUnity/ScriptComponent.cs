@@ -60,13 +60,6 @@ namespace AgXUnity
     }
 
     /// <summary>
-    /// Invoked if GameObject extension method AddChild is used and
-    /// a child is added.
-    /// </summary>
-    /// <param name="child">Child added to this components game object.</param>
-    public virtual void OnChildAdded( GameObject child ) { }
-
-    /// <summary>
     /// Internal method when initialize callback should be fired.
     /// </summary>
     protected ScriptComponent InitializeCallback()
@@ -124,6 +117,7 @@ namespace AgXUnity
 
     protected virtual void OnApplicationQuit() { }
 
+    // TODO: init-body-performance cleanup
     /// <summary>
     /// Send message to first ancestor of given type. If the component
     /// is at the same level as this, that component is defined to be
@@ -132,28 +126,28 @@ namespace AgXUnity
     /// <typeparam name="T">Any ScriptComponent.</typeparam>
     /// <param name="methodName">Name of method to call.</param>
     /// <param name="arguments">Arguments to method. Note that they have to match!</param>
-    protected void SendMessageToAncestor<T>( string methodName, object[] arguments ) where T : ScriptComponent
-    {
-      // Will start from our level! I.e., ancestor could be a fellow component
-      // and not in transform.parent etc.
-      T ancestor = Utils.Find.FirstParentWithComponent<T>( transform );
-      if ( ancestor != null ) {
-        MethodInfo method = typeof( T ).GetMethod( methodName, BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic );
-        if ( method != null ) {
-          try {
-            method.Invoke( ancestor, arguments );
-          }
-          catch ( TargetParameterCountException ) {
-            Debug.LogWarning( "Invoke failed, number of arguments doesn't match in method: " + methodName + " in type: " + typeof( T ) + " sent by: " + GetType() );
-          }
-          catch ( ArgumentException ) {
-            Debug.LogWarning( "Argument mismatch while sending message to method: " + methodName + " in type: " + typeof( T ) + " sent by: " + GetType() );
-          }
-          catch ( System.Exception e ) {
-            Debug.LogException( e );
-          }
-        }
-      }
-    }
+    //protected void SendMessageToAncestor<T>( string methodName, object[] arguments ) where T : ScriptComponent
+    //{
+    //  // Will start from our level! I.e., ancestor could be a fellow component
+    //  // and not in transform.parent etc.
+    //  T ancestor = Utils.Find.FirstParentWithComponent<T>( transform );
+    //  if ( ancestor != null ) {
+    //    MethodInfo method = typeof( T ).GetMethod( methodName, BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.NonPublic );
+    //    if ( method != null ) {
+    //      try {
+    //        method.Invoke( ancestor, arguments );
+    //      }
+    //      catch ( TargetParameterCountException ) {
+    //        Debug.LogWarning( "Invoke failed, number of arguments doesn't match in method: " + methodName + " in type: " + typeof( T ) + " sent by: " + GetType() );
+    //      }
+    //      catch ( ArgumentException ) {
+    //        Debug.LogWarning( "Argument mismatch while sending message to method: " + methodName + " in type: " + typeof( T ) + " sent by: " + GetType() );
+    //      }
+    //      catch ( System.Exception e ) {
+    //        Debug.LogException( e );
+    //      }
+    //    }
+    //  }
+    //}
   }
 }

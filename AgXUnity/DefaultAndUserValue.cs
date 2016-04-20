@@ -28,6 +28,15 @@ namespace AgXUnity
     public T DefaultValue { get { return m_defaultValue; } set { m_defaultValue = value; } }
     public T UserValue { get { return m_userValue; } set { m_userValue = value; } }
 
+    public delegate void OnForcedUpdateDelegate();
+
+    public event OnForcedUpdateDelegate OnForcedUpdate = delegate { };
+
+    public void FireOnForcedUpdate()
+    {
+      OnForcedUpdate();
+    }
+
     /// <summary>
     /// Assigning this property when UseDefault == true will NOT change any value.
     /// Use explicit DefaultValue and UserValue for that. If UseDefault == false

@@ -47,12 +47,6 @@ namespace AgXUnity.Utils
         child.transform.localRotation = rotBefore;
       }
 
-      if ( child.GetComponent<Collide.Shape>() != null ) {
-        ScriptComponent[] scriptComponents = parent.GetComponents<ScriptComponent>();
-        foreach ( ScriptComponent scriptComponent in scriptComponents )
-          scriptComponent.OnChildAdded( child );
-      }
-
       return parent;
     }
 
