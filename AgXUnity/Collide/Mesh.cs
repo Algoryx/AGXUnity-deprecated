@@ -12,15 +12,11 @@ namespace AgXUnity.Collide
   public sealed class Mesh : Shape
   {
     /// <summary>
-    /// Cached instance when the source object is the same.
-    /// </summary>
-    private agxCollide.Shape m_cachedNative = null;
-
-    /// <summary>
     /// Source object paired with property SourceObject.
     /// </summary>
     [SerializeField]
     private UnityEngine.Mesh m_sourceObject = null;
+
     /// <summary>
     /// Get or set source object (Unity Mesh).
     /// </summary>
@@ -32,9 +28,6 @@ namespace AgXUnity.Collide
       {
         if ( value == m_sourceObject )
           return;
-
-        if ( m_sourceObject != value )
-          m_cachedNative = null;
 
         // New source, destroy current debug rendering data.
         if ( m_sourceObject != null ) {
@@ -67,16 +60,11 @@ namespace AgXUnity.Collide
     }
 
     /// <summary>
-    /// Creates new temporary native object or returns the current cached
-    /// native object. We keep a cached version for performance reasons
-    /// when this method is called a lot to determine the mass properties
-    /// of RigidBody objects.
+    /// Creates a native instance of the mesh and returns it. Performance warning.
     /// </summary>
     public override agxCollide.Shape CreateTemporaryNative()
     {
-      if ( m_cachedNative == null )
-        m_cachedNative = CreateNative();
-      return m_cachedNative;
+      return CreateNative();
     }
 
     /// <summary>
@@ -93,7 +81,6 @@ namespace AgXUnity.Collide
     /// </summary>
     protected override bool Initialize()
     {
-      m_cachedNative = null;
       return base.Initialize();
     }
 
@@ -126,15 +113,9 @@ namespace AgXUnity.Collide
       agx.Vec3Vector agxVertices = new agx.Vec3Vector( vertices.Length );
       agx.UInt32Vector agxIndices = new agx.UInt32Vector( indices.Length );
 
-      agx.AffineMatrix4x4 toLocalTransform = new agx.AffineMatrix4x4( transform.rotation.ToHandedQuat(), transform.position.ToHandedVec3() ).inverse();
-      foreach ( Vector3 vertex in vertices ) {
-        agx.Vec3 worldVertex = transform.TransformPoint( vertex ).ToHandedVec3();
-        agxVertices.Add( toLocalTransform.preMult( worldVertex ) );
-      }
-
-      //Vector3 scale = transform.lossyScale;
-      //foreach ( var vertex in vertices )
-      //  agxVertices.Add( Vector3.Scale( vertex, scale ).ToHandedVec3() );
+      Matrix4x4 toWorld = transform.localToWorldMatrix;
+      foreach ( Vector3 vertex in vertices )
+        agxVertices.Add( transform.InverseTransformDirection( toWorld * vertex ).ToHandedVec3() );
 
       foreach ( var index in indices )
         agxIndices.Add( (uint)index );

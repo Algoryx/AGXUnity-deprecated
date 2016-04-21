@@ -131,10 +131,10 @@ namespace AgXUnity.Collide
     /// </summary>
     public void SizeUpdated()
     {
-      // TODO: This method is called a lot during initialize. E.g., profile with 100 shapes.
-      SyncDebugRenderingScale();
-
-      SendMessageToAncestor<RigidBody>( RigidBody.UpdateMassMethodName, new object[] { this } );
+      // Avoids calling sync of debug rendering when the properties
+      // are being synchronized during initialize.
+      if ( !IsSynchronizingProperties )
+        Rendering.DebugRenderManager.SynchronizeScale( this );
     }
 
     /// <summary>
@@ -200,19 +200,6 @@ namespace AgXUnity.Collide
       // If we have a body the debug rendering synchronization is made from that body.
       if ( m_geometry != null && m_geometry.getRigidBody() == null )
         Rendering.DebugRenderManager.OnLateUpdate( this );
-    }
-
-    /// <summary>
-    /// Synchronizes debug render scale when e.g., the size has been changed.
-    /// </summary>
-    protected virtual void SyncDebugRenderingScale()
-    {
-      Rendering.ShapeDebugRenderData debugData = GetComponent<Rendering.ShapeDebugRenderData>();
-      // TODO: We've to use something different from Synchronize since
-      //       synchronize can create visuals even though we don't have
-      //       an active DebugRenderManager.
-      if ( debugData != null && debugData.Node != null )
-        debugData.Synchronize();
     }
 
     /// <summary>

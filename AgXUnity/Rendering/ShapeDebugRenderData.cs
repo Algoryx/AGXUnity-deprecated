@@ -24,38 +24,86 @@ namespace AgXUnity.Rendering
       return GetShape().GetType().Name;
     }
 
-    /// <summary>
-    /// True if the shape type is mesh.
-    /// </summary>
-    [HideInInspector]
-    public bool IsMesh { get { return PrefabName.Contains( "Mesh" ) || PrefabName.Contains( "HeightField" ); } }
-
     /// <returns>The Collide.Shape component.</returns>
     public Shape GetShape() { return GetComponent<Shape>(); }
 
+    /// <summary>
+    /// Lossy scale (of the shape) stored to know when to rescale the
+    /// debug rendered mesh of Collide.Mesh objects.
+    /// </summary>
     [SerializeField]
     private Vector3 m_storedLossyScale = Vector3.one;
 
     /// <summary>
-    /// Creates debug rendering node (if not already created) and
-    /// synchronizes the transform.
+    /// Creates debug rendering node if it doesn't already exist and
+    /// synchronizes the rendered object transform to be the same as the shape.
     /// </summary>
-    public override void Synchronize()
+    /// <param name="manager"></param>
+    public override void Synchronize( DebugRenderManager manager )
     {
       try {
-        TryInitialize();
+        Shape shape      = GetShape();
+        bool nodeCreated = TryInitialize( shape );
 
-        Collide.Shape shape       = GetShape();
-        Node.transform.localScale = shape.GetScale();
-        Node.transform.position   = shape.transform.position;
-        Node.transform.rotation   = shape.transform.rotation;
+        if ( Node == null )
+          return;
 
-        if ( IsMesh && m_storedLossyScale != transform.lossyScale ) {
+        // Node created - set properties and extra components.
+        if ( nodeCreated ) {
+          Node.hideFlags = HideFlags.DontSave;
+          Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
+          foreach ( Transform child in Node.transform )
+            child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
+        }
+
+        // Forcing the debug render node to be parent to the static DebugRenderManger.
+        if ( Node.transform.parent != manager.gameObject.transform )
+          manager.gameObject.AddChild( Node );
+
+        Node.transform.position = shape.transform.position;
+        Node.transform.rotation = shape.transform.rotation;
+
+        SynchronizeScale( shape );
+      }
+      catch ( System.Exception ) {
+      }
+    }
+
+    /// <summary>
+    /// Synchronize the scale/size of the debug render object to match the shape size.
+    /// Scaling is ignore if the node hasn't been created (i.e., this method doesn't
+    /// create the render node).
+    /// </summary>
+    /// <param name="shape">Shape this component belongs to.</param>
+    public void SynchronizeScale( Collide.Shape shape )
+    {
+      if ( Node == null )
+        return;
+
+      Node.transform.localScale = shape.GetScale();
+
+      if ( shape is Collide.Mesh ) {
+        if ( m_storedLossyScale != transform.lossyScale ) {
           RescaleRenderedMesh( shape as Collide.Mesh, Node.GetComponent<MeshFilter>() );
           m_storedLossyScale = transform.lossyScale;
         }
       }
-      catch ( System.Exception ) {
+      else if ( shape is Collide.Capsule ) {
+        if ( Node.transform.childCount != 3 )
+          throw new Exception( "Capsule debug rendering node doesn't contain three children." );
+
+        Collide.Capsule capsule   = shape as Capsule;
+        Transform cylinder        = Node.transform.GetChild( 0 );
+        Transform sphereUpper     = Node.transform.GetChild( 1 );
+        Transform sphereLower     = Node.transform.GetChild( 2 );
+
+        cylinder.localScale       = new Vector3( 2.0f * capsule.Radius, 0.5f * capsule.Height, 2.0f * capsule.Radius );
+
+        sphereUpper.localScale    = 2.0f * capsule.Radius * Vector3.one;
+        sphereUpper.localPosition = 0.5f * capsule.Height * Vector3.up;
+
+        sphereLower.localScale    = 2.0f * capsule.Radius * Vector3.one;
+        sphereLower.localPosition = 0.5f * capsule.Height * Vector3.down;
       }
     }
 
@@ -63,17 +111,24 @@ namespace AgXUnity.Rendering
     /// If no "Node" instance, this method tries to create one
     /// given the Collide.Shape component in this game object.
     /// </summary>
-    private void TryInitialize()
+    /// <returns>True if the node was created - otherwise false.</returns>
+    private bool TryInitialize( Collide.Shape shape )
     {
       if ( Node != null )
-        return;
+        return false;
 
-      if ( IsMesh )
-        Node = InitializeMesh();
+      Collide.Mesh mesh               = shape as Collide.Mesh;
+      Collide.HeightField heightField = shape as Collide.HeightField;
+      if ( mesh != null )
+        Node = InitializeMesh( mesh );
+      else if ( heightField != null )
+        Node = InitializeHeightField( heightField );
       else {
         Node = PrefabLoader.Instantiate( PrefabName );
         Node.transform.localScale = GetShape().GetScale();
       }
+
+      return Node != null;
     }
 
     /// <summary>
@@ -81,16 +136,9 @@ namespace AgXUnity.Rendering
     /// is of type mesh. Fails the the shape type is different from mesh.
     /// </summary>
     /// <returns>Game object with mesh renderer.</returns>
-    private GameObject InitializeMesh()
+    private GameObject InitializeMesh( Collide.Mesh mesh )
     {
-      Shape shape = GetShape();
-      if ( shape == null || ( shape as Collide.Mesh == null && shape as Collide.HeightField == null ) )
-        throw new Exception( "Unexpected behavior where ShapeDebugRenderData is not component of AgXUnity.Shape." );
-
-      if ( shape as Collide.HeightField != null )
-        return InitializeHeightField( shape as Collide.HeightField );
-
-      return InitializeMeshGivenSourceObject( shape as Collide.Mesh );
+      return InitializeMeshGivenSourceObject( mesh );
     }
 
     /// <summary>
@@ -99,9 +147,6 @@ namespace AgXUnity.Rendering
     /// </summary>
     private GameObject InitializeMeshGivenSourceObject( Collide.Mesh mesh )
     {
-      if ( mesh == null )
-        throw new ArgumentNullException( "mesh" );
-
       if ( mesh.SourceObject == null )
         throw new AgXUnity.Exception( "Mesh has no source." );
 

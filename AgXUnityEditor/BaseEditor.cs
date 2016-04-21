@@ -270,7 +270,7 @@ namespace AgXUnityEditor
       else if ( type == typeof( DefaultAndUserValueFloat ) && wrapper.CanRead() ) {
         DefaultAndUserValueFloat valInField = wrapper.Get<DefaultAndUserValueFloat>();
 
-        float newValue = HandleDefaultAndUserValue<float>( wrapper.Member.Name, valInField );
+        float newValue = HandleDefaultAndUserValue( wrapper.Member.Name, valInField );
         if ( wrapper.IsValid( newValue ) ) {
           valInField.Value = newValue;
           value = valInField;
@@ -279,7 +279,7 @@ namespace AgXUnityEditor
       else if ( type == typeof( DefaultAndUserValueVector3 ) && wrapper.CanRead() ) {
         DefaultAndUserValueVector3 valInField = wrapper.Get<DefaultAndUserValueVector3>();
 
-        Vector3 newValue = HandleDefaultAndUserValue<Vector3>( wrapper.Member.Name, valInField );
+        Vector3 newValue = HandleDefaultAndUserValue( wrapper.Member.Name, valInField );
         if ( wrapper.IsValid( newValue ) ) {
           valInField.Value = newValue;
           value = valInField;
@@ -371,11 +371,20 @@ namespace AgXUnityEditor
           valInField.UseDefault = gridSelection == 0;
         }
         EditorGUILayout.EndHorizontal();
-        EditorGUI.BeginDisabledGroup( valInField.UseDefault );
+
+        EditorGUILayout.BeginHorizontal();
         {
-          newValue = ( ValueT )method.Invoke( null, new object[] { "", valInField.Value, new GUILayoutOption[] { } } );
+          EditorGUI.BeginDisabledGroup( valInField.UseDefault );
+          {
+            newValue = (ValueT)method.Invoke( null, new object[] { "", valInField.Value, new GUILayoutOption[] { } } );
+          }
+          EditorGUI.EndDisabledGroup();
         }
-        EditorGUI.EndDisabledGroup();
+
+        if ( GUILayout.Button( Utils.GUIHelper.MakeLabel( "Update" ) ) )
+          valInField.FireOnForcedUpdate();
+
+        EditorGUILayout.EndHorizontal();
       }
       Utils.GUIHelper.Separator();
 

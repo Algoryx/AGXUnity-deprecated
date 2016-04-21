@@ -18,11 +18,6 @@ namespace AgXUnity
       RigidBody rb = gameObject.GetComponent<RigidBody>();
       return rb != null ? rb.Native : null;
     }
-
-    /// <summary>
-    /// Synchronize callback when initialized.
-    /// </summary>
-    public virtual void Synchronize( RigidBody rb ) { }
   }
 
   /// <summary>
@@ -199,40 +194,89 @@ namespace AgXUnity
     }
     #endregion
 
-    /// <summary>
-    /// Update mass properties given added shapes. This method
-    /// has to be used if IgnoreOnChildAdded flag is set to true,
-    /// for this rigid body to have the correct mass properties.
-    /// </summary>
-    public void ExplicitUpdateMassProperties()
+    private void UpdateMassPropertiesAAAA( Shape sender )
     {
-      UpdateMassProperties( null );
-    }
+      // Not sure if possible to perform incremental update. For
+      // now we'll ignore the sender.
 
-    private bool m_ignoreOnChildAdded = false;
-
-    /// <summary>
-    /// When a shape is added to this body, mass properties given all shapes
-    /// are calculated. If a tool adds a lot of shapes, set this field to
-    /// true when the shapes are added and when done, invoke ExplicitUpdateMassProperties.
-    /// </summary>
-    [HideInInspector]
-    public bool IgnoreOnChildAdded { get { return m_ignoreOnChildAdded; } set { m_ignoreOnChildAdded = value; } }
-
-    /// <summary>
-    /// Callback when the game object this component is part of receives
-    /// a new child game object (e.g., a shape).
-    /// </summary>
-    /// <param name="child">Child game object.</param>
-    public override void OnChildAdded( GameObject child )
-    {
-      if ( IgnoreOnChildAdded )
+      // If we don't have a mass properties component, we don't
+      // have to perform this action. (Calculated or native
+      // interface used.)
+      MassProperties massProperties = GetComponent<MassProperties>();
+      if ( massProperties == null )
         return;
 
-      base.OnChildAdded( child );
+      Shape[] shapes = GetComponentsInChildren<Shape>();
+      if ( shapes.Length == 0 )
+        return;
 
-      UpdateMassProperties( null );
+      // Fill temporary rigid body with geometries to calculate
+      // mass and inertia.
+      using ( agx.RigidBody rb = new agx.RigidBody() ) {
+        foreach ( Shape shape in shapes ) {
+          agxCollide.Shape nativeShape = shape.CreateTemporaryNative();
+          if ( nativeShape != null ) {
+            agxCollide.Geometry geometry = new agxCollide.Geometry( nativeShape );
+            if ( shape.Material != null )
+              geometry.setMaterial( shape.Material.CreateTemporaryNative() );
+            rb.add( geometry, shape.GetNativeRigidBodyOffset( this ) );
+          }
+        }
+
+        massProperties.SetDefaultCalculated( rb );
+
+        while ( rb.getGeometries().Count > 0 ) {
+          agxCollide.Geometry geometry = rb.getGeometries()[ 0 ].get();
+          if ( geometry.getShapes().Count > 0 )
+            geometry.remove( geometry.getShapes()[ 0 ].get() );
+          rb.remove( geometry );
+        }
+      }
     }
+
+    #region Public Methods
+    public void UpdateMassProperties()
+    {
+      MassProperties massProperties = GetComponent<MassProperties>();
+      if ( massProperties == null )
+        return;
+
+      // If we have a native instance we can assume the geometries to be
+      // synchronized (added, correct position etc).
+      if ( m_rb != null ) {
+        m_rb.updateMassProperties();
+        massProperties.SetDefaultCalculated( m_rb );
+      }
+      // The native instance hasn't been created yet - create temporary
+      // body with temporary geometries/shapes.
+      else {
+        Shape[] shapes = GetComponentsInChildren<Shape>();
+
+        using ( agx.RigidBody rb = new agx.RigidBody() ) {
+          foreach ( Shape shape in shapes ) {
+            agxCollide.Shape nativeShape = shape.CreateTemporaryNative();
+            if ( nativeShape != null ) {
+              agxCollide.Geometry geometry = new agxCollide.Geometry( nativeShape );
+              if ( shape.Material != null )
+                geometry.setMaterial( shape.Material.CreateTemporaryNative() );
+              rb.add( geometry, shape.GetNativeRigidBodyOffset( this ) );
+            }
+          }
+
+          massProperties.SetDefaultCalculated( rb );
+
+          // Hitting "Update" (mass or inertia in the Inspector) several times
+          // will crash agx if we don't remove the geometries and shapes.
+          while ( rb.getGeometries().Count > 0 ) {
+            agxCollide.Geometry geometry = rb.getGeometries()[ 0 ].get();
+            if ( geometry.getShapes().Count > 0 )
+              geometry.remove( geometry.getShapes()[ 0 ].get() );
+            rb.remove( geometry );
+          }
+        }
+      }
+    }
+    #endregion
 
     #region Protected Virtual Methods
     protected override bool Initialize()
@@ -246,13 +290,9 @@ namespace AgXUnity
 
       SyncShapes();
 
-      GetComponent<MassProperties>().SetDefaultCalculated( m_rb );
-
       GetSimulation().add( m_rb );
 
-      SyncComponents();
-
-      m_rb.updateMassProperties();
+      UpdateMassProperties();
 
       return base.Initialize();
     }
@@ -290,13 +330,6 @@ namespace AgXUnity
       }
     }
 
-    private void SyncComponents()
-    {
-      RigidBodyComponent[] components = GetComponents<RigidBodyComponent>();
-      foreach ( RigidBodyComponent component in components )
-        component.Synchronize( this );
-    }
-
     private void SyncUnityTransform()
     {
       if ( m_rb == null )
@@ -325,49 +358,6 @@ namespace AgXUnity
 
       m_rb.setPosition( transform.position.ToHandedVec3() );
       m_rb.setRotation( transform.rotation.ToHandedQuat() );
-    }
-
-    private void UpdateMassProperties( Shape sender )
-    {
-      if ( IgnoreOnChildAdded )
-        return;
-
-      // Not sure if possible to perform incremental update. For
-      // now we'll ignore the sender.
-
-      // If we don't have a mass properties component, we don't
-      // have to perform this action. (Calculated or native
-      // interface used.)
-      MassProperties massProperties = GetComponent<MassProperties>();
-      if ( massProperties == null )
-        return;
-
-      Shape[] shapes = GetComponentsInChildren<Shape>();
-      if ( shapes.Length == 0 )
-        return;
-
-      // Fill temporary rigid body with geometries to calculate
-      // mass and inertia.
-      using ( agx.RigidBody rb = new agx.RigidBody() ) {
-        foreach ( Shape shape in shapes ) {
-          agxCollide.Shape nativeShape = shape.CreateTemporaryNative();
-          if ( nativeShape != null ) {
-            agxCollide.Geometry geometry = new agxCollide.Geometry( nativeShape );
-            if ( shape.Material != null )
-              geometry.setMaterial( shape.Material.CreateTemporaryNative() );
-            rb.add( geometry, shape.GetNativeRigidBodyOffset( this ) );
-          }
-        }
-
-        massProperties.SetDefaultCalculated( rb );
-
-        while ( rb.getGeometries().Count > 0 ) {
-          agxCollide.Geometry geometry = rb.getGeometries()[ 0 ].get();
-          if ( geometry.getShapes().Count > 0 )
-            geometry.remove( geometry.getShapes()[ 0 ].get() );
-          rb.remove( geometry );
-        }
-      }
     }
 
     private void VerifyConfiguration()
