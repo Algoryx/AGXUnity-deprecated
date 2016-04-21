@@ -12,6 +12,11 @@ namespace AgXUnity.Collide
   public abstract class Shape : ScriptComponent
   {
     /// <summary>
+    /// Utils (resize etc.) utils for this shape if supported.
+    /// </summary>
+    private ShapeUtils m_utils = null;
+
+    /// <summary>
     /// Native geometry instance.
     /// </summary>
     protected agxCollide.Geometry m_geometry = null;
@@ -138,6 +143,17 @@ namespace AgXUnity.Collide
     }
 
     /// <summary>
+    /// Returns already created or creates a new instance of the specific
+    /// shape utils given type of this shape.
+    /// </summary>
+    public ShapeUtils GetUtils()
+    {
+      if ( m_utils == null )
+        m_utils = ShapeUtils.Create( this );
+      return m_utils;
+    }
+
+    /// <summary>
     /// Creates native shape and geometry. Assigns material to the
     /// native geometry if material is present.
     /// </summary>
@@ -203,27 +219,27 @@ namespace AgXUnity.Collide
     }
 
     /// <summary>
+    /// "Forward" synchronize the transform when e.g., the game object
+    /// has been moved in the editor.
+    /// </summary>
+    protected virtual void SyncNativeTransform()
+    {
+      // Automatic synchronization if we have a parent.
+      if ( m_geometry != null && m_geometry.getRigidBody() == null )
+        m_geometry.setLocalTransform( new agx.AffineMatrix4x4( transform.rotation.ToHandedQuat(), transform.position.ToHandedVec3() ) );
+    }
+
+    /// <summary>
     /// "Back" synchronize of transforms given the simulation has
     /// updated the transforms.
     /// </summary>
-    private void SyncUnityTransform()
+    protected virtual void SyncUnityTransform()
     {
       if ( transform.parent == null && m_geometry != null ) {
         agx.AffineMatrix4x4 t = m_geometry.getTransform();
         transform.position = t.getTranslate().ToHandedVector3();
         transform.rotation = t.getRotate().ToHandedQuaternion();
       }
-    }
-
-    /// <summary>
-    /// "Forward" synchronize the transform when e.g., the game object
-    /// has been moved in the editor.
-    /// </summary>
-    private void SyncNativeTransform()
-    {
-      // Automatic synchronization if we have a parent.
-      if ( m_geometry != null && m_geometry.getRigidBody() == null )
-        m_geometry.setLocalTransform( new agx.AffineMatrix4x4( transform.rotation.ToHandedQuat(), transform.position.ToHandedVec3() ) );
     }
   }
 }

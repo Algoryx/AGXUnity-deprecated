@@ -47,6 +47,8 @@
     <Compile Include="Menus\AssetsMenu.cs" />
     <Compile Include="Menus\TopMenu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tools\ShapeResizeTool.cs" />
+    <Compile Include="Tools\Tool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />
     <Compile Include="Utils\GUIHelper.cs" />
     <Compile Include="Utils\Mesh.cs" />

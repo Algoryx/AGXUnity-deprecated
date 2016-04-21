@@ -35,14 +35,16 @@ namespace AgXUnity.Collide
           if ( data != null )
             GameObject.DestroyImmediate( data.Node );
           m_sourceObject = null;
-          SizeUpdated();
         }
 
         // New source.
         if ( m_sourceObject == null ) {
           m_sourceObject = value;
-          // Create debug rendering data.
-          SizeUpdated();
+
+          // Instead of calling SizeUpdated we have to make sure
+          // a complete new instance of the debug render object
+          // is created (i.e., not only update scale if node exist).
+          Rendering.DebugRenderManager.HandleMeshSource( this );
         }
       }
     }

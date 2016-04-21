@@ -73,9 +73,9 @@ namespace AgXUnity
 
       var cameraData = new
       {
-        Eye               = Camera.main.transform.position,
-        Center            = Camera.main.transform.position + 25.0f * Camera.main.transform.forward,
-        Up                = Camera.main.transform.up,
+        Eye               = Camera.main.transform.position.ToHandedVec3().ToVector3(),
+        Center            = ( Camera.main.transform.position + 25.0f * Camera.main.transform.forward ).ToHandedVec3().ToVector3(),
+        Up                = Camera.main.transform.up.ToHandedVec3().ToVector3(),
         NearClippingPlane = Camera.main.nearClipPlane,
         FarClippingPlane  = Camera.main.farClipPlane,
         FOV               = Camera.main.fieldOfView
