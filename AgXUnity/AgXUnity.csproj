@@ -73,6 +73,7 @@
     <Compile Include="Collide\Mesh.cs" />
     <Compile Include="Collide\Plane.cs" />
     <Compile Include="Collide\Shape.cs" />
+    <Compile Include="Collide\ShapeUtils.cs" />
     <Compile Include="Collide\Sphere.cs" />
     <Compile Include="CollisionGroups.cs" />
     <Compile Include="CollisionGroupsManager.cs" />

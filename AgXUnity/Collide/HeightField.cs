@@ -30,10 +30,28 @@ namespace AgXUnity.Collide
     /// <returns>Shape transform to be used between native geometry and shape.</returns>
     public override agx.AffineMatrix4x4 GetNativeGeometryOffset()
     {
-      return agx.AffineMatrix4x4.rotate( agx.Vec3.Z_AXIS(),
-                                         agx.Vec3.Y_AXIS() ).Multiply(
-                                           agx.AffineMatrix4x4.rotate( -0.5f * Mathf.PI, agx.Vec3.Y_AXIS() ) ).Multiply(
-                                             agx.AffineMatrix4x4.translate( 0.5f * GetWidth(), 0, 0.5f * GetHeight() ) );
+      return agx.AffineMatrix4x4.rotate( agx.Vec3.Z_AXIS(), agx.Vec3.Y_AXIS() ).Multiply(
+             agx.AffineMatrix4x4.translate( transform.position.ToHandedVec3() + new Vector3( 0.5f * GetWidth(), 0, 0.5f * GetHeight() ).ToHandedVec3() ) );
+    }
+
+    /// <summary>
+    /// Overriding synchronization of native transform since the UnityEngine.Terrain
+    /// by default is static and doesn't support rotation.
+    /// 
+    /// IF we want to synchronize we have to ignore rotation.
+    /// </summary>
+    protected override void SyncNativeTransform()
+    {
+    }
+
+    /// <summary>
+    /// Overriding synchronization of UnityEngine.Terrain transform since the UnityEngine.Terrain
+    /// (and most often agxCollide.HeightField) is static by default.
+    /// 
+    /// IF we want to synchronize we have to ignore rotation.
+    /// </summary>
+    protected override void SyncUnityTransform()
+    {
     }
 
     /// <summary>
@@ -47,7 +65,7 @@ namespace AgXUnity.Collide
     }
 
     /// <summary>
-    /// Finds Unity Terrain data givet current setup.
+    /// Finds Unity Terrain data given current setup.
     /// </summary>
     /// <returns>Unity TerrainData object, if found.</returns>
     private UnityEngine.TerrainData GetTerrainData()
@@ -85,11 +103,14 @@ namespace AgXUnity.Collide
       int[] res = new int[]{ terrainData.heightmapWidth, terrainData.heightmapHeight };
       float[,] heights = terrainData.GetHeights( 0, 0, res[ 0 ], res[ 1 ] );
 
-      agxCollide.HeightField hf = new agxCollide.HeightField( (uint)res[ 0 ], (uint)res[ 1 ], GetWidth(), GetHeight(), 50.0 );
-      for ( int y = 0; y < res[ 1 ]; ++y )
-        for ( int x = 0; x < res[ 0 ]; ++x )
-          hf.setHeight( (uint)x, (uint)y, heights[ x, y ] * scale.y );
+      int resX = res[ 0 ];
+      int resY = res[ 1 ];
+      agx.RealVector agxHeights = new agx.RealVector( resX * resY );
+      for ( int x = resX - 1; x >= 0; --x )
+        for ( int y = resY - 1; y >= 0; --y )
+          agxHeights.Add( heights[ x, y ] * scale.y );
 
+      agxCollide.HeightField hf = new agxCollide.HeightField( (uint)res[ 0 ], (uint)res[ 1 ], GetWidth(), GetHeight(), agxHeights, false, 150.0 );
       return hf;
     }
   }

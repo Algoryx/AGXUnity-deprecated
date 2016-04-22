@@ -52,6 +52,17 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
+    /// Use when Collide.Mesh source objects is updated.
+    /// </summary>
+    public static void HandleMeshSource( Collide.Mesh mesh )
+    {
+      if ( !ActiveForSynchronize )
+        return;
+
+      Instance.SynchronizeShape( mesh );
+    }
+
+    /// <summary>
     /// Called on LateUpdate from shapes without rigid bodies.
     /// </summary>
     public static void OnLateUpdate( Collide.Shape shape )
