@@ -140,7 +140,7 @@ namespace AgXUnity.Collide
 
     public Vector3 GetWorldFace( Direction direction )
     {
-      return m_shape.transform.TransformPoint( GetLocalFace( direction ) );
+      return m_shape.transform.position + m_shape.transform.TransformDirection( GetLocalFace( direction ) );
     }
 
     public Vector3 GetWorldFaceDirection( Direction direction )

@@ -4,8 +4,26 @@ using AgXUnity.Collide;
 
 namespace AgXUnityEditor.Tools
 {
+  /// <summary>
+  /// Tool to resize supported primitive shape types. Supported types
+  /// (normally Box, Capsule, Cylinder and Sphere) has ShapeUtils set.
+  /// 
+  /// This tool is active when ActiveKey is down and a supported shape
+  /// is selected. For symmetric resize, both SymmetricScaleKey and
+  /// ActiveKey has to be down.
+  /// </summary>
   public class ShapeResizeTool : Tool
   {
+    /// <summary>
+    /// Key code to activate this tool.
+    /// </summary>
+    public Utils.GUIHelper.KeyHandler ActivateKey { get; set; }
+
+    /// <summary>
+    /// Key code for symmetric scale/resize.
+    /// </summary>
+    public Utils.GUIHelper.KeyHandler SymmetricScaleKey { get; set; }
+
     public override void OnSceneViewGUI( SceneView sceneView )
     {
       if ( Selection.activeGameObject == null )
@@ -15,11 +33,8 @@ namespace AgXUnityEditor.Tools
       if ( shape == null )
         return;
 
-      // Tool activated on control down.
-      // Symmetric mode if ctrl + shift is down.
-      bool activateKeyDown = Event.current.control;
-      if ( activateKeyDown )
-        Update( shape, Event.current.shift );
+      if ( ActivateKey.IsDown )
+        Update( shape, SymmetricScaleKey.IsDown );
     }
 
     private void Update( Shape shape, bool symmetricScale )
@@ -47,7 +62,7 @@ namespace AgXUnityEditor.Tools
           utils.UpdateSize( localSizeChange, dir );
 
           if ( !symmetricScale )
-            shape.transform.position += shape.transform.TransformVector( localPositionDelta );
+            shape.transform.position += shape.transform.TransformDirection( localPositionDelta );
         }
       }
     }
