@@ -93,6 +93,7 @@ namespace AgXUnity
     [SerializeField]
     private string m_nativeName = "";
 
+    // TODO: Find other solution to this.
     /// <summary>
     /// Get or set the name of this elementary constraint.
     /// </summary>
@@ -174,6 +175,7 @@ namespace AgXUnity
       }
     }
 
+    // TODO: Find other solution to this.
     /// <summary>
     /// Finds native instance of a controller given name.
     /// </summary>
@@ -205,6 +207,7 @@ namespace AgXUnity
       return null;
     }
 
+    // TODO: Find other solution to this.
     /// <summary>
     /// Searches for native elementary- OR secondary constraint with the given name.
     /// </summary>
@@ -482,6 +485,44 @@ namespace AgXUnity
     }
   }
 
+  public class Constraint : ScriptComponent
+  {
+    public enum EConstraintType
+    {
+      Hinge,
+      Prismatic,
+      LockJoint,
+      CylindricalJoint,
+      BallJoint,
+      DistanceJoint,
+      AngularLockJoint,
+      PlaneJoint
+    }
+
+    private agx.Constraint m_native = null;
+
+    public agx.Constraint Native { get { return m_native; } }
+
+    [SerializeField]
+    private EConstraintType m_constraintType = EConstraintType.Hinge;
+
+    public EConstraintType ConstraintType
+    {
+      get { return m_constraintType; }
+      set
+      {
+        m_constraintType = value;
+      }
+    }
+
+    protected override bool Initialize()
+    {
+      return base.Initialize();
+    }
+  }
+
+// TODO: Remove code
+#if false
   /// <summary>
   /// Constraint base class.
   /// </summary>
@@ -625,7 +666,7 @@ namespace AgXUnity
     /// 
     /// GameObject frame2 = new GameObject( "frame2" );
     /// 
-    /// Constraint constriant = Constraint.Create{Hinge}( frame1, fram2 );
+    /// Constraint constraint = Constraint.Create{Hinge}( frame1, fram2 );
     /// </example>
     public static T Create<T>( GameObject frame1, GameObject frame2 ) where T : Constraint
     {
@@ -997,4 +1038,5 @@ namespace AgXUnity
         };
     }
   }
+#endif
 }

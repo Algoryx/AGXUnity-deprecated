@@ -1,13 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using UnityEngine;
-using UnityEditor;
+﻿using UnityEngine;
 
-namespace AgXUnityEditor.Utils
+namespace AgXUnity.Utils
 {
-  public static class Mesh
+  public static class MeshUtils
   {
     /// <summary>
     /// Edge containing a start and an end point.
@@ -102,6 +97,26 @@ namespace AgXUnityEditor.Utils
         return false;
 
       return true;
+    }
+
+    /// <summary>
+    /// Calculates shortest distance between a point and a line segment.
+    /// </summary>
+    /// <param name="point">Point.</param>
+    /// <param name="segmentStart">Segment start.</param>
+    /// <param name="segmentEnd">Segment end.</param>
+    /// <returns>Shortest distance between the given point and the line segment.</returns>
+    public static float ShortestDistancePointLine( Vector3 point, Vector3 segmentStart, Vector3 segmentEnd )
+    {
+      Vector3 segmentDir = segmentEnd - segmentStart;
+      float divisor = segmentDir.sqrMagnitude;
+      if ( divisor < 1.0E-6f )
+        return Vector3.Distance( point, segmentStart );
+
+      float t = Mathf.Clamp01( Vector3.Dot( ( point - segmentStart ), segmentDir ) / divisor );
+      Vector3 segmentPoint = ( 1.0f - t ) * segmentStart + t * segmentEnd;
+
+      return Vector3.Distance( point, segmentPoint );
     }
 
     /// <summary>
@@ -293,7 +308,7 @@ namespace AgXUnityEditor.Utils
     /// <param name="ray">Ray in world coordinate frame.</param>
     /// <param name="rayLength">Length of the ray.</param>
     /// <param name="cachedResult">Already calculated result for this mesh to test against again.</param>
-    /// <returns>Data with result, result.Valid == true if the ray intersects a tringle.</returns>
+    /// <returns>Data with result, result.Valid == true if the ray intersects a triangle.</returns>
     public static FindTriangleResult FindClosestTriangle( MeshFilter mesh, Ray ray, float rayLength = 50.0f, FindTriangleResult cachedResult = null )
     {
       FindTriangleResult result = null;
@@ -317,7 +332,7 @@ namespace AgXUnityEditor.Utils
       Edge[] edges = result.WorldEdges;
       float closestEdgeDistance = float.PositiveInfinity;
       for ( int i = 0; i < edges.Length; ++i ) {
-        float dist = HandleUtility.DistancePointLine( result.WorldIntersectionPoint, edges[ i ].Start, edges[ i ].End );
+        float dist = ShortestDistancePointLine( result.WorldIntersectionPoint, edges[ i ].Start, edges[ i ].End );
         if ( dist < closestEdgeDistance ) {
           closestEdgeDistance = dist;
           result.ClosestEdgeIndex = i;
@@ -335,7 +350,7 @@ namespace AgXUnityEditor.Utils
     /// <param name="ray">Ray given in world coordinate system.</param>
     /// <param name="rayLength">Length of the ray.</param>
     /// <param name="cachedResult">Already calculated result for a mesh in this game object, to test against again.</param>
-    /// <returns>Data with result, result.Valid == true if the ray intersects a tringle.</returns>
+    /// <returns>Data with result, result.Valid == true if the ray intersects a triangle.</returns>
     public static FindTriangleResult FindClosestTriangle( GameObject parentGameObject, UnityEngine.Ray ray, float rayLength = 50.0f, FindTriangleResult cachedResult = null )
     {
       if ( parentGameObject == null )

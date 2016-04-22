@@ -51,7 +51,6 @@
     <Compile Include="Tools\Tool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />
     <Compile Include="Utils\GUIHelper.cs" />
-    <Compile Include="Utils\Mesh.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AgXUnity\AgXUnity.csproj">

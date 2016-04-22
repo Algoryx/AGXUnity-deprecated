@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using AgXUnity.Collide;
+using AgXUnity.Utils;
 
 namespace AgXUnityEditor.Tools
 {

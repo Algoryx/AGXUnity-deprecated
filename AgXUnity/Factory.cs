@@ -66,6 +66,8 @@ namespace AgXUnity
       return Create<T>().AddChild( child );
     }
 
+// TODO: Replace code.
+#if false
     /// <summary>
     /// Creates a constraint given an array of game objects (one or two supported).
     /// </summary>
@@ -166,6 +168,8 @@ namespace AgXUnity
     {
       return CreateConstraint<T>( localPosition, Quaternion.FromToRotation( Vector3.forward, localAxis ), rb1, rb2 );
     }
+#endif
+
     /// <summary>
     /// Create a wire given route, radius, resolution and material.
     /// </summary>

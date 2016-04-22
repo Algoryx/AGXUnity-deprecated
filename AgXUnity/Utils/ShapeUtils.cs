@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
+using AgXUnity.Collide;
 
-namespace AgXUnity.Collide
+namespace AgXUnity.Utils
 {
   public class BoxShapeUtils : ShapeUtils
   {
