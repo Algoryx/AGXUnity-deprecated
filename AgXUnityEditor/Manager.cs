@@ -41,7 +41,8 @@ namespace AgXUnityEditor
       {
         ActivateKey       = new Utils.GUIHelper.KeyHandler( KeyCode.LeftControl ),
         SymmetricScaleKey = new Utils.GUIHelper.KeyHandler( KeyCode.LeftShift )
-      }
+      },
+      new Tools.EdgeDetectionTool()
     };
 
     private static void OnSceneView( SceneView sceneView )
@@ -54,10 +55,24 @@ namespace AgXUnityEditor
       if ( proxyTarget != null )
         Selection.activeGameObject = proxyTarget.Target;
 
+      // TODO: Remove this debug code.
+      {
+        var edgeDectionTool = GetTool<Tools.EdgeDetectionTool>();
+        edgeDectionTool.Target = Selection.activeGameObject;
+      }
+
       foreach ( var tool in m_tools )
         tool.OnSceneViewGUI( sceneView );
 
       SceneView.RepaintAll();
+    }
+
+    private static T GetTool<T>() where T : Tools.Tool
+    {
+      foreach ( var tool in m_tools )
+        if ( tool is T )
+          return tool as T;
+      return null;
     }
   }
 }

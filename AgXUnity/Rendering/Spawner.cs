@@ -15,12 +15,12 @@ namespace AgXUnity.Rendering
 
     public static GameObject Create( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideInHierarchy, string shaderName = "Diffuse" )
     {
-      return Create( name, "DebugRenderers." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return Create( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
     public static GameObject CreateUnique( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideInHierarchy, string shaderName = "Diffuse" )
     {
-      return CreateUnique( name, "DebugRenderers." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return CreateUnique( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
     public static void Destroy( GameObject gameObject )
