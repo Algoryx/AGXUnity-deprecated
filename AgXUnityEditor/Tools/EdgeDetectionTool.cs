@@ -7,7 +7,7 @@ namespace AgXUnityEditor.Tools
 {
   public class EdgeDetectionTool : Tool
   {
-    private GameObject m_renderedEdge = null;
+    private Utils.VisualPrimitiveCylinder m_edgeVisual = new Utils.VisualPrimitiveCylinder( "Unlit/Color" );
 
     private GameObject m_target = null;
     public GameObject Target
@@ -18,16 +18,23 @@ namespace AgXUnityEditor.Tools
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      if ( m_renderedEdge == null ) {
-        m_renderedEdge = AgXUnity.Rendering.Spawner.CreateUnique( AgXUnity.Rendering.Spawner.Primitive.Cylinder, "AgXUnityEditor.EdgeDectionTool.Edge", HideFlags.HideAndDontSave, "Unlit/Color" );
-        m_renderedEdge.SetActive( false );
-      }
+      if ( m_edgeVisual.MouseOver )
+        return;
 
-      m_renderedEdge.SetActive( false );
+      m_edgeVisual.Visible = false;
 
       if ( Target == null )
         return;
 
+      MeshUtils.Edge edge = FindEdgeOnTarget();
+      if ( edge != null ) {
+        m_edgeVisual.Visible = true;
+        m_edgeVisual.SetTransform( edge.Start, edge.End, 0.045f );
+      }
+    }
+
+    private MeshUtils.Edge FindEdgeOnTarget()
+    {
       Shape shape = Target.GetComponent<Shape>();
       AgXUnity.Collide.Mesh mesh = shape as AgXUnity.Collide.Mesh;
 
@@ -42,27 +49,12 @@ namespace AgXUnityEditor.Tools
       else if ( shape != null ) {
         ShapeUtils utils = shape.GetUtils();
         if ( utils != null )
-          edge = utils.FindClosestEdge( camRay, camRayLength, 10.0f );
+          edge = utils.FindClosestEdge( camRay, camRayLength, 2.0f );
       }
       else {
       }
 
-      if ( edge != null ) {
-        m_renderedEdge.SetActive( true );
-        SetCylinderTransform( edge.Start, edge.End, 0.025f );
-      }
-    }
-
-    private void SetCylinderTransform( Vector3 start, Vector3 end, float radius )
-    {
-      float r       = radius * Mathf.Max( HandleUtility.GetHandleSize( start ), HandleUtility.GetHandleSize( end ) );
-      Vector3 dir   = end - start;
-      float height  = dir.magnitude;
-      dir          /= height;
-
-      m_renderedEdge.transform.localScale = new Vector3( 2.0f * r, 0.5f * height, 2.0f * r );
-      m_renderedEdge.transform.rotation   = Quaternion.FromToRotation( Vector3.up, dir );
-      m_renderedEdge.transform.position   = 0.5f * ( start + end );
+      return edge;
     }
   }
 }

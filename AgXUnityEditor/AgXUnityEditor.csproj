@@ -52,6 +52,7 @@
     <Compile Include="Tools\Tool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />
     <Compile Include="Utils\GUIHelper.cs" />
+    <Compile Include="Utils\VisualPrimitive.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AgXUnity\AgXUnity.csproj">

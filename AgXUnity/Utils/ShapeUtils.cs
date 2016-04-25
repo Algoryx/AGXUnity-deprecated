@@ -288,8 +288,6 @@ namespace AgXUnity.Utils
       return m_shape.transform.TransformDirection( GetLocalFaceDirection( direction ) );
     }
 
-    private static GameObject m_raycastGameObject = null;
-
     public RaycastResult Raycast( Ray ray, float rayLength = 500.0f )
     {
       string name = Rendering.DebugRenderData.GetPrefabName( m_shape.GetType().Name );
@@ -319,7 +317,7 @@ namespace AgXUnity.Utils
     /// Function taking and edge and returns the shortest distance
     /// from a given, arbitrary segment, to that edge.
     /// </param>
-    /// <param name="principalEdgeExtension"></param>
+    /// <param name="principalEdgeExtension">Extension of the principal edges for them to be possible to select.</param>
     /// <returns></returns>
     public MeshUtils.Edge FindClosestEdge( Ray ray, float rayLength, float principalEdgeExtension )
     {
