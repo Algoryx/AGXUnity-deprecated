@@ -13,14 +13,14 @@ namespace AgXUnity.Rendering
       Sphere
     }
 
-    public static GameObject Create( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideInHierarchy, string shaderName = "Diffuse" )
+    public static GameObject Create( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
     {
-      return Create( name, "DebugRenderers." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return Create( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
-    public static GameObject CreateUnique( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideInHierarchy, string shaderName = "Diffuse" )
+    public static GameObject CreateUnique( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
     {
-      return CreateUnique( name, "DebugRenderers." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return CreateUnique( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
     public static void Destroy( GameObject gameObject )
@@ -52,7 +52,7 @@ namespace AgXUnity.Rendering
       return gameObject;
     }
 
-    private static GameObject CreateUnique( string name, string objPath, HideFlags hideFlags = HideFlags.HideInHierarchy, string shaderName = "Diffuse" )
+    private static GameObject CreateUnique( string name, string objPath, HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
     {
       GameObject shouldNotBeHere = GameObject.Find( name );
       if ( shouldNotBeHere != null )

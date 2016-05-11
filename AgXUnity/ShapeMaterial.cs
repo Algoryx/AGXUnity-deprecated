@@ -5,7 +5,6 @@ namespace AgXUnity
   /// <summary>
   /// Shape material script asset.
   /// </summary>
-  [GenerateCustomEditor]
   public class ShapeMaterial : ScriptAsset
   {
     /// <summary>

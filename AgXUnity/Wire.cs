@@ -8,7 +8,6 @@ namespace AgXUnity
   /// </summary>
   [AddComponentMenu( "" )]
   [RequireComponent( typeof( Rendering.WireRenderer ) )]
-  [GenerateCustomEditor]
   public class Wire : ScriptComponent
   {
     /// <summary>

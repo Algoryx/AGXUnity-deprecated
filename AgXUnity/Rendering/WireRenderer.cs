@@ -110,7 +110,6 @@ namespace AgXUnity.Rendering
   }
 
   [AddComponentMenu( "" )]
-  [GenerateCustomEditor]
   [ExecuteInEditMode]
   public class WireRenderer : ScriptComponent
   {

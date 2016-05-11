@@ -11,7 +11,6 @@ namespace AgXUnity.Rendering
   /// </summary>
   [AddComponentMenu( "" )]
   [ExecuteInEditMode]
-  [GenerateCustomEditor]
   public class DebugRenderManager : UniqueGameObject<DebugRenderManager>
   {
     /// <summary>
@@ -127,6 +126,10 @@ namespace AgXUnity.Rendering
 
       UnityEngine.Object.FindObjectsOfType<Collide.Shape>().ToList().ForEach(
         shape => SynchronizeShape( shape )
+      );
+
+      UnityEngine.Object.FindObjectsOfType<Constraint>().ToList().ForEach(
+        constraint => constraint.AttachmentPair.Update()
       );
     }
 

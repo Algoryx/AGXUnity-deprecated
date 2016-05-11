@@ -8,7 +8,6 @@ namespace AgXUnity.Collide
   /// render data.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Shapes/Mesh" )]
-  [GenerateCustomEditor]
   public sealed class Mesh : Shape
   {
     /// <summary>

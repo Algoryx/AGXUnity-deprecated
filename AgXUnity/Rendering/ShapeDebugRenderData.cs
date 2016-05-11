@@ -11,7 +11,6 @@ namespace AgXUnity.Rendering
   /// these objects.
   /// </summary>
   [AddComponentMenu( "" )]
-  [GenerateCustomEditor]
   public class ShapeDebugRenderData : DebugRenderData
   {
     /// <summary>

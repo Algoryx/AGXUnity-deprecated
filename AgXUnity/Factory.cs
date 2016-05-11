@@ -67,105 +67,63 @@ namespace AgXUnity
     }
 
     /// <summary>
-    /// Creates a constraint given an array of game objects (one or two supported).
+    /// Creates constraint of given type.
     /// </summary>
-    /// <typeparam name="T">Type of constraint.</typeparam>
-    /// <param name="gameObjects">Constraint frame game objects.</param>
-    /// <returns>Constraint of type <typeparamref name="T"/> if the configuration is valid.</returns>
-    public static GameObject CreateConstraint<T>( GameObject[] gameObjects ) where T : Constraint
+    /// <param name="constraintType">Constraint type.</param>
+    /// <returns>Constraint game object if the configuration is valid.</returns>
+    public static GameObject Create( ConstraintType constraintType )
     {
-      if ( gameObjects == null || gameObjects.Length == 0 || gameObjects.Length > 2 ) {
-        Debug.LogWarning( "One or two objects has to be selected to create constraint: Number of objects selected: " + gameObjects.Length );
-        return null;
-      }
-
-      if ( gameObjects.Length > 1 )
-        return CreateConstraint<T>( gameObjects[ 0 ], gameObjects[ 1 ] );
-
-      GameObject frame2 = new GameObject( CreateName<T>() + "_worldFrame" );
-      frame2.transform.localPosition = gameObjects[ 0 ].transform.position;
-      frame2.transform.localRotation = gameObjects[ 0 ].transform.rotation;
-
-      GameObject constraint = CreateConstraint<T>( gameObjects[ 0 ], frame2 );
-      // Just to make a nice group with the world reference as
-      // child (i.e., dropdown in inspector).
-      if ( constraint != null )
-        constraint.AddChild( frame2, false );
-      else
-        GameObject.DestroyImmediate( frame2 );
-
-      return constraint;
-    }
-
-    /// <summary>
-    /// Create constraint of given type given two constraint frame game objects.
-    /// </summary>
-    /// <typeparam name="T">Type of constraint.</typeparam>
-    /// <param name="frame1">First constraint frame game object.</param>
-    /// <param name="frame2">Second constraint frame game object.</param>
-    /// <returns>Constraint of type <typeparamref name="T"/> if the configuration is valid.</returns>
-    public static GameObject CreateConstraint<T>( GameObject frame1, GameObject frame2 ) where T : Constraint
-    {
-      T constraint = Constraint.Create<T>( frame1, frame2 );
+      Constraint constraint = Constraint.Create( constraintType );
       return constraint != null ? constraint.gameObject : null;
     }
 
     /// <summary>
     /// Creates constraint of given type given local position and rotation relative to <paramref name="rb1"/>.
     /// </summary>
-    /// <typeparam name="T">Type of constraint.</typeparam>
+    /// <param name="constraintType">Constraint type.</param>
     /// <param name="localPosition">Position in rb1 frame.</param>
     /// <param name="localRotation">Rotation in rb1 frame.</param>
     /// <param name="rb1">First rigid body instance.</param>
     /// <param name="rb2">Second rigid body instance (world if null).</param>
-    /// <returns>Constraint of type <typeparamref name="T"/> if the configuration is valid.</returns>
-    public static GameObject CreateConstraint<T>( Vector3 localPosition, Quaternion localRotation, RigidBody rb1, RigidBody rb2 ) where T : Constraint
+    /// <returns>Constraint game object if the configuration is valid.</returns>
+    public static GameObject Create( ConstraintType constraintType, Vector3 localPosition, Quaternion localRotation, RigidBody rb1, RigidBody rb2 )
     {
       if ( rb1 == null ) {
-        Debug.LogWarning( "Unable to create constraint: First rigid body is null." );
+        Debug.LogWarning( "Unable to create constraint. Reference object must contain a rigid body component." );
         return null;
       }
 
-      string constraintName = Constraint.CreateName<T>( rb1, rb2 );
-
-      GameObject f1 = new GameObject( constraintName + "_frame" );
-      f1.transform.localPosition = localPosition;
-      f1.transform.localRotation = localRotation;
-      rb1.gameObject.AddChild( f1 );
-
-      GameObject f2 = new GameObject( constraintName + ( rb2 == null ? "_worldFrame" : "_frame" ) );
-      f2.transform.position = f1.transform.position;
-      f2.transform.rotation = f1.transform.rotation;
-      if ( rb2 != null )
-        rb2.gameObject.AddChild( f2, false );
-
-      GameObject constraint = CreateConstraint<T>( f1, f2 );
-      if ( constraint == null ) {
-        GameObject.DestroyImmediate( f1 );
-        GameObject.DestroyImmediate( f2 );
-
+      GameObject constraintGameObject = Create( constraintType );
+      if ( constraintGameObject == null )
         return null;
-      }
 
-      if ( rb2 == null )
-        constraint.AddChild( f2 );
+      Constraint constraint = constraintGameObject.GetComponent<Constraint>();
+      constraint.AttachmentPair.ReferenceObject = rb1.gameObject;
+      constraint.AttachmentPair.ConnectedObject = rb2 != null ? rb2.gameObject : null;
 
-      return constraint;
+      constraint.AttachmentPair.ReferenceFrame.LocalPosition = localPosition;
+      constraint.AttachmentPair.ReferenceFrame.LocalRotation = localRotation;
+
+      constraint.AttachmentPair.ConnectedFrame.Position = constraint.AttachmentPair.ReferenceFrame.Position;
+      constraint.AttachmentPair.ConnectedFrame.Rotation = constraint.AttachmentPair.ReferenceFrame.Rotation;
+
+      return constraintGameObject;
     }
 
     /// <summary>
-    /// Create constraint of given type given axis and position relative to <paramref name="rb1"/>.
+    /// Creates constraint of given type given local position and rotation relative to <paramref name="rb1"/>.
     /// </summary>
-    /// <typeparam name="T">Type of constraint.</typeparam>
-    /// <param name="localAxis">Axis in rb1 frame.</param>
+    /// <param name="constraintType">Constraint type.</param>
     /// <param name="localPosition">Position in rb1 frame.</param>
-    /// <param name="rb1">First rigid body.</param>
-    /// <param name="rb2">Second rigid body (world if null).</param>
-    /// <returns>Constraint of type <typeparamref name="T"/> if the configuration is valid.</returns>
-    public static GameObject CreateConstraint<T>( Vector3 localAxis, Vector3 localPosition, RigidBody rb1, RigidBody rb2 ) where T : Constraint
+    /// <param name="localAxis">Axis in rb1 frame.</param>
+    /// <param name="rb1">First rigid body instance.</param>
+    /// <param name="rb2">Second rigid body instance (world if null).</param>
+    /// <returns>Constraint game object if the configuration is valid.</returns>
+    public static GameObject Create( ConstraintType constraintType, Vector3 localPosition, Vector3 localAxis, RigidBody rb1, RigidBody rb2 )
     {
-      return CreateConstraint<T>( localPosition, Quaternion.FromToRotation( Vector3.forward, localAxis ), rb1, rb2 );
+      return Create( constraintType, localPosition, Quaternion.FromToRotation( Vector3.forward, localAxis ), rb1, rb2 );
     }
+
     /// <summary>
     /// Create a wire given route, radius, resolution and material.
     /// </summary>

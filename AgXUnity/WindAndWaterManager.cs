@@ -7,7 +7,6 @@ namespace AgXUnity
   /// and water shapes.
   /// </summary>
   [AddComponentMenu( "" )]
-  [GenerateCustomEditor]
   public class WindAndWaterManager : UniqueGameObject<WindAndWaterManager>
   {
     /// <summary>

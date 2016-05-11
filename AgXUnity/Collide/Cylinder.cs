@@ -7,7 +7,6 @@ namespace AgXUnity.Collide
   /// Cylinder shape object given radius and height.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Shapes/Cylinder" )]
-  [GenerateCustomEditor]
   public sealed class Cylinder : Shape
   {
     #region Serialized Properties

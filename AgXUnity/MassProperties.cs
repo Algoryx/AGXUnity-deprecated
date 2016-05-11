@@ -10,7 +10,6 @@ namespace AgXUnity
   /// </summary>
   [AddComponentMenu( "" )]
   [DisallowMultipleComponent]
-  [GenerateCustomEditor]
   public class MassProperties : RigidBodyComponent
   {
     /// <summary>

@@ -7,7 +7,6 @@ namespace AgXUnity.Collide
   /// Capsule shape object given radius and height.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Shapes/Capsule" )]
-  [GenerateCustomEditor]
   public sealed class Capsule : Shape
   {
     #region Serialized Properties

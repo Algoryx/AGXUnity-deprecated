@@ -5,7 +5,6 @@ namespace AgXUnity
   /// <summary>
   /// Friction model object with friction model type and solve type.
   /// </summary>
-  [GenerateCustomEditor]
   public class FrictionModel : ScriptAsset
   {
     public enum ESolveType

@@ -10,7 +10,7 @@ using UnityEditor;
 
 namespace AgXUnityEditor
 {
-  public class BaseEditor<T> : UnityEditor.Editor where T : UnityEngine.Object
+  public class BaseEditor<T> : UnityEditor.Editor where T : class
   {
     #region Internal classes
     private abstract class InvokeWrapper
@@ -130,6 +130,9 @@ namespace AgXUnityEditor
 
     public void OnEnable()
     {
+      GUISkin guiSkin = EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector );
+      guiSkin.label.richText = true;
+
       // It's possible to detect when this editor/object becomes selected.
       //if ( Application.isEditor && target != null )
       //  Debug.Log( "Create!" );
@@ -175,7 +178,7 @@ namespace AgXUnityEditor
       return false;
     }
 
-    private static bool DrawDefaultInspectors( object obj, T target, bool indentInEditor = true )
+    private static bool DrawDefaultInspectors( object obj, T target )
     {
       if ( obj == null )
         return false;
@@ -230,7 +233,8 @@ namespace AgXUnityEditor
 
     private static bool HandleType( InvokeWrapper wrapper, T target )
     {
-      Undo.RecordObject( target, "" );
+      if ( target != null && target is UnityEngine.Object )
+        Undo.RecordObject( target as UnityEngine.Object, "" );
 
       object value = null;
       bool isNullable = false;
@@ -316,31 +320,92 @@ namespace AgXUnityEditor
       else if ( ( type.BaseType == typeof( ScriptAsset ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
         bool allowSceneObject = type == typeof( GameObject ) ||
                                 type.BaseType == typeof( ScriptComponent );
+
         UnityEngine.Object valInField = wrapper.Get<UnityEngine.Object>();
+
         EditorGUILayout.BeginHorizontal();
         value = EditorGUILayout.ObjectField( MakeLabel( wrapper.Member ), valInField, type, allowSceneObject, new GUILayoutOption[] { } );
         EditorGUILayout.EndHorizontal();
 
         isNullable = true;
       }
-      //else if ( type.BaseType == typeof( AgXUnity.Deformable1DParameter ) ) {
-      //  AgXUnity.Deformable1DParameter parameters = wrapper.Get<AgXUnity.Deformable1DParameter>();
-      //  if ( SetBool( parameters, EditorGUILayout.Foldout( GetOrCreateBool( parameters ), wrapper.Member.Name.SplitCamelCase() ) ) ) {
-      //    foreach ( AgXUnity.Deformable1DParameter.Direction dir in AgXUnity.Deformable1DParameter.Directions )
-      //      parameters[ dir ] = EditorGUILayout.FloatField( dir.ToString().SplitCamelCase(), parameters[ dir ] );
-      //  }
-      //}
+      else if ( type == typeof( Frame ) && wrapper.CanRead() ) {
+        Utils.GUIHelper.Separator();
+        GUILayout.Label( Utils.GUIHelper.MakeLabel( wrapper.Member.Name.SplitCamelCase() + ":" ) );
+        var frame = wrapper.Get<Frame>();
+        frame.LocalPosition = EditorGUILayout.Vector3Field( Utils.GUIHelper.MakeLabel( "  Position" ), frame.LocalPosition );
+        frame.LocalRotation = Quaternion.Euler( EditorGUILayout.Vector3Field( Utils.GUIHelper.MakeLabel( "  Rotation" ), frame.LocalRotation.eulerAngles ) );
+      }
+      else if ( type == typeof( ConstraintAttachmentPair ) && wrapper.CanRead() ) {
+        var attachmentPair = wrapper.Get<ConstraintAttachmentPair>();
+        var f1 = attachmentPair.ReferenceFrame;
+        var f2 = attachmentPair.ConnectedFrame;
+
+        Utils.GUIHelper.Separator();
+
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Label( Utils.GUIHelper.MakeLabel( "Tools" ) );
+        Utils.GUIHelper.EnumButtonList<Tools.ConstraintAttachmentPairTool.ToolMode>(
+            e =>
+            {
+              Tools.ConstraintAttachmentPairTool currentTool = Manager.GetActiveTool<Tools.ConstraintAttachmentPairTool>();
+              if ( currentTool == null || currentTool.AttachmentPair != attachmentPair || currentTool.Mode != e )
+                Manager.ActivateTool( new Manager.ToolData() { Tool = new Tools.ConstraintAttachmentPairTool( attachmentPair, e ), Subject = attachmentPair } );
+              else if ( currentTool != null && currentTool.Mode == e )
+                Manager.RemoveActiveTool();
+            },
+            null,
+            new GUILayoutOption[] { GUILayout.Height( 16.0f ) }
+          );
+        EditorGUILayout.EndHorizontal();
+
+        Utils.GUIHelper.Separator();
+
+        GUILayout.Label( Utils.GUIHelper.MakeLabel( "Attachment frames:" ) );
+
+        GUILayout.Label( Utils.GUIHelper.MakeLabel( "  Reference:", true ) );
+        attachmentPair.ReferenceObject = (GameObject)EditorGUILayout.ObjectField( Utils.GUIHelper.MakeLabel( "    Object" ), attachmentPair.ReferenceObject, typeof( GameObject ), true );
+
+        Action<Frame> frameFunc = f =>
+        {
+          EditorGUILayout.BeginHorizontal();
+          GUILayout.Space( 18 );
+          if ( GUILayout.Button( Utils.GUIHelper.MakeLabel( "Edit" ), new GUILayoutOption[] { GUILayout.Width( 32 ), GUILayout.Height( 16 * 2 ) } ) ) {
+            Tools.FrameTool frameTool = Manager.GetActiveTool<Tools.FrameTool>();
+            if ( frameTool != null && frameTool.Frame == f )
+              Manager.RemoveActiveTool();
+            else
+              Manager.ActivateTool( new Manager.ToolData() { Tool = new Tools.FrameTool( f ), Subject = attachmentPair } );
+          }
+          EditorGUILayout.BeginVertical();
+          f.LocalPosition = Utils.GUIHelper.Vector3Field( Utils.GUIHelper.MakeLabel( "Position" ), f.LocalPosition );
+          f.LocalRotation = Quaternion.Euler( Utils.GUIHelper.Vector3Field( Utils.GUIHelper.MakeLabel( "Rotation" ), f.LocalRotation.eulerAngles ) );
+          EditorGUILayout.EndVertical();
+          EditorGUILayout.EndHorizontal();
+        };
+
+        frameFunc( f1 );
+
+        GUILayout.Label( Utils.GUIHelper.MakeLabel( "  Connected:", true ) );
+        attachmentPair.ConnectedObject = (GameObject)EditorGUILayout.ObjectField( Utils.GUIHelper.MakeLabel( "    Object" ), attachmentPair.ConnectedObject, typeof( GameObject ), true );
+
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Space( 18 );
+        attachmentPair.Synchronized = GUILayout.Toggle( attachmentPair.Synchronized, Utils.GUIHelper.MakeLabel( "Synchronized with reference" ) );
+        EditorGUILayout.EndHorizontal();
+
+        GUI.enabled = !attachmentPair.Synchronized;
+        frameFunc( f2 );
+        GUI.enabled = true;
+      }
       else if ( type.IsClass && wrapper.CanRead() ) {
-        // Ignore these? We will end up here with components of components which has
-        // GenerateCustomEditor attribute (the parent), but THAT child component will
-        // be called to this custom editor as well if desired through the custom attribute.
       }
 
       if ( GUI.changed && ( value != null || isNullable ) ) {
         // Assets aren't saved with the project if they aren't flagged
         // as dirty. Also true for AssetDatabase.SaveAssets.
         if ( typeof( T ).BaseType == typeof( ScriptAsset ) )
-          EditorUtility.SetDirty( target );
+          EditorUtility.SetDirty( target as UnityEngine.Object );
 
         return wrapper.ConditionalSet( value );
       }
@@ -361,7 +426,6 @@ namespace AgXUnityEditor
       if ( method == null )
         throw new NullReferenceException( "Unknown DefaultAndUserValue type: " + typeof( ValueT ).Name );
 
-      Utils.GUIHelper.Separator();
       {
         EditorGUILayout.BeginHorizontal();
         {
@@ -391,19 +455,45 @@ namespace AgXUnityEditor
       return newValue;
     }
 
+    private static string CreateEditorPrefsKey( object obj )
+    {
+      return obj.GetHashCode().ToString();
+    }
+
     private static bool GetOrCreateBool( object obj, bool defaultValue = false )
     {
-      string key = obj.GetHashCode().ToString();
+      string key = CreateEditorPrefsKey( obj );
       if ( EditorPrefs.HasKey( key ) )
         return EditorPrefs.GetBool( key );
       return SetBool( obj, defaultValue );
     }
 
+    private static int GetOrCreateInt( object obj, int defaultValue = -1 )
+    {
+      string key = CreateEditorPrefsKey( obj );
+      if ( EditorPrefs.HasKey( key ) )
+        return EditorPrefs.GetInt( key );
+      return SetInt( obj, defaultValue );
+    }
+
     private static bool SetBool( object obj, bool value )
     {
-      string key = obj.GetHashCode().ToString();
+      string key = CreateEditorPrefsKey( obj );
       EditorPrefs.SetBool( key, value );
       return value;
+    }
+
+    private static int SetInt( object obj, int value )
+    {
+      string key = CreateEditorPrefsKey( obj );
+      EditorPrefs.SetInt( key, value );
+      return value;
+    }
+
+    private static void RemoveInt( object obj )
+    {
+      string key = CreateEditorPrefsKey( obj );
+      EditorPrefs.DeleteKey( key );
     }
 
     private static bool HandleCollisionGroupEntryPair( CollisionGroupEntryPair collisionGroupPair )
@@ -435,7 +525,7 @@ namespace AgXUnityEditor
       if ( array.GetType().GetElementType() == typeof( ConstraintRowData ) ) {
         foreach ( ConstraintRowData crd in array ) {
           if ( SetBool( crd, EditorGUILayout.Foldout( GetOrCreateBool( crd ), crd.DefinitionString ) ) ) {
-            bool changed = DrawDefaultInspectors( crd, target, false );
+            bool changed = DrawDefaultInspectors( crd, target );
             if ( changed )
               ( target as ElementaryConstraint ).OnRowDataChanged();
           }
@@ -443,7 +533,7 @@ namespace AgXUnityEditor
       }
       else {
         foreach ( object obj in array )
-          DrawDefaultInspectors( obj, target, false );
+          DrawDefaultInspectors( obj, target );
       }
     }
 
@@ -454,7 +544,7 @@ namespace AgXUnityEditor
         List<object> objectsToRemove = new List<object>();
         foreach ( object obj in list ) {
           EditorGUILayout.BeginHorizontal();
-          DrawDefaultInspectors( obj, target, false );
+          DrawDefaultInspectors( obj, target );
           if ( GUILayout.Button( "Del", GUILayout.MaxWidth( 32 ) ) )
             objectsToRemove.Add( obj );
           EditorGUILayout.EndHorizontal();

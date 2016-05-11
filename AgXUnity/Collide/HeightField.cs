@@ -7,7 +7,6 @@ namespace AgXUnity.Collide
   /// Height field object to be used with Unity "Terrain".
   /// </summary>
   [AddComponentMenu( "AgXUnity/Shapes/HeightField" )]
-  [GenerateCustomEditor]
   public sealed class HeightField : Shape
   {
     /// <summary>

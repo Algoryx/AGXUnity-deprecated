@@ -10,36 +10,48 @@ namespace AgXUnityEditor.Utils
 {
   public static class GUIHelper
   {
-    public static GUIContent MakeLabel( string text )
+    public static string AddColorTag( string str, Color color )
     {
-      GUIContent label = new GUIContent();
-      label.text = text;
-      return label;
+      return @"<color=" + color.ToHexStringRGBA() + @">" + str + @"</color>";
     }
 
-    public static GUIContent MakeRTLabel( string text, Color color, bool bold = false )
+    public static GUIContent MakeLabel( string text, bool bold = false )
     {
       GUIContent label = new GUIContent();
       string boldBegin = bold ? "<b>" : "";
       string boldEnd   = bold ? "</b>" : "";
-      label.text       = @"<color=" + color.ToHexStringRGBA() + @">" + boldBegin + text + boldEnd + @"</color>";
+      label.text       = boldBegin + text + boldEnd;
       return label;
     }
 
-    public static GUIContent MakeRTLabel( string text, Color color, int size, bool bold = false )
+    public static GUIContent MakeLabel( string text, Color color, bool bold = false )
     {
-      GUIContent label = MakeRTLabel( text, color, bold );
+      GUIContent label = MakeLabel( text, bold );
+      label.text       = AddColorTag( text, color );
+      return label;
+    }
+
+    public static GUIContent MakeLabel( string text, Color color, int size, bool bold = false )
+    {
+      GUIContent label = MakeLabel( text, color, bold );
       label.text = @"<size=" + size + @">" + label.text + @"</size>";
       return label;
     }
 
-    public static GUIStyle CreateTextStyle( TextAnchor alignment = TextAnchor.MiddleCenter )
+    public static Vector3 Vector3Field( GUIContent content, Vector3 value )
     {
-      GUIStyle style = new GUIStyle();
-      style.margin.left = 5;
-      style.margin.right = 5;
+      EditorGUILayout.BeginHorizontal();
+      GUILayout.Label( content );
+      value = EditorGUILayout.Vector3Field( "", value );
+      EditorGUILayout.EndHorizontal();
+
+      return value;
+    }
+
+    public static GUIStyle EditorSkinLabel( TextAnchor alignment = TextAnchor.MiddleCenter )
+    {
+      GUIStyle style = new GUIStyle( EditorSkin.label );
       style.alignment = alignment;
-      style.richText = true;
       return style;
     }
 
@@ -54,18 +66,29 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    public static void Separator( float height = 1.0f )
+    public static void Separator( float height = 1.0f, float space = 2.0f )
     {
-      GUILayout.Box( "", new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( height ) } );
+      Texture2D lineTexture = new Texture2D( 1, 1, TextureFormat.RGBA32, true );
+
+      if ( EditorGUIUtility.isProSkin )
+        lineTexture.SetPixel( 0, 1, Color.white );
+      else
+        lineTexture.SetPixel( 0, 1, Color.black );
+
+      lineTexture.Apply();
+
+      GUILayout.Space( space );
+      EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( height ) } ), lineTexture );
+      GUILayout.Space( space );
     }
 
-    public static bool EnumButtonList<EnumT>( Action<EnumT> onClick, Predicate<EnumT> filter = null )
+    public static bool EnumButtonList<EnumT>( Action<EnumT> onClick, Predicate<EnumT> filter = null, GUILayoutOption[] options = null )
     {
       foreach ( var eVal in Enum.GetValues( typeof( EnumT ) ) ) {
         bool filterPass = filter == null ||
                           filter( (EnumT)eVal );
         // Execute onClick if eVal passed the filter and the button is pressed.
-        if ( filterPass && GUILayout.Button( MakeLabel( eVal.ToString().SplitCamelCase() ), EditorSkin.button, new GUILayoutOption[] { } ) ) {
+        if ( filterPass && GUILayout.Button( MakeLabel( eVal.ToString().SplitCamelCase() ), EditorSkin.button, options ) ) {
           onClick( (EnumT)eVal );
           return true;
         }

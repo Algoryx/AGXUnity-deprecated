@@ -69,7 +69,7 @@ namespace AgXUnity.Utils
           string propertyName = nameMatch.Groups[ 2 ].ToString().ToUpper() + nameMatch.Groups[ 3 ];
           PropertyInfo property = type.GetProperty( propertyName );
           // If the property exists and has a "set" defined - execute it.
-          if ( property != null && property.GetSetMethod() != null )
+          if ( property != null && property.GetSetMethod() != null && property.GetCustomAttributes( typeof( IgnoreSynchronization ), false ).Length == 0 )
             property.SetValue( obj, field.GetValue( obj ), null );
         }
       }

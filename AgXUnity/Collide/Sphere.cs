@@ -8,7 +8,6 @@ namespace AgXUnity.Collide
   /// Sphere shape object given radius.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Shapes/Sphere" )]
-  [GenerateCustomEditor]
   public sealed class Sphere : Shape
   {
     #region Serialized Properties

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEditor;
 using AgXUnity;
 
@@ -82,6 +83,56 @@ namespace AgXUnityEditor
     }
     #endregion
 
+    #region Constraint
+    [MenuItem( "AgXUnity/Constraints/Hinge" )]
+    public static GameObject ConstraintHinge()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.Hinge );
+    }
+
+    [MenuItem( "AgXUnity/Constraints/Prismatic" )]
+    public static GameObject ConstraintPrismatic()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.Prismatic );
+    }
+
+    [MenuItem( "AgXUnity/Constraints/Lock Joint" )]
+    public static GameObject ConstraintLockJoint()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.LockJoint );
+    }
+
+    [MenuItem( "AgXUnity/Constraints/Cylindrical Joint" )]
+    public static GameObject ConstraintCylindricalJoint()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.CylindricalJoint );
+    }
+
+    [MenuItem( "AgXUnity/Constraints/Ball Joint" )]
+    public static GameObject ConstraintBallJoint()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.BallJoint );
+    }
+
+    [MenuItem( "AgXUnity/Constraints/Distance Joint" )]
+    public static GameObject ConstraintDistanceJoint()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.DistanceJoint );
+    }
+
+    [MenuItem( "AgXUnity/Constraints/Angular Lock Joint" )]
+    public static GameObject ConstraintAngularLockJoint()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.AngularLockJoint );
+    }
+
+    [MenuItem( "AgXUnity/Constraints/Plane Joint" )]
+    public static GameObject ConstraintPlaneJoint()
+    {
+      return Selection.activeGameObject = Factory.Create( ConstraintType.PlaneJoint );
+    }
+    #endregion
+
     #region Managers
     [MenuItem( "AgXUnity/Debug Render Manager" )]
     public static GameObject DebugRenderer()
@@ -124,6 +175,14 @@ namespace AgXUnityEditor
       if ( AgXUnity.WindAndWaterManager.Instance == null )
         AgXUnity.WindAndWaterManager.ResetDestroyedState();
       return Selection.activeGameObject = AgXUnity.WindAndWaterManager.Instance.gameObject;
+    }
+    #endregion
+
+    #region Utils
+    [MenuItem( "AgXUnity/Utils/Generate Custom Editors" )]
+    public static void GenerateEditors()
+    {
+      Utils.CustomEditorGenerator.Generate();
     }
     #endregion
   }
