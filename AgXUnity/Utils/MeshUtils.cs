@@ -115,131 +115,22 @@ namespace AgXUnity.Utils
       return true;
     }
 
-    /// <summary>
-    /// Resulting data of closest triangle search. CHECK Valid flag before using this result!
-    /// </summary>
-    public class FindTriangleResult
+    public class TriangleTestResult
     {
-      /// <summary>
-      /// Distance from ray start to the intersection point of the triangle.
-      /// </summary>
-      public float Distance { get; set; }
-
-      /// <summary>
-      /// Index of the triangle in the mesh.triangles data.
-      /// </summary>
-      /// <remarks>
-      /// Note that the local vertices doesn't include the scale.
-      /// </remarks>
-      /// <example>
-      /// Vector3 vertex1 = mesh.sharedMesh.vertices[ mesh.sharedMesh.triangles[ TriangleIndex + 0 ] ];
-      /// Vector3 vertex2 = mesh.sharedMesh.vertices[ mesh.sharedMesh.triangles[ TriangleIndex + 1 ] ];
-      /// Vector3 vertex3 = mesh.sharedMesh.vertices[ mesh.sharedMesh.triangles[ TriangleIndex + 2 ] ];
-      /// </example>
-      public int TriangleIndex { get; set; }
-
-      /// <summary>
-      /// Index of the edge, closest to the point of intersection.
-      /// </summary>
-      public int ClosestEdgeIndex { get; set; }
-
-      /// <summary>
-      /// The mesh the test has been made on.
-      /// </summary>
-      public UnityEngine.Mesh Mesh { get; private set; }
-
-      /// <summary>
-      /// The parent game object the mesh transforms by. Invalid if null.
-      /// </summary>
-      public GameObject Parent { get; set; }
-
-      /// <summary>
-      /// Vertices of the closest triangle, given in world coordinate frame.
-      /// </summary>
-      public Vector3[] WorldVertices
-      {
-        get
-        {
-          if ( !Valid )
-            return null;
-
-          return new Vector3[]
-                 {
-                   Parent.transform.TransformPoint( Mesh.vertices[ Mesh.triangles[ TriangleIndex + 0 ] ] ),
-                   Parent.transform.TransformPoint( Mesh.vertices[ Mesh.triangles[ TriangleIndex + 1 ] ] ),
-                   Parent.transform.TransformPoint( Mesh.vertices[ Mesh.triangles[ TriangleIndex + 2 ] ] )
-                 };
-        }
-      }
-
-      /// <summary>
-      /// Edges of the closest triangle, given in world coordinate frame.
-      /// </summary>
-      public Edge[] WorldEdges
-      {
-        get
-        {
-          Vector3[] worldVertices = WorldVertices;
-          Vector3 worldNormal = WorldNormal;
-          return new Edge[]
-                 {
-                   new Edge( worldVertices[ 0 ], worldVertices[ 1 ], worldNormal ),
-                   new Edge( worldVertices[ 1 ], worldVertices[ 2 ], worldNormal ),
-                   new Edge( worldVertices[ 2 ], worldVertices[ 0 ], worldNormal )
-                 };
-        }
-      }
-
-      /// <summary>
-      /// Intersection point in the triangle, given in world coordinate frame.
-      /// </summary>
-      public Vector3 WorldIntersectionPoint { get; set; }
-
-      /// <summary>
-      /// Normal of the triangle given in world coordinate frame.
-      /// </summary>
-      public Vector3 WorldNormal { get; set; }
-
-      /// <summary>
-      /// True if this data is valid, e.g., the ray intersects a triangle.
-      /// </summary>
-      public bool Valid { get { return Mesh != null && TriangleIndex < Mesh.triangles.Length && Distance < float.PositiveInfinity; } }
-
-      /// <summary>
-      /// Construct given a mesh filter.
-      /// </summary>
-      /// <param name="mesh">Mesh filter.</param>
-      public FindTriangleResult( UnityEngine.Mesh mesh, GameObject parent )
-      {
-        Invalidate( mesh, parent );
-      }
-
-      /// <summary>
-      /// Invalidate current state.
-      /// </summary>
-      public void Invalidate()
-      {
-        Invalidate( null, null );
-      }
-
-      private void Invalidate( UnityEngine.Mesh mesh, GameObject parent )
-      {
-        Mesh                   = mesh;
-        Parent                 = parent;
-        Distance               = float.PositiveInfinity;
-        TriangleIndex          = int.MaxValue;
-        ClosestEdgeIndex       = int.MaxValue;
-        WorldIntersectionPoint = Vector3.zero;
-        WorldNormal            = Vector3.up;
-      }
-    }
-
-    public struct TriangleTestResult
-    {
-      public int TriangleIndex;
-      public float Time;
+      public int     TriangleIndex;
+      public float   Time;
       public Vector3 PointInTriangle;
-      public bool Hit;
+      public Vector3 Normal;
+      public bool    Hit;
+
+      public TriangleTestResult()
+      {
+        TriangleIndex   = int.MaxValue;
+        Time            = float.MaxValue;
+        PointInTriangle = Vector3.zero;
+        Normal          = Vector3.zero;
+        Hit             = false;
+      }
     }
 
     /// <summary>
@@ -247,14 +138,15 @@ namespace AgXUnity.Utils
     /// </summary>
     /// <param name="ray">Ray in same coordinate system as the vertices and normal.</param>
     /// <param name="rayLength">Length of the ray.</param>
+    /// <param name="triangleIndex">Triangle index of current triangle.</param>
     /// <param name="v1">First vertex.</param>
     /// <param name="v2">Second vertex.</param>
     /// <param name="v3">Third vertex.</param>
     /// <param name="normal">Normal of the triangle.</param>
     /// <returns>Local result of test.</returns>
-    public static TriangleTestResult TestTriangle( Ray ray, float rayLength, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 normal )
+    public static TriangleTestResult TestTriangle( Ray ray, float rayLength, int triangleIndex, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 normal )
     {
-      TriangleTestResult result = new TriangleTestResult() { TriangleIndex = int.MaxValue, Time = float.MaxValue, PointInTriangle = Vector3.zero, Hit = false };
+      TriangleTestResult result = new TriangleTestResult() { Normal = normal, TriangleIndex = triangleIndex };
       result.Hit = IntersectRayTriangle( ray, rayLength, v1, v2, v3, normal, ref result.PointInTriangle, ref result.Time );
       return result;
     }
@@ -267,107 +159,90 @@ namespace AgXUnity.Utils
     /// <param name="mesh">The mesh.</param>
     /// <param name="parent">Parent game object that transforms the mesh.</param>
     /// <returns>Result of the test.</returns>
-    public static FindTriangleResult TestAllTriangles( Ray worldRay, float rayLength, UnityEngine.Mesh mesh, GameObject parent )
+    public static Raycast.TriangleHit TestAllTriangles( Ray worldRay, float rayLength, UnityEngine.Mesh mesh, GameObject parent )
     {
-      FindTriangleResult result = new FindTriangleResult( mesh, parent );
       if ( mesh == null || parent == null )
-        return result;
+        return Raycast.TriangleHit.Invalid;
 
       // Mesh bounds are in local coordinates - transform ray to local.
       Ray localRay = new Ray( parent.transform.InverseTransformPoint( worldRay.origin ), parent.transform.InverseTransformVector( worldRay.direction ).normalized );
       if ( !mesh.bounds.IntersectRay( localRay ) )
-        return result;
+        return Raycast.TriangleHit.Invalid;
 
-      int[] triangles    = mesh.triangles;
-      Vector3[] vertices = mesh.vertices;
+      int[] triangles               = mesh.triangles;
+      Vector3[] vertices            = mesh.vertices;
+      TriangleTestResult testResult = new TriangleTestResult();
       for ( int i = 0; i < triangles.Length; i += 3 ) {
         Vector3 v1              = vertices[ triangles[ i + 0 ] ];
         Vector3 v2              = vertices[ triangles[ i + 1 ] ];
         Vector3 v3              = vertices[ triangles[ i + 2 ] ];
         Vector3 normal          = Vector3.Cross( v2 - v1, v3 - v1 ).normalized;
-        TriangleTestResult test = TestTriangle( localRay, rayLength, v1, v2, v3, normal );
-        if ( test.Hit && test.Time < result.Distance ) {
-          result.TriangleIndex          = i;
-          result.Distance               = test.Time;
-          result.WorldIntersectionPoint = parent.transform.TransformPoint( test.PointInTriangle );
-          result.WorldNormal            = parent.transform.TransformDirection( normal );
-        }
+        TriangleTestResult test = TestTriangle( localRay, rayLength, i, v1, v2, v3, normal );
+        if ( test.Hit && test.Time < testResult.Time )
+          testResult = test;
       }
 
-      if ( result.TriangleIndex >= triangles.Length )
-        return result;
+      if ( !testResult.Hit )
+        return Raycast.TriangleHit.Invalid;
 
-      result.Distance = Vector3.Distance( worldRay.GetPoint( 0 ), result.WorldIntersectionPoint );
-
-      return result;
+      Vector3 worldIntersectionPoint = parent.transform.TransformPoint( testResult.PointInTriangle );
+      return new Raycast.TriangleHit()
+      {
+        Target   = parent,
+        Vertices = new Vector3[]
+        {
+          parent.transform.TransformPoint( vertices[ triangles[ testResult.TriangleIndex + 0 ] ] ),
+          parent.transform.TransformPoint( vertices[ triangles[ testResult.TriangleIndex + 1 ] ] ),
+          parent.transform.TransformPoint( vertices[ triangles[ testResult.TriangleIndex + 2 ] ] )
+        },
+        Point    = worldIntersectionPoint,
+        Normal   = parent.transform.TransformDirection( testResult.Normal ),
+        Distance = Vector3.Distance( worldRay.GetPoint( 0 ), worldIntersectionPoint )
+      };
     }
 
     /// <summary>
-    /// Finds closest triangle to ray start. Tests will be made against <paramref name="cachedResult"/> if
-    /// given, and if hit, that result will be updated and used.
+    /// Finds closest triangle to ray start.
     /// </summary>
     /// <param name="mesh">The mesh.</param>
     /// <param name="parent">Parent game object that transforms the mesh.</param>
     /// <param name="worldRay">Ray in world coordinate frame.</param>
     /// <param name="rayLength">Length of the ray.</param>
-    /// <param name="cachedResult">Already calculated result for this mesh to test against again.</param>
     /// <returns>Data with result, result.Valid == true if the ray intersects a triangle.</returns>
-    public static FindTriangleResult FindClosestTriangle( UnityEngine.Mesh mesh, GameObject parent, Ray worldRay, float rayLength = 500.0f, FindTriangleResult cachedResult = null )
+    public static Raycast.TriangleHit FindClosestTriangle( UnityEngine.Mesh mesh, GameObject parent, Ray worldRay, float rayLength = 500.0f )
     {
-      FindTriangleResult result = null;
-      bool testCached = cachedResult != null && cachedResult.Valid && cachedResult.Mesh == mesh;
-      if ( testCached ) {
-        Vector3[] vertices = cachedResult.WorldVertices;
-        TriangleTestResult test = TestTriangle( worldRay, rayLength, vertices[ 0 ], vertices[ 1 ], vertices[ 2 ], cachedResult.WorldNormal );
-        if ( test.Hit ) {
-          cachedResult.WorldIntersectionPoint = test.PointInTriangle;
-          result = cachedResult;
-          result.Distance = Vector3.Distance( worldRay.GetPoint( 0 ), test.PointInTriangle );
-        }
-      }
-
-      if ( result == null )
-        result = TestAllTriangles( worldRay, rayLength, mesh, parent );
-
-      if ( !result.Valid )
-        return result;
-
-      Edge[] edges = result.WorldEdges;
-      float closestEdgeDistance = float.PositiveInfinity;
-      for ( int i = 0; i < edges.Length; ++i ) {
-        float dist = ShapeUtils.ShortestDistancePointLine( result.WorldIntersectionPoint, edges[ i ].Start, edges[ i ].End );
-        if ( dist < closestEdgeDistance ) {
-          closestEdgeDistance = dist;
-          result.ClosestEdgeIndex = i;
-        }
-      }
-
-      return result;
+      return TestAllTriangles( worldRay, rayLength, mesh, parent );
     }
 
     /// <summary>
-    /// Finds closest triangle to ray start in game object with one or many MeshFilters. Tests will be made against <paramref name="cachedResult"/> if
-    /// given, and if hit, that result will be updated and used.
+    /// Finds closest triangle to ray start in game object with one or many MeshFilters.
     /// </summary>
     /// <param name="parentGameObject">Object with render data (MeshFilters).</param>
     /// <param name="worldRay">Ray given in world coordinate system.</param>
     /// <param name="rayLength">Length of the ray.</param>
-    /// <param name="cachedResult">Already calculated result for a mesh in this game object, to test against again.</param>
     /// <returns>Data with result, result.Valid == true if the ray intersects a triangle.</returns>
-    public static FindTriangleResult FindClosestTriangle( GameObject parentGameObject, UnityEngine.Ray worldRay, float rayLength = 500.0f, FindTriangleResult cachedResult = null )
+    public static Raycast.TriangleHit FindClosestTriangle( GameObject parentGameObject, UnityEngine.Ray worldRay, float rayLength = 500.0f )
     {
       if ( parentGameObject == null )
-        return new FindTriangleResult( null, null );
+        return Raycast.TriangleHit.Invalid;
 
       UnityEngine.MeshFilter[] meshFilters = parentGameObject.GetComponentsInChildren<UnityEngine.MeshFilter>();
       if ( meshFilters.Length == 0 )
-        return new FindTriangleResult( null, null );
+        return Raycast.TriangleHit.Invalid;
 
-      FindTriangleResult[] results = new FindTriangleResult[ meshFilters.Length ];
+      Raycast.TriangleHit[] results = new Raycast.TriangleHit[ meshFilters.Length ];
       for ( int i = 0; i < meshFilters.Length; ++i )
-        results[ i ] = FindClosestTriangle( meshFilters[ i ].sharedMesh, meshFilters[ i ].gameObject, worldRay, rayLength, cachedResult );
+        results[ i ] = FindClosestTriangle( meshFilters[ i ].sharedMesh, meshFilters[ i ].gameObject, worldRay, rayLength );
 
-      FindTriangleResult best = results[ 0 ];
+      return FindBestResult( results );
+    }
+
+    public static Raycast.TriangleHit FindBestResult( Raycast.TriangleHit[] results )
+    {
+      if ( results.Length == 0 )
+        return Raycast.TriangleHit.Invalid;
+
+      Raycast.TriangleHit best = results[ 0 ];
       for ( int i = 1; i < results.Length; ++i )
         if ( results[ i ].Distance < best.Distance )
           best = results[ i ];
