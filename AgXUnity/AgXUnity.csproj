@@ -73,6 +73,9 @@
     <Compile Include="Collide\Mesh.cs" />
     <Compile Include="Collide\Plane.cs" />
     <Compile Include="Collide\Shape.cs" />
+    <Compile Include="ConstraintAttachmentPair.cs" />
+    <Compile Include="ElementaryConstraint.cs" />
+    <Compile Include="Frame.cs" />
     <Compile Include="Utils\ShapeUtils.cs" />
     <Compile Include="Collide\Sphere.cs" />
     <Compile Include="CollisionGroups.cs" />

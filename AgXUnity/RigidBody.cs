@@ -27,7 +27,6 @@ namespace AgXUnity
   [AddComponentMenu( "AgXUnity/Rigid Body" )]
   [RequireComponent( typeof( MassProperties ) )]
   [DisallowMultipleComponent]
-  [GenerateCustomEditor]
   public class RigidBody : ScriptComponent
   {
     /// <summary>

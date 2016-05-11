@@ -1,4 +1,6 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
 using UnityEditor;
 
 namespace AgXUnityEditor.Tools
@@ -141,10 +143,123 @@ namespace AgXUnityEditor.Tools
       return newPosition - position;
     }
 
+    private List<Tool> m_children = new List<Tool>();
+    private Tool m_parent = null;
+
+    private Dictionary<string, Utils.VisualPrimitive> m_visualPrimitives = new Dictionary<string, Utils.VisualPrimitive>();
+
     public Tool()
     {
     }
 
     public virtual void OnSceneViewGUI( SceneView sceneView ) { }
+
+    public virtual void OnAdd() { }
+
+    public virtual void OnRemove() { }
+
+    public Tool GetParent()
+    {
+      return m_parent;
+    }
+
+    public T GetChild<T>() where T : Tool
+    {
+      return GetChildren<T>().FirstOrDefault();
+    }
+
+    public T[] GetChildren<T>() where T : Tool
+    {
+      return ( from child in m_children where child.GetType() == typeof( T ) select child as T ).ToArray();
+    }
+
+    public void PerformRemoveFromParent()
+    {
+      if ( Manager.GetActiveTool() == this ) {
+        Manager.RemoveActiveTool();
+        return;
+      }
+
+      PerformRemove();
+    }
+
+    protected void AddChild( Tool child )
+    {
+      if ( child == null || m_children.Contains( child ) )
+        return;
+
+      m_children.Add( child );
+      child.m_parent = this;
+      child.OnAdd();
+    }
+
+    protected void RemoveChild( Tool child )
+    {
+      if ( child == null || !m_children.Contains( child ) )
+        return;
+
+      child.PerformRemoveFromParent();
+    }
+
+    protected T GetOrCreateVisualPrimitive<T>( string name, string shader = "Unlit/Color" ) where T : Utils.VisualPrimitive
+    {
+      T primitive = GetVisualPrimitive<T>( name );
+      if ( primitive != null )
+        return primitive;
+
+      primitive = (T)System.Activator.CreateInstance( typeof( T ), new object[] { shader } );
+      m_visualPrimitives.Add( name, primitive );
+
+      return primitive;
+    }
+
+    protected T GetVisualPrimitive<T>( string name ) where T : Utils.VisualPrimitive
+    {
+      Utils.VisualPrimitive primitive = null;
+      // C-cast style cast to throw if the type isn't matching.
+      if ( m_visualPrimitives.TryGetValue( name, out primitive ) )
+        return (T)primitive;
+
+      return null;
+    }
+
+    protected void RemoveVisualPrimitive( string name )
+    {
+      Utils.VisualPrimitive primitive = null;
+      if ( m_visualPrimitives.TryGetValue( name, out primitive ) ) {
+        primitive.Destruct();
+        m_visualPrimitives.Remove( name );
+      }
+    }
+
+    protected void RemoveVisualPrimitive( Utils.VisualPrimitive primitive )
+    {
+      RemoveVisualPrimitive( m_visualPrimitives.First( kvp => kvp.Value == primitive ).Key );
+    }
+
+    protected void OnSceneViewGUIChildren( SceneView sceneView )
+    {
+      foreach ( var child in m_children )
+        child.OnSceneViewGUI( sceneView );
+    }
+
+    private void PerformRemove()
+    {
+      OnRemove();
+
+      string[] visualPrimitiveNames = m_visualPrimitives.Keys.ToArray();
+      foreach ( string visualPrimitiveName in visualPrimitiveNames )
+        RemoveVisualPrimitive( visualPrimitiveName );
+
+      if ( m_parent != null )
+        m_parent.m_children.Remove( this );
+      m_parent = null;
+
+      Tool[] children = m_children.ToArray();
+      foreach ( Tool child in children ) {
+        child.PerformRemove();
+        m_children.Remove( child );
+      }
+    }
   }
 }

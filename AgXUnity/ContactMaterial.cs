@@ -5,7 +5,6 @@ namespace AgXUnity
   /// <summary>
   /// Contact material object.
   /// </summary>
-  [GenerateCustomEditor]
   public class ContactMaterial : ScriptAsset
   {
     /// <summary>

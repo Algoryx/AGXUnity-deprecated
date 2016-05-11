@@ -44,7 +44,6 @@ namespace AgXUnity
   /// Component holding a list of name tags for collision groups.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Collisions/CollisionGroups" )]
-  [GenerateCustomEditor]
   public class CollisionGroups : ScriptComponent
   {
     /// <summary>

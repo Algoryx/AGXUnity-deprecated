@@ -8,7 +8,6 @@ using UnityEngine;
 namespace AgXUnity
 {
   [AddComponentMenu( "" )]
-  [GenerateCustomEditor]
   public class WireWinch : ScriptComponent
   {
     [HideInInspector]

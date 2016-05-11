@@ -295,9 +295,10 @@ namespace AgXUnity.Utils
       if ( tmp == null )
         return null;
 
-      tmp.hideFlags          = HideFlags.HideAndDontSave;
-      tmp.transform.position = m_shape.transform.position;
-      tmp.transform.rotation = m_shape.transform.rotation;
+      tmp.hideFlags            = HideFlags.HideAndDontSave;
+      tmp.transform.position   = m_shape.transform.position;
+      tmp.transform.rotation   = m_shape.transform.rotation;
+      tmp.transform.localScale = m_shape.GetScale();
 
       MeshUtils.FindTriangleResult tmpResult = MeshUtils.FindClosestTriangle( tmp, ray, rayLength );
       RaycastResult result = null;
@@ -324,9 +325,9 @@ namespace AgXUnity.Utils
       // 3 principal edges and 1 closest given ray cast.
       MeshUtils.Edge[] edges = new MeshUtils.Edge[ 4 ];
 
-      edges[ 0 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_X ), GetLocalFace( Direction.Positive_X ), GetLocalFaceDirection( Direction.Positive_Y ) );
-      edges[ 1 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_Y ), GetLocalFace( Direction.Positive_Y ), GetLocalFaceDirection( Direction.Positive_Z ) );
-      edges[ 2 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_Z ), GetLocalFace( Direction.Positive_Z ), GetLocalFaceDirection( Direction.Positive_X ) );
+      edges[ 0 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_X ), GetLocalFace( Direction.Positive_X ), GetLocalFaceDirection( Direction.Positive_Y ), MeshUtils.Edge.EdgeType.Principal );
+      edges[ 1 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_Y ), GetLocalFace( Direction.Positive_Y ), GetLocalFaceDirection( Direction.Positive_Z ), MeshUtils.Edge.EdgeType.Principal );
+      edges[ 2 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_Z ), GetLocalFace( Direction.Positive_Z ), GetLocalFaceDirection( Direction.Positive_X ), MeshUtils.Edge.EdgeType.Principal );
 
       for ( int i = 0; i < 3; ++i ) {
         edges[ i ].Start -= principalEdgeExtension * edges[ i ].Direction;

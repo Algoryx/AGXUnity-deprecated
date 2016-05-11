@@ -47,12 +47,18 @@
     <Compile Include="Menus\AssetsMenu.cs" />
     <Compile Include="Menus\TopMenu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tools\ConstraintAttachmentPairTool.cs" />
     <Compile Include="Tools\EdgeDetectionTool.cs" />
+    <Compile Include="Tools\FrameTool.cs" />
+    <Compile Include="Tools\SelectGameObjectTool.cs" />
     <Compile Include="Tools\ShapeResizeTool.cs" />
     <Compile Include="Tools\Tool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />
+    <Compile Include="Utils\CustomEditorGenerator.cs" />
     <Compile Include="Utils\GUIHelper.cs" />
     <Compile Include="Utils\VisualPrimitive.cs" />
+    <Compile Include="SceneViewWindow.cs" />
+    <Compile Include="Wizards\Wizard.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AgXUnity\AgXUnity.csproj">

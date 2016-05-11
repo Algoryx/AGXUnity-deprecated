@@ -19,7 +19,6 @@ namespace AgXUnity
   }
 
   [AddComponentMenu( "" )]
-  [GenerateCustomEditor]
   public class CollisionGroupsManager : UniqueGameObject<CollisionGroupsManager>
   {
     /// <summary>

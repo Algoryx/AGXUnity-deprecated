@@ -9,12 +9,18 @@ namespace AgXUnity.Utils
     /// </summary>
     public class Edge
     {
+      public enum EdgeType
+      {
+        Triangle,
+        Principal
+      }
+
       /// <summary>
       /// Construct given start and end point.
       /// </summary>
       /// <param name="start">Start point.</param>
       /// <param name="end">End point.</param>
-      public Edge( Vector3 start, Vector3 end, Vector3 normal ) { Start = start; End = end; Normal = normal; }
+      public Edge( Vector3 start, Vector3 end, Vector3 normal, EdgeType edgeType = EdgeType.Triangle ) { Start = start; End = end; Normal = normal; Type = edgeType; }
 
       /// <summary>
       /// Start point.
@@ -40,6 +46,11 @@ namespace AgXUnity.Utils
       /// Direction of the edge, start to end.
       /// </summary>
       public Vector3 Direction { get { return Vector3.Normalize( End - Start ); } }
+
+      /// <summary>
+      /// Type of edge if along triangle edge or a principal axis of a known shape type.
+      /// </summary>
+      public EdgeType Type { get; private set; }
     }
 
     /// <summary>
@@ -270,16 +281,16 @@ namespace AgXUnity.Utils
       int[] triangles    = mesh.triangles;
       Vector3[] vertices = mesh.vertices;
       for ( int i = 0; i < triangles.Length; i += 3 ) {
-        Vector3 v1     = vertices[ triangles[ i + 0 ] ];
-        Vector3 v2     = vertices[ triangles[ i + 1 ] ];
-        Vector3 v3     = vertices[ triangles[ i + 2 ] ];
-        Vector3 normal = Vector3.Cross( v2 - v1, v3 - v1 ).normalized;
+        Vector3 v1              = vertices[ triangles[ i + 0 ] ];
+        Vector3 v2              = vertices[ triangles[ i + 1 ] ];
+        Vector3 v3              = vertices[ triangles[ i + 2 ] ];
+        Vector3 normal          = Vector3.Cross( v2 - v1, v3 - v1 ).normalized;
         TriangleTestResult test = TestTriangle( localRay, rayLength, v1, v2, v3, normal );
         if ( test.Hit && test.Time < result.Distance ) {
           result.TriangleIndex          = i;
           result.Distance               = test.Time;
           result.WorldIntersectionPoint = parent.transform.TransformPoint( test.PointInTriangle );
-          result.WorldNormal            = normal;
+          result.WorldNormal            = parent.transform.TransformDirection( normal );
         }
       }
 

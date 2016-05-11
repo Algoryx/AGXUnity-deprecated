@@ -64,13 +64,18 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    public delegate void OnMouseClickDelegate();
+    public delegate void OnMouseClickDelegate( VisualPrimitive primitive );
 
     public event OnMouseClickDelegate OnMouseClick = delegate {};
 
-    public void FireOnMouseClick() { OnMouseClick(); }
+    public void FireOnMouseClick() { OnMouseClick( this ); }
 
-    protected VisualPrimitive( AgXUnity.Rendering.Spawner.Primitive primitiveType, string shader = "Diffuse" )
+    public void Destruct()
+    {
+      Manager.OnVisualPrimitiveNodeDestruct( this );
+    }
+
+    protected VisualPrimitive( AgXUnity.Rendering.Spawner.Primitive primitiveType, string shader = "Unlit/Color" )
     {
       m_primitiveType = primitiveType;
       m_shaderName = shader;
@@ -114,7 +119,7 @@ namespace AgXUnityEditor.Utils
       Node.transform.position   = 0.5f * ( start + end );
     }
 
-    public VisualPrimitiveCylinder( string shader = "Diffuse" )
+    public VisualPrimitiveCylinder( string shader = "Unlit/Color" )
       : base( AgXUnity.Rendering.Spawner.Primitive.Cylinder, shader )
     {
     }

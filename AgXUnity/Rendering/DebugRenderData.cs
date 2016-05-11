@@ -5,7 +5,6 @@ namespace AgXUnity.Rendering
   /// <summary>
   /// Base class for debug render data managed by DebugRenderManager.
   /// </summary>
-  [GenerateCustomEditor]
   public abstract class DebugRenderData : ScriptComponent
   {
     /// <summary>

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
@@ -6,6 +7,11 @@ using AgXUnity.Utils;
 
 namespace AgXUnityEditor
 {
+  [CustomEditor( typeof( AgXUnity.ElementaryConstraint ) )]
+  public class ElementaryConstraintEditor : BaseEditor<AgXUnity.ElementaryConstraint>
+  {
+  }
+
   /// <summary>
   /// Manager object, initialized when the Unity editor is loaded, to handle
   /// all tools, behavior related etc. objects while in edit mode.
@@ -14,16 +20,100 @@ namespace AgXUnityEditor
   public static class Manager
   {
     /// <summary>
+    /// Tool data to activate tool.
+    /// </summary>
+    public class ToolData
+    {
+      /// <summary>
+      /// Active tool object.
+      /// </summary>
+      public Tools.Tool Tool = null;
+
+      /// <summary>
+      /// Called when the tool is removed by the manager.
+      /// </summary>
+      public Action<object> OnRemoveCallback = null;
+
+      /// <summary>
+      /// Argument to OnRemoveCallback callback.
+      /// </summary>
+      public object Subject = null;
+    }
+
+    /// <summary>
+    /// The game object mouse is currently over in scene view.
+    /// </summary>
+    /// <remarks>
+    /// This object could be a VisualPrimitive which in general isn't detectable
+    /// by picking.
+    /// </remarks>
+    public static GameObject MouseOverObjectIncludingHidden { get; private set; }
+
+    /// <summary>
+    /// The game object mouse is currently over in scene view. Hidden objects,
+    /// e.g., VisualPrimitive isn't included in this.
+    /// </summary>
+    /// <seealso cref="MouseOverObjectIncludingHidden"/>
+    public static GameObject MouseOverObject { get; private set; }
+
+    /// <summary>
+    /// True if the current event is left mouse down.
+    /// </summary>
+    public static bool LeftMouseClick { get; private set; }
+
+    /// <summary>
+    /// True if keyboard escape key is down.
+    /// </summary>
+    public static bool KeyEscapeDown { get; private set; }
+
+    /// <summary>
     /// Constructor called when the Unity editor is initialized.
     /// </summary>
     static Manager()
     {
+      // TODO: Check if custom editors are present and up to date?
+
       SceneView.onSceneGUIDelegate += OnSceneView;
 
       m_visualsParent = GameObject.Find( m_visualParentName );
-      ClearVisualsParent();
+
+      while ( m_visualsParent != null && m_visualsParent.transform.childCount > 0 )
+        GameObject.DestroyImmediate( m_visualsParent.transform.GetChild( 0 ).gameObject );
+
+      MouseOverObjectIncludingHidden = null;
+      MouseOverObject                = null;
     }
-    
+
+    /// <summary>
+    /// Hijacks left mouse down from the editor and returns true when the button
+    /// is released. This is the default behavior of the editor (select @ mouse up)
+    /// and it's, without this method, impossible to detect mouse up events.
+    /// </summary
+    /// <remarks>
+    /// Using this method disables the editor default selection behavior.
+    /// </remarks>
+    /// <returns>True when the hijacked mouse down button is released (i.e., EventType.MouseUp).</returns>
+    public static bool HijackLeftMouseClick()
+    {
+      Event current = Event.current;
+      if ( current == null ) {
+        Debug.LogError( "Hijack Left Mouse Click can only be used in the GUI event loop." );
+        return false;
+      }
+
+      EventType currentMouseEventType = current.GetTypeForControl( GUIUtility.GetControlID( FocusType.Passive ) );
+      bool hijackMouseDown = currentMouseEventType == EventType.MouseDown &&
+                             current.button == 0 &&                           // button 1 is FPS camera movement
+                            !current.alt;                                     // alt down is track ball camera movement
+      if ( hijackMouseDown ) {
+        GUIUtility.hotControl = 0;
+        Event.current.Use();
+        return false;
+      }
+
+      return !Event.current.alt && currentMouseEventType == EventType.MouseUp && Event.current.button == 0;
+    }
+
     /// <summary>
     /// Callback from KeyHandler objects when constructed. The KeyCode has to be unique.
     /// </summary>
@@ -53,80 +143,158 @@ namespace AgXUnityEditor
       m_visualPrimitives.Add( primitive );
     }
 
+    public static void OnVisualPrimitiveNodeDestruct( Utils.VisualPrimitive primitive )
+    {
+      if ( primitive == null || primitive.Node == null )
+        return;
+
+      primitive.Node.transform.parent = null;
+      m_visualPrimitives.Remove( primitive );
+
+      GameObject.DestroyImmediate( primitive.Node );
+    }
+
+    public static bool ActivateTool( ToolData toolData )
+    {
+      if ( toolData == null || toolData.Tool == null )
+        return false;
+
+      RemoveActiveTool();
+
+      m_activeToolData = toolData;
+      toolData.Tool.OnAdd();
+
+      return true;
+    }
+
+    public static void RemoveActiveTool()
+    {
+      if ( m_activeToolData != null ) {
+        ToolData toolData = m_activeToolData;
+
+        // PerformRemoveFromParent will check if the tool is the current active.
+        // If the tool wants to remove itself and is our m_activeToolData then
+        // we'll receive a call back to this method from PerformRemoveFromParent.
+        m_activeToolData = null;
+
+        toolData.Tool.PerformRemoveFromParent();
+        if ( toolData.OnRemoveCallback != null )
+          toolData.OnRemoveCallback( m_activeToolData.Subject );
+      }
+    }
+
+    public static T GetActiveTool<T>() where T : Tools.Tool
+    {
+      return m_activeToolData != null ? m_activeToolData.Tool as T : null;
+    }
+
+    public static Tools.Tool GetActiveTool()
+    {
+      return m_activeToolData != null ? m_activeToolData.Tool : null;
+    }
+
+    public static ToolData GetActiveToolData()
+    {
+      return m_activeToolData;
+    }
+
     private static Dictionary<KeyCode, Utils.GUIHelper.KeyHandler> m_keyHandlers = new Dictionary<KeyCode, Utils.GUIHelper.KeyHandler>();
 
     private static string m_visualParentName = "Manager".To32BitFnv1aHash().ToString();
     private static GameObject m_visualsParent = null;
     private static HashSet<Utils.VisualPrimitive> m_visualPrimitives = new HashSet<Utils.VisualPrimitive>();
 
-    private static List<Tools.Tool> m_tools = new List<Tools.Tool>()
+    private static List<Tools.Tool> m_persistentTools = new List<Tools.Tool>()
     {
       new Tools.ShapeResizeTool()
       {
         ActivateKey       = new Utils.GUIHelper.KeyHandler( KeyCode.LeftControl ),
         SymmetricScaleKey = new Utils.GUIHelper.KeyHandler( KeyCode.LeftShift )
-      },
-      new Tools.EdgeDetectionTool()
+      }
     };
+
+    private static ToolData m_activeToolData = null;
 
     private static void OnSceneView( SceneView sceneView )
     {
       Event current = Event.current;
-      bool mouseLeftClickNoModifiers = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
+      LeftMouseClick = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
+      KeyEscapeDown = current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
+
       foreach ( var keyHandler in m_keyHandlers.Values )
         keyHandler.Update( current );
 
-      // Can't perform picking during repaint event.
-      if ( current.isMouse ) {
-        foreach ( var primitive in m_visualPrimitives ) {
-          if ( primitive.Node == null )
-            continue;
+      UpdateMouseOverPrimitives( current );
+      if ( Selection.activeGameObject != null )
+        Selection.activeGameObject = RouteGameObject( Selection.activeGameObject );
 
-          HideFlags hideFlags      = primitive.Node.hideFlags;
-          primitive.Node.hideFlags = HideFlags.None;
-          primitive.MouseOver      = HandleUtility.PickGameObject( current.mousePosition, true ) == primitive.Node;
-          primitive.Node.hideFlags = hideFlags;
-        }
-
-        if ( mouseLeftClickNoModifiers ) {
-          foreach ( var primitive in m_visualPrimitives ) {
-            if ( primitive.MouseOver )
-              primitive.FireOnMouseClick();
-          }
-        }
-      }
-
-      var proxyTarget = Selection.activeGameObject != null ? Selection.activeGameObject.GetComponent<OnSelectionProxy>() : null;
-      if ( proxyTarget != null )
-        Selection.activeGameObject = proxyTarget.Target;
-
-      // TODO: Remove this debug code.
-      {
-        var edgeDectionTool = GetTool<Tools.EdgeDetectionTool>();
-        edgeDectionTool.Target = Application.isPlaying ? null : Selection.activeGameObject;
-      }
-
-      foreach ( var tool in m_tools )
+      foreach ( var tool in m_persistentTools )
         tool.OnSceneViewGUI( sceneView );
+
+      if ( m_activeToolData != null )
+        m_activeToolData.Tool.OnSceneViewGUI( sceneView );
+
+      HandleWindowsGUI( sceneView );
+
+      LeftMouseClick = false;
 
       SceneView.RepaintAll();
     }
 
-    private static void ClearVisualsParent()
+    private static void UpdateMouseOverPrimitives( Event current )
     {
-      if ( m_visualsParent == null )
+      // Can't perform picking during repaint event.
+      if ( current == null || !current.isMouse )
         return;
 
-      while ( m_visualsParent.transform.childCount > 0 )
-        GameObject.DestroyImmediate( m_visualsParent.transform.GetChild( 0 ).gameObject );
+      // Update mouse over before we reveal the VisualPrimitives.
+      MouseOverObject = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, true ) );
+
+      // Early exit if we haven't any active visual primitives.
+      if ( m_visualPrimitives.Count == 0 ) {
+        MouseOverObjectIncludingHidden = MouseOverObject;
+        return;
+      }
+
+      var objHideFlags = new[] { new { hideFlag = HideFlags.None, obj = (Utils.VisualPrimitive)null } }.ToList();
+      objHideFlags.Clear();
+
+      // Set hideFlags to none so that picking detects our objects.
+      foreach ( var primitive in m_visualPrimitives ) {
+        if ( primitive.Node == null )
+          continue;
+
+        objHideFlags.Add( new { hideFlag = primitive.Node.hideFlags, obj = primitive } );
+        primitive.Node.hideFlags = HideFlags.None;
+      }
+
+      MouseOverObjectIncludingHidden = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, true ) );
+
+      // Restore hideFlags and update "mouse over" flag. Trigger on select if desired
+      // and mouse is over the object.
+      objHideFlags.ForEach(
+        entry =>
+        {
+          entry.obj.MouseOver      = MouseOverObjectIncludingHidden == entry.obj.Node;
+          entry.obj.Node.hideFlags = entry.hideFlag;
+          if ( entry.obj.MouseOver && HijackLeftMouseClick() )
+            entry.obj.FireOnMouseClick();
+        } );
     }
 
-    private static T GetTool<T>() where T : Tools.Tool
+    /// <summary>
+    /// Routes current game object to the desired object when e.g., selected.
+    /// This method uses OnSelectionProxy to find the desired object.
+    /// </summary>
+    private static GameObject RouteGameObject( GameObject gameObject )
     {
-      foreach ( var tool in m_tools )
-        if ( tool is T )
-          return tool as T;
-      return null;
+      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
+      return proxyTarget != null ? proxyTarget.Target : gameObject;
+    }
+
+    private static void HandleWindowsGUI( SceneView sceneView )
+    {
+      SceneViewWindow.OnSceneView( sceneView );
     }
   }
 }

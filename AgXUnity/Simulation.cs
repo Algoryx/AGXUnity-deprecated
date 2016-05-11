@@ -8,7 +8,6 @@ namespace AgXUnity
   /// implicitly created when first used.
   /// </summary>
   [AddComponentMenu( "" )]
-  [GenerateCustomEditor]
   public class Simulation : UniqueGameObject<Simulation>
   {
     /// <summary>

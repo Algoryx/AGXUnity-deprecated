@@ -20,7 +20,6 @@ namespace AgXUnity
   /// Contact material manager which enables the user to manage contact materials.
   /// </summary>
   [AddComponentMenu( "" )]
-  [GenerateCustomEditor]
   public class ContactMaterialManager : UniqueGameObject<ContactMaterialManager>
   {
     [SerializeField]

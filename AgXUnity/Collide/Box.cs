@@ -7,7 +7,6 @@ namespace AgXUnity.Collide
   /// Box shape object given half extents.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Shapes/Box" )]
-  [GenerateCustomEditor]
   public sealed class Box : Shape
   {
     #region Serialized Properties

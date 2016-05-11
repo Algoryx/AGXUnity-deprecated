@@ -4,15 +4,6 @@ using UnityEngine;
 namespace AgXUnity
 {
   /// <summary>
-  /// For (external) editor generator to generate editor file for class.
-  /// </summary>
-  [System.AttributeUsage( System.AttributeTargets.Class, AllowMultiple = true )]
-  public class GenerateCustomEditor : System.Attribute
-  {
-    public GenerateCustomEditor() { }
-  }
-  
-  /// <summary>
   /// In general UnityEngine objects are ignored in our custom inspector.
   /// This attribute enables UnityEngine objects to be shown in the editor.
   /// </summary>
@@ -20,6 +11,15 @@ namespace AgXUnity
   public class ShowInInspector : System.Attribute
   {
     public ShowInInspector() { }
+  }
+
+  /// <summary>
+  /// Ignore synchronization of properties during initialize of a ScriptComponent/Asset.
+  /// </summary>
+  [System.AttributeUsage( System.AttributeTargets.Property )]
+  public class IgnoreSynchronization : System.Attribute
+  {
+    public IgnoreSynchronization() { }
   }
 
   /// <summary>

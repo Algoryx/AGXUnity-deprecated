@@ -7,7 +7,6 @@ namespace AgXUnity.Collide
   /// Infinite plane object - probably not completely working.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Shapes/Plane" )]
-  [GenerateCustomEditor]
   public sealed class Plane : Shape
   {
     /// <summary>
