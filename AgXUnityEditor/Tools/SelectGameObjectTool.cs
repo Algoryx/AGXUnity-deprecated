@@ -16,6 +16,8 @@ namespace AgXUnityEditor.Tools
 
     private GUIContent WindowTitle { get { return Utils.GUIHelper.MakeLabel( "Select game object" ); } }
 
+    public bool SelectionWindowActive { get { return m_gameObjectsToChoose.Count > 0; } }
+
     public SelectGameObjectTool( Action<GameObject> onSelectedCallback )
     {
       m_orgSelected = Selection.activeGameObject;
@@ -57,10 +59,10 @@ namespace AgXUnityEditor.Tools
       sceneView.Focus();
 
       bool isMouseClick = Manager.HijackLeftMouseClick();
-      bool clickAndMiss = isMouseClick && m_gameObjectsToChoose.Count > 0 && !SceneViewWindow.GetWindowData( OnMultipleOptions ).Contains( Event.current.mousePosition );
+      bool clickAndMiss = isMouseClick && SelectionWindowActive && !SceneViewWindow.GetWindowData( OnMultipleOptions ).Contains( Event.current.mousePosition );
       if ( clickAndMiss )
         Clear();
-      else if ( isMouseClick && m_gameObjectsToChoose.Count == 0 ) {
+      else if ( isMouseClick && !SelectionWindowActive ) {
         float buttonMaxWidth = Mathf.Max( 1.5f * Utils.GUIHelper.EditorSkin.label.CalcSize( WindowTitle ).x, Utils.GUIHelper.EditorSkin.button.CalcSize( GetGUIContent( Manager.MouseOverObject ) ).x );
 
         // Adding "null" if click in "space".

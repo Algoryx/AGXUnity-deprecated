@@ -22,21 +22,28 @@ namespace AgXUnityEditor.Tools
     {
       EdgeVisual.OnMouseClick += OnEdgeClick;
       m_onEdgeClickCallback += onEdgeClickCallback;
+
+      AddChild( new SelectGameObjectTool( OnTargetChanged ) );
     }
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      // TODO: Use SelectGameObjectTool to chose target. Or in ConstraintAttachmentPairTool?
-
       if ( EdgeVisual.MouseOver )
         return;
 
       EdgeVisual.Visible = false;
 
+      // Code from attachment tool to update target.
+      //if ( edgeTool != null && edgeTool.Target != Manager.MouseOverObject && Manager.MouseOverObjectIncludingHidden == Manager.MouseOverObject && Manager.HijackLeftMouseClick() )
+      //  edgeTool.Target = Manager.MouseOverObject;
+
+      OnSceneViewGUIChildren( sceneView );
+
       if ( Target == null )
         return;
 
-      if ( m_raycast.Test( HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).Valid ) {
+      // We're not updating visual and result if the object selection window is active.
+      if ( !GetChild<SelectGameObjectTool>().SelectionWindowActive && m_raycast.Test( HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).Valid ) {
         EdgeVisual.Visible = true;
         EdgeVisual.Color = m_raycast.LastHit.ClosestEdge.Edge.Type == MeshUtils.Edge.EdgeType.Triangle ? Color.yellow : Color.red;
         EdgeVisual.SetTransform( m_raycast.LastHit.ClosestEdge.Edge.Start, m_raycast.LastHit.ClosestEdge.Edge.End, 0.045f );
@@ -46,6 +53,11 @@ namespace AgXUnityEditor.Tools
     private void OnEdgeClick( Utils.VisualPrimitive primitive )
     {
       m_onEdgeClickCallback( m_raycast.LastHit.ClosestEdge );
+    }
+
+    private void OnTargetChanged( GameObject newTarget )
+    {
+      Target = newTarget;
     }
   }
 }

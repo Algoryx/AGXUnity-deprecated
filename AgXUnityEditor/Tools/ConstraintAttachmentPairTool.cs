@@ -104,9 +104,6 @@ namespace AgXUnityEditor.Tools
         PerformRemoveFromParent();
         return;
       }
-
-      if ( edgeTool != null && edgeTool.Target != Manager.MouseOverObject && Manager.MouseOverObjectIncludingHidden == Manager.MouseOverObject && Manager.HijackLeftMouseClick() )
-        edgeTool.Target = Manager.MouseOverObject;
     }
 
     private void OnEdgeClickCallback( Raycast.ClosestEdgeHit result )
