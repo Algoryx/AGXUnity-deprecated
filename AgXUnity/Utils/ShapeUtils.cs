@@ -5,10 +5,15 @@ namespace AgXUnity.Utils
 {
   public class BoxShapeUtils : ShapeUtils
   {
+    public static Vector3 GetLocalFace( Vector3 halfExtents, Direction dir )
+    {
+      return Vector3.Scale( halfExtents, GetLocalFaceDirection( dir ) );
+    }
+
     public override Vector3 GetLocalFace( Direction dir )
     {
       Box box = GetShape<Box>();
-      return Vector3.Scale( box.HalfExtents, GetLocalFaceDirection( dir ) );
+      return GetLocalFace( box.HalfExtents, dir );
     }
 
     public override bool IsHalfSize( Direction direction )
@@ -93,15 +98,6 @@ namespace AgXUnity.Utils
       Sphere sphere = GetShape<Sphere>();
       sphere.Radius = sphere.Radius + Vector3.Dot( GetLocalFaceDirection( dir ), localChange );
     }
-  }
-
-  public class RaycastResult
-  {
-    public Vector3 Position { get; set; }
-
-    public Vector3 Normal { get; set; }
-
-    public MeshUtils.Edge Edge { get; set; }
   }
 
   public abstract class ShapeUtils
@@ -207,16 +203,16 @@ namespace AgXUnity.Utils
       return Vector3.Distance( segment1Begin + t1 * d1, segment2Begin + t2 * d2 );
     }
 
-    public static MeshUtils.Edge FindClosestEdge( Ray ray, float rayLength, MeshUtils.Edge[] edges )
+    public static MeshUtils.Edge FindClosestEdgeToSegment( Vector3 segmentStart, Vector3 segmentEnd, MeshUtils.Edge[] edges, ref float bestDistance )
     {
       int bestEdge = edges.Length;
-      float bestDistance = float.MaxValue;
+      bestDistance = float.MaxValue;
       for ( int i = 0; i < edges.Length; ++i ) {
         var edge = edges[ i ];
         if ( edge == null )
           continue;
 
-        float distance = ShortestDistanceSegmentSegment( ray.GetPoint( 0 ), ray.GetPoint( rayLength ), edge.Start, edge.End );
+        float distance = ShortestDistanceSegmentSegment( segmentStart, segmentEnd, edge.Start, edge.End );
         if ( distance < bestDistance ) {
           bestDistance = distance;
           bestEdge = i;
@@ -224,6 +220,12 @@ namespace AgXUnity.Utils
       }
 
       return bestEdge < edges.Length ? edges[ bestEdge ] : null;
+    }
+
+    public static MeshUtils.Edge FindClosestEdgeToSegment( Vector3 segmentStart, Vector3 segmentEnd, MeshUtils.Edge[] edges )
+    {
+      float dummy = float.MaxValue;
+      return FindClosestEdgeToSegment( segmentStart, segmentEnd, edges, ref dummy );
     }
 
     public static ShapeUtils Create( Shape shape )
@@ -263,7 +265,7 @@ namespace AgXUnity.Utils
 
     public abstract void UpdateSize( Vector3 localChange, Direction dir );
 
-    public Vector3 GetLocalFaceDirection( Direction direction )
+    public static Vector3 GetLocalFaceDirection( Direction direction )
     {
       return m_unitFaces[ System.Convert.ToInt32( direction ) ];
     }
@@ -288,59 +290,28 @@ namespace AgXUnity.Utils
       return m_shape.transform.TransformDirection( GetLocalFaceDirection( direction ) );
     }
 
-    public RaycastResult Raycast( Ray ray, float rayLength = 500.0f )
+    public MeshUtils.Edge[] GetPrincipalEdgesWorld( float principalEdgeExtension )
     {
-      string name = Rendering.DebugRenderData.GetPrefabName( m_shape.GetType().Name );
-      GameObject tmp = PrefabLoader.Instantiate( name );
-      if ( tmp == null )
-        return null;
-
-      tmp.hideFlags            = HideFlags.HideAndDontSave;
-      tmp.transform.position   = m_shape.transform.position;
-      tmp.transform.rotation   = m_shape.transform.rotation;
-      tmp.transform.localScale = m_shape.GetScale();
-
-      MeshUtils.FindTriangleResult tmpResult = MeshUtils.FindClosestTriangle( tmp, ray, rayLength );
-      RaycastResult result = null;
-      if ( tmpResult.Valid )
-        result = new RaycastResult() { Position = tmpResult.WorldIntersectionPoint, Normal = tmpResult.WorldNormal, Edge = FindClosestEdge( ray, rayLength, tmpResult.WorldEdges ) };
-
-      GameObject.DestroyImmediate( tmp );
-
-      return result;
-    }
-
-    /// <summary>
-    /// Finds closest edge given an edge function which, e.g., tests the edge
-    /// against a given ray.
-    /// </summary>
-    /// <param name="edgeFunc">
-    /// Function taking and edge and returns the shortest distance
-    /// from a given, arbitrary segment, to that edge.
-    /// </param>
-    /// <param name="principalEdgeExtension">Extension of the principal edges for them to be possible to select.</param>
-    /// <returns></returns>
-    public MeshUtils.Edge FindClosestEdge( Ray ray, float rayLength, float principalEdgeExtension )
-    {
-      // 3 principal edges and 1 closest given ray cast.
-      MeshUtils.Edge[] edges = new MeshUtils.Edge[ 4 ];
+      MeshUtils.Edge[] edges = new MeshUtils.Edge[ 3 ];
 
       edges[ 0 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_X ), GetLocalFace( Direction.Positive_X ), GetLocalFaceDirection( Direction.Positive_Y ), MeshUtils.Edge.EdgeType.Principal );
       edges[ 1 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_Y ), GetLocalFace( Direction.Positive_Y ), GetLocalFaceDirection( Direction.Positive_Z ), MeshUtils.Edge.EdgeType.Principal );
       edges[ 2 ] = new MeshUtils.Edge( GetLocalFace( Direction.Negative_Z ), GetLocalFace( Direction.Positive_Z ), GetLocalFaceDirection( Direction.Positive_X ), MeshUtils.Edge.EdgeType.Principal );
 
-      for ( int i = 0; i < 3; ++i ) {
+      return ExtendAndTransformEdgesToWorld( m_shape.transform, edges, principalEdgeExtension );
+    }
+
+    public static MeshUtils.Edge[] ExtendAndTransformEdgesToWorld( Transform transform, MeshUtils.Edge[] edges, float principalEdgeExtension )
+    {
+      for ( int i = 0; i < edges.Length; ++i ) {
         edges[ i ].Start -= principalEdgeExtension * edges[ i ].Direction;
         edges[ i ].End   += principalEdgeExtension * edges[ i ].Direction;
-        edges[ i ].Start  = m_shape.transform.position + m_shape.transform.TransformDirection( edges[ i ].Start );
-        edges[ i ].End    = m_shape.transform.position + m_shape.transform.TransformDirection( edges[ i ].End );
-        edges[ i ].Normal = m_shape.transform.TransformDirection( edges[ i ].Normal );
+        edges[ i ].Start  = transform.position + transform.TransformDirection( edges[ i ].Start );
+        edges[ i ].End    = transform.position + transform.TransformDirection( edges[ i ].End );
+        edges[ i ].Normal = transform.TransformDirection( edges[ i ].Normal );
       }
 
-      var raycastResult = Raycast( ray, rayLength );
-      edges[ 3 ] = raycastResult != null ? raycastResult.Edge : null;
-
-      return FindClosestEdge( ray, rayLength, edges );
+      return edges;
     }
 
     public T GetShape<T>() where T : Shape

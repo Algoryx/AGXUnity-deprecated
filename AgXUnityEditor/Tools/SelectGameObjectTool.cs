@@ -16,6 +16,8 @@ namespace AgXUnityEditor.Tools
 
     private GUIContent WindowTitle { get { return Utils.GUIHelper.MakeLabel( "Select game object" ); } }
 
+    public bool SelectionWindowActive { get { return m_gameObjectsToChoose.Count > 0; } }
+
     public SelectGameObjectTool( Action<GameObject> onSelectedCallback )
     {
       m_orgSelected = Selection.activeGameObject;
@@ -32,15 +34,19 @@ namespace AgXUnityEditor.Tools
 
     public static GUIContent GetGUIContent( GameObject gameObject )
     {
-      // Note: gameObject may be null if click in "space".
-      string typeInfo = gameObject == null ?
-                          Utils.GUIHelper.AddColorTag( " [null]", Color.red ) :
-                        gameObject.GetComponent<RigidBody>() != null ?
-                          Utils.GUIHelper.AddColorTag( " [RigidBody]", Color.Lerp( Color.blue, Color.white, 0.35f ) ) :
-                        gameObject.GetComponent<AgXUnity.Collide.Shape>() != null ?
-                          Utils.GUIHelper.AddColorTag( " [" + gameObject.GetComponent<AgXUnity.Collide.Shape>().GetType().Name + "]", Color.Lerp( Color.green, Color.white, 0.1f ) ) :
-                        "";
-      return Utils.GUIHelper.MakeLabel( ( gameObject != null ? gameObject.name : "World" ) + typeInfo );
+      bool isNull       = gameObject == null;
+      bool hasVisual    = !isNull && gameObject.GetComponent<MeshFilter>() != null;
+      bool hasRigidBody = !isNull && gameObject.GetComponent<RigidBody>() != null;
+      bool hasShape     = !isNull && gameObject.GetComponent<AgXUnity.Collide.Shape>() != null;
+
+      string nullTag      = isNull       ? Utils.GUIHelper.AddColorTag( "[null]", Color.red ) : "";
+      string visualTag    = hasVisual    ? Utils.GUIHelper.AddColorTag( "[Visual]", Color.yellow ) : "";
+      string rigidBodyTag = hasRigidBody ? Utils.GUIHelper.AddColorTag( "[RigidBody]", Color.Lerp( Color.blue, Color.white, 0.35f ) ) : "";
+      string shapeTag     = hasShape     ? Utils.GUIHelper.AddColorTag( "[" + gameObject.GetComponent<AgXUnity.Collide.Shape>().GetType().Name + "]", Color.Lerp( Color.green, Color.white, 0.1f ) ) : "";
+
+      string name = isNull ? "World" : gameObject.name;
+
+      return Utils.GUIHelper.MakeLabel( name + " " + nullTag + rigidBodyTag + shapeTag + visualTag );
     }
 
     public override void OnRemove()
@@ -53,10 +59,10 @@ namespace AgXUnityEditor.Tools
       sceneView.Focus();
 
       bool isMouseClick = Manager.HijackLeftMouseClick();
-      bool clickAndMiss = isMouseClick && m_gameObjectsToChoose.Count > 0 && !SceneViewWindow.GetWindowData( OnMultipleOptions ).Contains( Event.current.mousePosition );
+      bool clickAndMiss = isMouseClick && SelectionWindowActive && !SceneViewWindow.GetWindowData( OnMultipleOptions ).Contains( Event.current.mousePosition );
       if ( clickAndMiss )
         Clear();
-      else if ( isMouseClick && m_gameObjectsToChoose.Count == 0 ) {
+      else if ( isMouseClick && !SelectionWindowActive ) {
         float buttonMaxWidth = Mathf.Max( 1.5f * Utils.GUIHelper.EditorSkin.label.CalcSize( WindowTitle ).x, Utils.GUIHelper.EditorSkin.button.CalcSize( GetGUIContent( Manager.MouseOverObject ) ).x );
 
         // Adding "null" if click in "space".

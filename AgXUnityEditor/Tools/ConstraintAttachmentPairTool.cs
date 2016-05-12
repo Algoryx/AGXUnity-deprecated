@@ -104,16 +104,10 @@ namespace AgXUnityEditor.Tools
         PerformRemoveFromParent();
         return;
       }
-
-      if ( edgeTool != null && edgeTool.Target != Manager.MouseOverObject && Manager.MouseOverObjectIncludingHidden == Manager.MouseOverObject && Manager.HijackLeftMouseClick() )
-        edgeTool.Target = Manager.MouseOverObject;
     }
 
-    private void OnEdgeClickCallback( EdgeDetectionTool.Result result )
+    private void OnEdgeClickCallback( Raycast.ClosestEdgeHit result )
     {
-      if ( result.Edge == null )
-        return;
-
       FrameTool frameTool = GetChild<FrameTool>();
       if ( frameTool != null )
         RemoveChild( frameTool );
