@@ -108,7 +108,7 @@ namespace AgXUnityEditor.Utils
         return;
 
       float r       = constantScreenSize ?
-                        radius * Mathf.Max( HandleUtility.GetHandleSize( start ), HandleUtility.GetHandleSize( end ) ) :
+                        radius * HandleUtility.GetHandleSize( 0.5f * ( start + end ) ) :
                         radius;
       Vector3 dir   = end - start;
       float height  = dir.magnitude;

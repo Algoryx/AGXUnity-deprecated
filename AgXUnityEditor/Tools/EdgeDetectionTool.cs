@@ -33,10 +33,6 @@ namespace AgXUnityEditor.Tools
 
       EdgeVisual.Visible = false;
 
-      // Code from attachment tool to update target.
-      //if ( edgeTool != null && edgeTool.Target != Manager.MouseOverObject && Manager.MouseOverObjectIncludingHidden == Manager.MouseOverObject && Manager.HijackLeftMouseClick() )
-      //  edgeTool.Target = Manager.MouseOverObject;
-
       OnSceneViewGUIChildren( sceneView );
 
       if ( Target == null )
