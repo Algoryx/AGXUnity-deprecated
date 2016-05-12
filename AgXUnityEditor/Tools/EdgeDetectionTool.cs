@@ -26,6 +26,8 @@ namespace AgXUnityEditor.Tools
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
+      // TODO: Use SelectGameObjectTool to chose target. Or in ConstraintAttachmentPairTool?
+
       if ( EdgeVisual.MouseOver )
         return;
 

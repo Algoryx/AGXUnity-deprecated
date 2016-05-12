@@ -133,36 +133,29 @@ namespace AgXUnity.Utils
                     Target.GetComponent<MeshFilter>().sharedMesh :
                   null;
 
-      if ( mesh != null ) {
-        Vector3 extents = mesh.bounds.extents;
+      Vector3 halfExtents = 0.5f * Vector3.one;
+      if ( mesh != null )
+        halfExtents = mesh.bounds.extents;
 
-        MeshUtils.Edge[] edges = ShapeUtils.ExtendAndTransformEdgesToWorld( Target.transform,
-                                 new MeshUtils.Edge[]
-                                 {
-                                   new MeshUtils.Edge( BoxShapeUtils.GetLocalFace( extents, ShapeUtils.Direction.Negative_X ),
-                                                       BoxShapeUtils.GetLocalFace( extents, ShapeUtils.Direction.Positive_X ),
-                                                       ShapeUtils.GetLocalFaceDirection( ShapeUtils.Direction.Positive_Y ),
-                                                       MeshUtils.Edge.EdgeType.Principal ),
-                                   new MeshUtils.Edge( BoxShapeUtils.GetLocalFace( extents, ShapeUtils.Direction.Negative_Y ),
-                                                       BoxShapeUtils.GetLocalFace( extents, ShapeUtils.Direction.Positive_Y ),
-                                                       ShapeUtils.GetLocalFaceDirection( ShapeUtils.Direction.Positive_Z ),
-                                                       MeshUtils.Edge.EdgeType.Principal ),
-                                   new MeshUtils.Edge( BoxShapeUtils.GetLocalFace( extents, ShapeUtils.Direction.Negative_Z ),
-                                                       BoxShapeUtils.GetLocalFace( extents, ShapeUtils.Direction.Positive_Z ),
-                                                       ShapeUtils.GetLocalFaceDirection( ShapeUtils.Direction.Positive_X ),
-                                                       MeshUtils.Edge.EdgeType.Principal )
-                                 },
-                                 principalEdgeExtension );
+      MeshUtils.Edge[] edges = ShapeUtils.ExtendAndTransformEdgesToWorld( Target.transform,
+                                new MeshUtils.Edge[]
+                                {
+                                  new MeshUtils.Edge( BoxShapeUtils.GetLocalFace( halfExtents, ShapeUtils.Direction.Negative_X ),
+                                                      BoxShapeUtils.GetLocalFace( halfExtents, ShapeUtils.Direction.Positive_X ),
+                                                      ShapeUtils.GetLocalFaceDirection( ShapeUtils.Direction.Positive_Y ),
+                                                      MeshUtils.Edge.EdgeType.Principal ),
+                                  new MeshUtils.Edge( BoxShapeUtils.GetLocalFace( halfExtents, ShapeUtils.Direction.Negative_Y ),
+                                                      BoxShapeUtils.GetLocalFace( halfExtents, ShapeUtils.Direction.Positive_Y ),
+                                                      ShapeUtils.GetLocalFaceDirection( ShapeUtils.Direction.Positive_Z ),
+                                                      MeshUtils.Edge.EdgeType.Principal ),
+                                  new MeshUtils.Edge( BoxShapeUtils.GetLocalFace( halfExtents, ShapeUtils.Direction.Negative_Z ),
+                                                      BoxShapeUtils.GetLocalFace( halfExtents, ShapeUtils.Direction.Positive_Z ),
+                                                      ShapeUtils.GetLocalFaceDirection( ShapeUtils.Direction.Positive_X ),
+                                                      MeshUtils.Edge.EdgeType.Principal )
+                                },
+                                principalEdgeExtension );
 
-        return edges;
-      }
-
-      return new MeshUtils.Edge[]
-      {
-        new MeshUtils.Edge( Target.transform.position + principalEdgeExtension * Vector3.left, Target.transform.position + principalEdgeExtension * Vector3.right, Vector3.up, MeshUtils.Edge.EdgeType.Principal ),
-        new MeshUtils.Edge( Target.transform.position + principalEdgeExtension * Vector3.down, Target.transform.position + principalEdgeExtension * Vector3.up, Vector3.forward, MeshUtils.Edge.EdgeType.Principal ),
-        new MeshUtils.Edge( Target.transform.position + principalEdgeExtension * Vector3.back, Target.transform.position + principalEdgeExtension * Vector3.forward, Vector3.right, MeshUtils.Edge.EdgeType.Principal )
-      };
+      return edges;
     }
   }
 }

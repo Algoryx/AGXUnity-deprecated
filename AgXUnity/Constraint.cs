@@ -142,7 +142,7 @@ namespace AgXUnity
     protected override bool Initialize()
     {
       if ( m_attachmentPair.ReferenceObject == null ) {
-        Debug.LogError( "Unable to initialize constraint. Reference object must be valid and contain a rigid body component." );
+        Debug.LogError( "Unable to initialize constraint. Reference object must be valid and contain a rigid body component.", this );
         return false;
       }
 

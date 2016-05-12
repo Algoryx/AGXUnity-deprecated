@@ -248,7 +248,7 @@ namespace AgXUnityEditor
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
-      MouseOverObject = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, true ) );
+      MouseOverObject = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, false ) );
 
       // Early exit if we haven't any active visual primitives.
       if ( m_visualPrimitives.Count == 0 ) {
@@ -268,7 +268,7 @@ namespace AgXUnityEditor
         primitive.Node.hideFlags = HideFlags.None;
       }
 
-      MouseOverObjectIncludingHidden = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, true ) );
+      MouseOverObjectIncludingHidden = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, false ) );
 
       // Restore hideFlags and update "mouse over" flag. Trigger on select if desired
       // and mouse is over the object.

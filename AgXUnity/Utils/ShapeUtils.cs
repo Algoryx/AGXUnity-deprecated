@@ -306,8 +306,8 @@ namespace AgXUnity.Utils
       for ( int i = 0; i < edges.Length; ++i ) {
         edges[ i ].Start -= principalEdgeExtension * edges[ i ].Direction;
         edges[ i ].End   += principalEdgeExtension * edges[ i ].Direction;
-        edges[ i ].Start  = transform.position + transform.TransformDirection( edges[ i ].Start );
-        edges[ i ].End    = transform.position + transform.TransformDirection( edges[ i ].End );
+        edges[ i ].Start  = transform.position + transform.TransformVector( edges[ i ].Start );
+        edges[ i ].End    = transform.position + transform.TransformVector( edges[ i ].End );
         edges[ i ].Normal = transform.TransformDirection( edges[ i ].Normal );
       }
 
