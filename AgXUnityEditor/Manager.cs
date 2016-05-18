@@ -20,27 +20,6 @@ namespace AgXUnityEditor
   public static class Manager
   {
     /// <summary>
-    /// Tool data to activate tool.
-    /// </summary>
-    public class ToolData
-    {
-      /// <summary>
-      /// Active tool object.
-      /// </summary>
-      public Tools.Tool Tool = null;
-
-      /// <summary>
-      /// Called when the tool is removed by the manager.
-      /// </summary>
-      public Action<object> OnRemoveCallback = null;
-
-      /// <summary>
-      /// Argument to OnRemoveCallback callback.
-      /// </summary>
-      public object Subject = null;
-    }
-
-    /// <summary>
     /// The game object mouse is currently over in scene view.
     /// </summary>
     /// <remarks>
@@ -117,7 +96,7 @@ namespace AgXUnityEditor
     /// <summary>
     /// Callback from KeyHandler objects when constructed. The KeyCode has to be unique.
     /// </summary>
-    public static void OnKeyHandlerConstruct( Utils.GUIHelper.KeyHandler handler )
+    public static void OnKeyHandlerConstruct( Utils.KeyHandler handler )
     {
       if ( m_keyHandlers.ContainsKey( handler.Key ) ) {
         Debug.LogWarning( "Key handler with key: " + handler.Key + " already registered. Ignoring handler." );
@@ -154,51 +133,45 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
-    public static bool ActivateTool( ToolData toolData )
+    public static Tools.Tool ActivateTool( Tools.Tool tool )
     {
-      if ( toolData == null || toolData.Tool == null )
-        return false;
-
       RemoveActiveTool();
 
-      m_activeToolData = toolData;
-      toolData.Tool.OnAdd();
+      m_activeTool = tool;
 
-      return true;
+      return m_activeTool;
+    }
+
+    public static T ActivateTool<T>( Tools.Tool tool ) where T : Tools.Tool
+    {
+      return ActivateTool( tool ) as T;
     }
 
     public static void RemoveActiveTool()
     {
-      if ( m_activeToolData != null ) {
-        ToolData toolData = m_activeToolData;
+      if ( m_activeTool != null ) {
+        Tools.Tool tool = m_activeTool;
 
         // PerformRemoveFromParent will check if the tool is the current active.
         // If the tool wants to remove itself and is our m_activeToolData then
         // we'll receive a call back to this method from PerformRemoveFromParent.
-        m_activeToolData = null;
+        m_activeTool = null;
 
-        toolData.Tool.PerformRemoveFromParent();
-        if ( toolData.OnRemoveCallback != null )
-          toolData.OnRemoveCallback( m_activeToolData.Subject );
+        tool.PerformRemoveFromParent();
       }
     }
 
     public static T GetActiveTool<T>() where T : Tools.Tool
     {
-      return m_activeToolData != null ? m_activeToolData.Tool as T : null;
+      return m_activeTool as T;
     }
 
     public static Tools.Tool GetActiveTool()
     {
-      return m_activeToolData != null ? m_activeToolData.Tool : null;
+      return m_activeTool;
     }
 
-    public static ToolData GetActiveToolData()
-    {
-      return m_activeToolData;
-    }
-
-    private static Dictionary<KeyCode, Utils.GUIHelper.KeyHandler> m_keyHandlers = new Dictionary<KeyCode, Utils.GUIHelper.KeyHandler>();
+    private static Dictionary<KeyCode, Utils.KeyHandler> m_keyHandlers = new Dictionary<KeyCode, Utils.KeyHandler>();
 
     private static string m_visualParentName = "Manager".To32BitFnv1aHash().ToString();
     private static GameObject m_visualsParent = null;
@@ -208,12 +181,12 @@ namespace AgXUnityEditor
     {
       new Tools.ShapeResizeTool()
       {
-        ActivateKey       = new Utils.GUIHelper.KeyHandler( KeyCode.LeftControl ),
-        SymmetricScaleKey = new Utils.GUIHelper.KeyHandler( KeyCode.LeftShift )
+        ActivateKey       = new Utils.KeyHandler( KeyCode.LeftControl ),
+        SymmetricScaleKey = new Utils.KeyHandler( KeyCode.LeftShift )
       }
     };
 
-    private static ToolData m_activeToolData = null;
+    private static Tools.Tool m_activeTool = null;
 
     private static void OnSceneView( SceneView sceneView )
     {
@@ -231,8 +204,8 @@ namespace AgXUnityEditor
       foreach ( var tool in m_persistentTools )
         tool.OnSceneViewGUI( sceneView );
 
-      if ( m_activeToolData != null )
-        m_activeToolData.Tool.OnSceneViewGUI( sceneView );
+      if ( m_activeTool != null )
+        m_activeTool.OnSceneViewGUI( sceneView );
 
       HandleWindowsGUI( sceneView );
 

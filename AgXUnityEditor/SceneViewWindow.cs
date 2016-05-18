@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -107,6 +108,17 @@ namespace AgXUnityEditor
       /// </summary>
       public bool Movable { get; set; }
 
+      public enum CloseEventType
+      {
+        None,
+        ClickAndMiss,
+        KeyEscape
+      }
+
+      /// <summary>
+      /// </summary>
+      public Func<CloseEventType, bool> CloseEventListener = delegate { return false; };
+
       /// <summary>
       /// This flag is true if Movable == true and left mouse button is
       /// down in the window.
@@ -169,6 +181,19 @@ namespace AgXUnityEditor
     }
 
     /// <summary>
+    /// Close all windows with callbacks associated to <paramref name="obj"/>.
+    /// </summary>
+    /// <param name="obj">Object with GUI callbacks.</param>
+    public static void CloseAllWindows( object obj )
+    {
+      if ( obj == null )
+        return;
+
+      var windowsToRemove = from data in m_activeWindows.Values where data.Callback.Target == obj select data;
+      windowsToRemove.ToList().ForEach( data => Close( data.Callback ) );
+    }
+
+    /// <summary>
     /// Finds window data for the given GUI callback.
     /// </summary>
     /// <param name="guiCallback">GUI callback associated to the window.</param>
@@ -182,6 +207,7 @@ namespace AgXUnityEditor
 
     public static void OnSceneView( SceneView sceneView )
     {
+      List<Data> windowsToClose = new List<Data>();
       foreach ( Data data in m_activeWindows.Values ) {
         Rect rect = GUILayout.Window( data.Id,
                                       data.GetRect(),
@@ -204,12 +230,27 @@ namespace AgXUnityEditor
                                         }
                                       },
                                       data.Title,
-                                      Utils.GUIHelper.EditorSkin.window,
+                                      Utils.GUI.Skin.window,
                                       new GUILayoutOption[] { GUILayout.Width( data.Size.x ) } );
 
         data.Size     = rect.size;
         data.Position = rect.position;
+
+        bool hasListener = data.CloseEventListener.GetInvocationList().Length > 1;
+        if ( hasListener ) {
+          Data.CloseEventType currentCloseEvent = Data.CloseEventType.None;
+          if ( Manager.KeyEscapeDown )
+            currentCloseEvent = Data.CloseEventType.KeyEscape;
+          else if ( Manager.LeftMouseClick && !data.Contains( Event.current.mousePosition ) )
+            currentCloseEvent = Data.CloseEventType.ClickAndMiss;
+
+          if ( currentCloseEvent != Data.CloseEventType.None && data.CloseEventListener( currentCloseEvent ) )
+            windowsToClose.Add( data );
+        }
       }
+
+      foreach ( Data data in windowsToClose )
+        Close( data.Callback );
     }
   }
 }

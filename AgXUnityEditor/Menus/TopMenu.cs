@@ -133,6 +133,14 @@ namespace AgXUnityEditor
     }
     #endregion
 
+    #region Wire
+    [MenuItem( "AgXUnity/Wire/Empty" )]
+    public static GameObject WireEmpty()
+    {
+      return Selection.activeGameObject = Factory.Create<Wire>();
+    }
+    #endregion
+
     #region Managers
     [MenuItem( "AgXUnity/Debug Render Manager" )]
     public static GameObject DebugRenderer()

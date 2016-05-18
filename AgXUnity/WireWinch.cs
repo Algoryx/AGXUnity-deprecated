@@ -76,37 +76,30 @@ namespace AgXUnity
       }
     }
 
-    [SerializeField]
-    private Vector3 m_localPosition = Vector3.zero;
-    [HideInInspector]
-    public Vector3 LocalPosition
+    public Wire.RouteNode WinchNode
     {
-      get { return m_localPosition; }
-      set { m_localPosition = value; }
-    }
+      get
+      {
+        Wire wire = GetComponent<Wire>();
+        if ( wire == null )
+          return null;
 
-    [SerializeField]
-    private Vector3 m_localDirection = Vector3.forward;
-    [HideInInspector]
-    public Vector3 LocalDirection
-    {
-      get { return m_localDirection; }
-      set { m_localDirection = value; }
-    }
-
-    [SerializeField]
-    private GameObject m_parent = null;
-    [HideInInspector]
-    public GameObject Parent
-    {
-      get { return m_parent; }
-      set { m_parent = value; }
+        return wire.Route.Nodes.Find( node => node.Winch == this );
+      }
     }
 
     protected override bool Initialize()
     {
-      RigidBody rb = Parent.GetInitializedComponentInParent<RigidBody>();
-      Native = new agxWire.WireWinchController( rb != null ? rb.Native : null, LocalPosition.ToHandedVec3(), LocalDirection.ToHandedVec3() );
+      if ( WinchNode == null ) {
+        Debug.LogWarning( "Unable to initialize winch - no winch node assigned.", this );
+        return false;
+      }
+
+      RigidBody rb = WinchNode.Frame.Parent != null ? WinchNode.Frame.Parent.GetInitializedComponentInParent<RigidBody>() : null;
+      if ( rb == null )
+        Native = new agxWire.WireWinchController( null, WinchNode.Frame.Position.ToHandedVec3(), ( WinchNode.Frame.Rotation * Vector3.forward ).ToHandedVec3(), PulledInLength );
+      else
+        Native = new agxWire.WireWinchController( rb.Native, WinchNode.Frame.CalculateLocalPosition( rb.gameObject ).ToHandedVec3(), ( WinchNode.Frame.CalculateLocalRotation( rb.gameObject ) * Vector3.forward ).ToHandedVec3() );
 
       return base.Initialize();
     }

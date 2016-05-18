@@ -76,6 +76,7 @@
     <Compile Include="ConstraintAttachmentPair.cs" />
     <Compile Include="ElementaryConstraint.cs" />
     <Compile Include="Frame.cs" />
+    <Compile Include="Rendering\SegmentSpawner.cs" />
     <Compile Include="Utils\Raycast.cs" />
     <Compile Include="Utils\ShapeUtils.cs" />
     <Compile Include="Collide\Sphere.cs" />

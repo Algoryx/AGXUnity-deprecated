@@ -6,6 +6,29 @@ namespace AgXUnityEditor.Tools
 {
   public class FrameTool : Tool
   {
+    public static FrameTool FindActive( Frame frame )
+    {
+      return FindActive( Manager.GetActiveTool(), frame );
+    }
+
+    private static FrameTool FindActive( Tool tool, Frame frame )
+    {
+      if ( tool == null )
+        return null;
+
+      FrameTool frameTool = tool as FrameTool;
+      if ( frameTool != null && frameTool.Frame == frame )
+        return frameTool;
+
+      foreach ( Tool child in tool.GetChildren() ) {
+        frameTool = FindActive( child, frame );
+        if ( frameTool != null )
+          return frameTool;
+      }
+
+      return null;
+    }
+
     /// <summary>
     /// Frame this tool controls.
     /// </summary>
@@ -29,10 +52,13 @@ namespace AgXUnityEditor.Tools
       Alpha = alpha;
     }
 
+    public void Remove()
+    {
+      PerformRemoveFromParent();
+    }
+
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      sceneView.Focus();
-
       if ( Frame == null )
         return;
 

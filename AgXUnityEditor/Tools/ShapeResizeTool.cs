@@ -18,12 +18,12 @@ namespace AgXUnityEditor.Tools
     /// <summary>
     /// Key code to activate this tool.
     /// </summary>
-    public Utils.GUIHelper.KeyHandler ActivateKey { get; set; }
+    public Utils.KeyHandler ActivateKey { get; set; }
 
     /// <summary>
     /// Key code for symmetric scale/resize.
     /// </summary>
-    public Utils.GUIHelper.KeyHandler SymmetricScaleKey { get; set; }
+    public Utils.KeyHandler SymmetricScaleKey { get; set; }
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {

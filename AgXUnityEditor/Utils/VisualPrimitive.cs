@@ -81,6 +81,13 @@ namespace AgXUnityEditor.Utils
       m_shaderName = shader;
     }
 
+    protected float ConditionalConstantScreenSize( bool constantScreenSize, float size, Vector3 position )
+    {
+      return constantScreenSize ?
+               size * HandleUtility.GetHandleSize( position ) :
+               size;
+    }
+
     private GameObject CreateNode()
     {
       string name = ( GetType().Namespace != null ? GetType().Namespace : "" ) + "." + GetType().Name;
@@ -107,9 +114,7 @@ namespace AgXUnityEditor.Utils
       if ( Node == null )
         return;
 
-      float r       = constantScreenSize ?
-                        radius * HandleUtility.GetHandleSize( 0.5f * ( start + end ) ) :
-                        radius;
+      float r       = ConditionalConstantScreenSize( constantScreenSize, radius, 0.5f * ( start + end ) );
       Vector3 dir   = end - start;
       float height  = dir.magnitude;
       dir          /= height;
@@ -121,6 +126,24 @@ namespace AgXUnityEditor.Utils
 
     public VisualPrimitiveCylinder( string shader = "Unlit/Color" )
       : base( AgXUnity.Rendering.Spawner.Primitive.Cylinder, shader )
+    {
+    }
+  }
+
+  public class VisualPrimitiveSphere : VisualPrimitive
+  {
+    public void SetTransform( Vector3 position, Quaternion rotation, float radius, bool constantScreenSize = true )
+    {
+      if ( Node == null )
+        return;
+
+      Node.transform.localScale = ConditionalConstantScreenSize( constantScreenSize, radius, position ) * Vector3.one;
+      Node.transform.rotation   = rotation;
+      Node.transform.position   = position;
+    }
+
+    public VisualPrimitiveSphere( string shader = "Unlit/Color" )
+      : base( AgXUnity.Rendering.Spawner.Primitive.Sphere, shader )
     {
     }
   }

@@ -32,8 +32,6 @@ namespace AgXUnityEditor.Tools
       AttachmentPair = attachmentPair;
       Mode = mode;
 
-      SceneViewWindow.Show( OnWindowGUI, new Vector2( 400, 42 ), new Vector2( 2, 22 ), "AgXUnity Constraint Attachment Tool" );
-
       if ( Mode == ToolMode.SelectObjects ) {
         SelectObjectsState = ESelectObjectsState.SelectFirst;
         AddChild( new SelectGameObjectTool( OnSelectedCallback ) );
@@ -54,11 +52,6 @@ namespace AgXUnityEditor.Tools
 
       if ( Mode == ToolMode.FindEdge )
         AttachmentPair.Update();
-    }
-
-    public override void OnRemove()
-    {
-      SceneViewWindow.Close( OnWindowGUI );
     }
 
     private void HandleOnSelectMode()
@@ -124,16 +117,23 @@ namespace AgXUnityEditor.Tools
       AddChild( new FrameTool( AttachmentPair.ReferenceFrame ) );
       RemoveChild( GetChild<EdgeDetectionTool>() );
 
-      Manager.ActivateTool( new Manager.ToolData() { Tool = new FrameTool( AttachmentPair.ReferenceFrame ) } );
+      Manager.ActivateTool( new FrameTool( AttachmentPair.ReferenceFrame ) );
     }
 
-    private void OnWindowGUI( EventType eventType )
+    public override void OnInspectorGUI( GUISkin skin )
     {
       if ( Mode == ToolMode.SelectObjects ) {
         if ( SelectObjectsState == ESelectObjectsState.SelectFirst )
-          GUILayout.Label( Utils.GUIHelper.MakeLabel( "Pick object in scene view to be the <b>reference</b> object." ), Utils.GUIHelper.EditorSkin.label );
+          GUILayout.Label( Utils.GUI.MakeLabel( "Pick object in scene view to be the <b>reference</b> object." ), skin.label );
         else if ( SelectObjectsState == ESelectObjectsState.SelectSecond)
-          GUILayout.Label( Utils.GUIHelper.MakeLabel( "Pick object in scene view to be the <b>connected</b> object." ), Utils.GUIHelper.EditorSkin.label );
+          GUILayout.Label( Utils.GUI.MakeLabel( "Pick object in scene view to be the <b>connected</b> object." ), skin.label );
+      }
+      else if ( Mode == ToolMode.FindEdge ) {
+        EdgeDetectionTool edgeDetectionTool = GetChild<EdgeDetectionTool>();
+        if ( edgeDetectionTool.Target == null )
+          GUILayout.Label( Utils.GUI.MakeLabel( "Pick object in scene view to be the <b>target</b> object." ), skin.label );
+        else
+          GUILayout.Label( Utils.GUI.MakeLabel( "Click " + Utils.GUI.AddColorTag( "principal", Color.red ) + " or " + Utils.GUI.AddColorTag( "triangle", Color.yellow ) + " edge." ), skin.label );
       }
     }
   }

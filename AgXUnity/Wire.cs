@@ -1,4 +1,5 @@
-﻿using AgXUnity.Utils;
+﻿using System.Collections.Generic;
+using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity
@@ -6,56 +7,31 @@ namespace AgXUnity
   /// <summary>
   /// Wire object.
   /// </summary>
+  [System.Serializable]
   [AddComponentMenu( "" )]
   [RequireComponent( typeof( Rendering.WireRenderer ) )]
   public class Wire : ScriptComponent
   {
-    /// <summary>
-    /// Route nodes used when routing the wires.
-    /// </summary>
     [System.Serializable]
     public class RouteNode
     {
-      public enum NodeType
-      {
-        BodyFixedNode,
-        FreeNode,
-        ConnectingNode,
-        EyeNode,
-        ContactNode,
-        WinchNode
-      }
-
-      /// <summary>
-      /// Local position of the node.
-      /// </summary>
       [SerializeField]
-      private Vector3 m_position = new Vector3();
+      private NodeType m_type = NodeType.BodyFixedNode;
 
-      /// <summary>
-      /// Get or set local position of this node.
-      /// </summary>
-      public Vector3 LocalPosition
+      public NodeType Type
       {
-        get { return m_position; }
+        get { return m_type; }
         set
         {
-          m_position = value;
-          if ( m_winch != null )
-            m_winch.LocalPosition = m_position;
+          m_type = value;
+          OnNodeType();
         }
       }
 
-      /// <summary>
-      /// If this route node is a winch, this field is set.
-      /// </summary>
       [SerializeField]
-      private WireWinch m_winch = null;
+      private Frame m_frame = new Frame();
 
-      /// <summary>
-      /// Get winch if assigned from the route.
-      /// </summary>
-      public WireWinch Winch { get { return m_winch; } }
+      public Frame Frame { get { return m_frame; } }
 
       /// <summary>
       /// Reference back to the wire.
@@ -73,104 +49,48 @@ namespace AgXUnity
         {
           m_wire = value;
           if ( m_wire != null )
-            OnNodeType( Type );
+            OnNodeType();
         }
       }
 
       /// <summary>
-      /// Get or set world position of this node.
-      /// </summary>
-      public Vector3 WorldPosition
-      {
-        get
-        {
-          return Parent != null ? Parent.transform.TransformPoint( LocalPosition ) : LocalPosition;
-        }
-        set
-        {
-          LocalPosition = Parent != null ? Parent.transform.InverseTransformPoint( value ) : value;
-        }
-      }
-
-      /// <summary>
-      /// Local rotation of this node. Mainly used for winches.
+      /// If this route node is a winch, this field is set.
       /// </summary>
       [SerializeField]
-      private Quaternion m_localRotation = Quaternion.identity;
+      private WireWinch m_winch = null;
 
       /// <summary>
-      /// Get or set local rotation of this node. Mainly used for winches.
+      /// Get winch if assigned from the route.
       /// </summary>
-      public Quaternion LocalRotation
+      public WireWinch Winch { get { return m_winch; } }
+
+      public RouteNode( NodeType type = NodeType.BodyFixedNode, GameObject parent = null, Vector3 localPosition = default( Vector3 ), Quaternion localRotation = default( Quaternion ) )
       {
-        get { return m_localRotation; }
-        set
-        {
-          m_localRotation = value;
-          if ( m_winch != null )
-            m_winch.LocalDirection = m_localRotation * Vector3.forward;
-        }
+        if ( object.Equals( localRotation, default( Quaternion ) ) )
+          localRotation = Quaternion.identity;
+
+        Frame.SetParent( parent );
+        Frame.LocalPosition = localPosition;
+        Frame.LocalRotation = localRotation;
+
+        Type = type;
       }
 
-      /// <summary>
-      /// Node type of this route node. Default free.
-      /// </summary>
-      [SerializeField]
-      private NodeType m_nodeType = NodeType.FreeNode;
-
-      /// <summary>
-      /// Get or set node type of this route node. Default node type: Free.
-      /// </summary>
-      public NodeType Type
+      public agxWire.Node CreateNative()
       {
-        get { return m_nodeType; }
-        set
-        {
-          m_nodeType = value;
-          OnNodeType( m_nodeType );
-        }
-      }
-
-      /// <summary>
-      /// The parent is the object this node is attached to. If the parent
-      /// is null, the node is attached in/released from world.
-      /// </summary>
-      [SerializeField]
-      private GameObject m_parent = null;
-
-      /// <summary>
-      /// Get or set the parent game object of this route node. When the parent
-      /// is moved (e.g., in the editor), the node follows.
-      /// </summary>
-      public GameObject Parent
-      {
-        get { return m_parent; }
-        set
-        {
-          m_parent = value;
-          if ( m_winch != null )
-            m_winch.Parent = m_parent;
-        }
-      }
-
-      /// <summary>
-      /// Create native node given current properties.
-      /// </summary>
-      /// <returns>Native wire node.</returns>
-      public agxWire.Node CreateNode()
-      {
-        RigidBody rb = null;
+        RigidBody rb        = null;
         Collide.Shape shape = null;
-        if ( Parent != null ) {
-          rb = Parent.GetInitializedComponentInParent<RigidBody>();
-          shape = Parent.GetInitializedComponentInParent<Collide.Shape>();
+        if ( Frame.Parent != null ) {
+          rb    = Frame.Parent.GetInitializedComponentInParent<RigidBody>();
+          shape = Frame.Parent.GetInitializedComponentInParent<Collide.Shape>();
         }
 
         // We don't know if the parent is the rigid body.
         // It could be a mesh, or some other object.
-        agx.Vec3 point = rb != null ?
-                          rb.transform.InverseTransformPoint( WorldPosition ).ToHandedVec3() :
-                          WorldPosition.ToHandedVec3();
+        // Also - use world position if Type == FreeNode.
+        agx.Vec3 point = rb != null && Type != NodeType.FreeNode ?
+                           Frame.CalculateLocalPosition( rb.gameObject ).ToHandedVec3() :
+                           Frame.Position.ToHandedVec3();
 
         agx.RigidBody nativeRb = rb != null ? rb.Native : null;
         if ( Type == NodeType.BodyFixedNode )
@@ -183,12 +103,16 @@ namespace AgXUnity
         else if ( Type == NodeType.EyeNode )
           return new agxWire.EyeNode( nativeRb, point );
         else if ( Type == NodeType.ContactNode )
-          return new agxWire.ContactNode( shape.NativeGeometry, shape.transform.InverseTransformPoint( WorldPosition ).ToHandedVec3() );
+          return new agxWire.ContactNode( shape.NativeGeometry, Frame.CalculateLocalPosition( shape.gameObject ).ToHandedVec3() );
         else if ( Type == NodeType.WinchNode ) {
           if ( m_winch == null )
             throw new AgXUnity.Exception( "No reference to a wire winch component in the winch node." );
 
+          if ( m_winch.WinchNode != this )
+            throw new AgXUnity.Exception( "Winch node mismatch." );
+
           m_winch.GetInitialized<WireWinch>();
+
           return m_winch.Native != null ? m_winch.Native.getStopNode() : null;
         }
 
@@ -199,34 +123,40 @@ namespace AgXUnity
       /// When the user is changing node type, e.g., between fixed and winch,
       /// we receive a callback handling winch dependencies.
       /// </summary>
-      /// <param name="newType">New node type.</param>
-      private void OnNodeType( NodeType newType )
+      private void OnNodeType()
       {
-        if ( newType == NodeType.WinchNode && m_winch != null )
-          return;
-
-        if ( newType != NodeType.WinchNode && m_winch != null ) {
-          GameObject.DestroyImmediate( m_winch );
-          return;
+        if ( Type == NodeType.WinchNode ) {
+          if ( Wire != null && m_winch == null )
+            m_winch = Wire.gameObject.AddComponent<WireWinch>();
         }
-
-        if ( newType == NodeType.WinchNode && m_winch == null && this.Wire != null ) {
-          m_winch = this.Wire.gameObject.AddComponent<WireWinch>();
-          m_winch.Parent = Parent;
-          return;
+        else {
+          // This will give an exception in editor while doing GUI if the
+          // type is changed during GUI...
+          if ( m_winch != null )
+            GameObject.DestroyImmediate( m_winch );
         }
       }
+    }
+
+    public enum NodeType
+    {
+      BodyFixedNode,
+      FreeNode,
+      ConnectingNode,
+      EyeNode,
+      ContactNode,
+      WinchNode
     }
 
     /// <summary>
     /// Native instance.
     /// </summary>
-    private agxWire.Wire m_wire = null;
+    private agxWire.Wire m_native = null;
 
     /// <summary>
     /// Get native instance, if initialized.
     /// </summary>
-    public agxWire.Wire Native { get { return m_wire; } }
+    public agxWire.Wire Native { get { return m_native; } }
 
     /// <summary>
     /// Radius of this wire - default 0.015. Paired with property Radius.
@@ -244,8 +174,8 @@ namespace AgXUnity
       set
       {
         m_radius = value;
-        if ( m_wire != null )
-          m_wire.setRadius( m_radius );
+        if ( Native != null )
+          Native.setRadius( m_radius );
       }
     }
 
@@ -275,8 +205,8 @@ namespace AgXUnity
       set
       {
         m_resolutionPerUnitLength = value;
-        if ( m_wire != null )
-          m_wire.setResolutionPerUnitLength( m_resolutionPerUnitLength );
+        if ( Native != null )
+          Native.setResolutionPerUnitLength( m_resolutionPerUnitLength );
       }
     }
 
@@ -296,8 +226,8 @@ namespace AgXUnity
       set
       {
         m_linearVelocityDamping = value;
-        if ( m_wire != null )
-          m_wire.setLinearVelocityDamping( m_linearVelocityDamping );
+        if ( Native != null )
+          Native.setLinearVelocityDamping( m_linearVelocityDamping );
       }
     }
 
@@ -318,8 +248,8 @@ namespace AgXUnity
       set
       {
         m_scaleConstant = value;
-        if ( m_wire != null )
-          m_wire.getParameterController().setScaleConstant( m_scaleConstant );
+        if ( Native != null )
+          Native.getParameterController().setScaleConstant( m_scaleConstant );
       }
     }
 
@@ -352,7 +282,6 @@ namespace AgXUnity
     /// <summary>
     /// Get route to initialize this wire.
     /// </summary>
-    [HideInInspector]
     public WireRoute Route
     {
       get { return m_route; }
@@ -364,9 +293,6 @@ namespace AgXUnity
       }
     }
 
-    /// <summary>
-    /// Default constructor.
-    /// </summary>
     public Wire()
     {
       m_route.Wire = this;
@@ -378,33 +304,33 @@ namespace AgXUnity
         return false;
 
       try {
-        m_wire = new agxWire.Wire( Radius, ResolutionPerUnitLength );
+        m_native = new agxWire.Wire( Radius, ResolutionPerUnitLength );
         Material = m_material != null ? m_material.GetInitialized<ShapeMaterial>() : null;
         int nodeCounter = 0;
         foreach ( RouteNode routeNode in m_route.Nodes ) {
-          agxWire.Node node = routeNode.CreateNode();
+          agxWire.Node node = routeNode.CreateNative();
 
           bool success = true;
           if ( node.getType() == agxWire.Node.Type.CONNECTING ) {
             // This is the first node, CM-node goes first.
             if ( nodeCounter == 0 ) {
-              success = success && m_wire.add( node.getAsConnecting().getCmNode() );
-              success = success && m_wire.add( node );
+              success = success && m_native.add( node.getAsConnecting().getCmNode() );
+              success = success && m_native.add( node );
             }
             // This has to be the last node, CM-node goes last.
             else {
-              success = success && m_wire.add( node );
-              success = success && m_wire.add( node.getAsConnecting().getCmNode() );
+              success = success && m_native.add( node );
+              success = success && m_native.add( node.getAsConnecting().getCmNode() );
             }
           }
-          else if ( routeNode.Type == RouteNode.NodeType.WinchNode ) {
+          else if ( routeNode.Type == NodeType.WinchNode ) {
             if ( node == null )
               throw new AgXUnity.Exception( "Unable to initialize wire winch." );
 
-            success = success && m_wire.add( routeNode.Winch.Native );
+            success = success && m_native.add( routeNode.Winch.Native );
           }
           else
-            success = success && m_wire.add( node );
+            success = success && m_native.add( node );
 
           if ( !success )
             throw new AgXUnity.Exception( "Unable to add node " + nodeCounter + ": " + routeNode.Type );
@@ -412,14 +338,14 @@ namespace AgXUnity
           ++nodeCounter;
         }
 
-        GetSimulation().add( m_wire );
+        GetSimulation().add( m_native );
       }
       catch ( System.Exception e ) {
         Debug.LogException( e, this );
         return false;
       }
 
-      return m_wire.initialized();
+      return m_native.initialized();
     }
 
     protected override void OnDestroy()
@@ -427,7 +353,7 @@ namespace AgXUnity
       if ( GetSimulation() != null )
         GetSimulation().remove( Native );
 
-      m_wire = null;
+      m_native = null;
 
       base.OnDestroy();
     }

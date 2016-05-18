@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
@@ -62,15 +63,15 @@ namespace AgXUnityEditor.Tools
       Color orgColor = Handles.color;
 
       float handleSize = HandleUtility.GetHandleSize( position );
-      Color color = Handles.color;
-      Handles.color = GetXAxisColor( alpha );
-      position = Handles.Slider( position, rotation * Vector3.right, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.x );
-      Handles.color = GetYAxisColor( alpha );
-      position = Handles.Slider( position, rotation * Vector3.up, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.y );
-      Handles.color = GetZAxisColor( alpha );
-      position = Handles.Slider( position, rotation * Vector3.forward, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.z );
-      Handles.color = GetCenterColor( 0.6f * alpha );
-      position = Handles.FreeMoveHandle( position, rotation, scale * handleSize * 0.15f, snapSetting, new Handles.DrawCapFunction( Handles.RectangleCap ) );
+      Color color      = Handles.color;
+      Handles.color    = GetXAxisColor( alpha );
+      position         = Handles.Slider( position, rotation * Vector3.right, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.x );
+      Handles.color    = GetYAxisColor( alpha );
+      position         = Handles.Slider( position, rotation * Vector3.up, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.y );
+      Handles.color    = GetZAxisColor( alpha );
+      position         = Handles.Slider( position, rotation * Vector3.forward, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.z );
+      Handles.color    = GetCenterColor( 0.6f * alpha );
+      position         = Handles.FreeMoveHandle( position, rotation, scale * handleSize * 0.1f, snapSetting, new Handles.DrawCapFunction( Handles.RectangleCap ) );
 
       Handles.color = orgColor;
 
@@ -154,6 +155,8 @@ namespace AgXUnityEditor.Tools
 
     public virtual void OnSceneViewGUI( SceneView sceneView ) { }
 
+    public virtual void OnInspectorGUI( GUISkin skin ) { }
+
     public virtual void OnAdd() { }
 
     public virtual void OnRemove() { }
@@ -171,6 +174,11 @@ namespace AgXUnityEditor.Tools
     public T[] GetChildren<T>() where T : Tool
     {
       return ( from child in m_children where child.GetType() == typeof( T ) select child as T ).ToArray();
+    }
+
+    public Tool[] GetChildren()
+    {
+      return m_children.ToArray();
     }
 
     public void PerformRemoveFromParent()
@@ -201,13 +209,19 @@ namespace AgXUnityEditor.Tools
       child.PerformRemoveFromParent();
     }
 
+    protected void RemoveAllChildren()
+    {
+      while ( m_children.Count > 0 )
+        m_children[ m_children.Count - 1 ].PerformRemoveFromParent();
+    }
+
     protected T GetOrCreateVisualPrimitive<T>( string name, string shader = "Unlit/Color" ) where T : Utils.VisualPrimitive
     {
       T primitive = GetVisualPrimitive<T>( name );
       if ( primitive != null )
         return primitive;
 
-      primitive = (T)System.Activator.CreateInstance( typeof( T ), new object[] { shader } );
+      primitive = (T)Activator.CreateInstance( typeof( T ), new object[] { shader } );
       m_visualPrimitives.Add( name, primitive );
 
       return primitive;
@@ -239,27 +253,34 @@ namespace AgXUnityEditor.Tools
 
     protected void OnSceneViewGUIChildren( SceneView sceneView )
     {
-      foreach ( var child in m_children )
+      // An extra ToList here (i.e., copy of the original) to handle
+      // add /remove of children during this update.
+      foreach ( var child in m_children.ToList() )
         child.OnSceneViewGUI( sceneView );
     }
 
     private void PerformRemove()
     {
+      // OnRemove virtual callback.
       OnRemove();
 
+      // Remove all windows that hasn't been closed.
+      SceneViewWindow.CloseAllWindows( this );
+
+      // Remove all visual primitives that hasn't been removed.
       string[] visualPrimitiveNames = m_visualPrimitives.Keys.ToArray();
       foreach ( string visualPrimitiveName in visualPrimitiveNames )
         RemoveVisualPrimitive( visualPrimitiveName );
 
+      // Remove us from our parent.
       if ( m_parent != null )
         m_parent.m_children.Remove( this );
       m_parent = null;
 
+      // Remove children.
       Tool[] children = m_children.ToArray();
-      foreach ( Tool child in children ) {
+      foreach ( Tool child in children )
         child.PerformRemove();
-        m_children.Remove( child );
-      }
     }
   }
 }
