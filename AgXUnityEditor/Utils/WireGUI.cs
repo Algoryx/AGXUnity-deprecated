@@ -44,6 +44,8 @@ namespace AgXUnityEditor.Utils
           EditorGUILayout.EndHorizontal();
         };
 
+        // TODO: Highlight nodes that are wrong!
+
         if ( wire.Route.NumNodes == 0 )
           GUILayout.Label( MakeLabel( "Empty", true ), skin.label );
         else {
@@ -55,12 +57,11 @@ namespace AgXUnityEditor.Utils
             EditorGUILayout.BeginHorizontal();
             GUILayout.Space( 18 );
             Tools.WireRouteNodeTool rnTool = Tools.WireRouteNodeTool.GetRouteNodeTool( node );
-            if ( rnTool != null && rnTool.Selected == true ) {
+            if ( rnTool != null && rnTool.Selected == true )
               EditorGUILayout.BeginVertical( FadeNormalBackground( skin.label, 0.25f ) );
-              OnToolInspectorGUI( rnTool, wire, skin );
-            }
             else
               EditorGUILayout.BeginVertical();
+
             Wire.NodeType newNodeType = (Wire.NodeType)EditorGUILayout.EnumPopup( MakeLabel( "Type" ), node.Type, skin.button );
             if ( newNodeType != node.Type ) {
               // Changing FROM winch and the wire will destroy the WireWinch component.
@@ -88,24 +89,58 @@ namespace AgXUnityEditor.Utils
             EditorGUILayout.EndHorizontal();
 
             EditorGUILayout.BeginHorizontal();
+            GUILayout.Space( 18 );
+            EditorGUILayout.BeginVertical();
+            if ( rnTool != null && rnTool.Selected )
+              OnToolInspectorGUI( rnTool, wire, skin );
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
+            if ( node == wire.Route.First() && GUILayout.Button( "Insert new before", skin.button, GUILayout.ExpandWidth( false ) ) ) {
+              WireRouteNode newNode = WireRouteNode.Create( Wire.NodeType.FreeNode );
+              newNode.Frame.Position = Vector3.zero;
+              newNode.Frame.Rotation = Quaternion.identity;
+              wire.Route.InsertBefore( newNode, node );
+            }
+            if ( node != wire.Route.Last() && GUILayout.Button( "Insert new after", skin.button, GUILayout.ExpandWidth( false ) ) ) {
+              WireRouteNode newNode = WireRouteNode.Create( Wire.NodeType.FreeNode );
+              newNode.Frame.Position = node.Frame.Position;
+              newNode.Frame.Rotation = node.Frame.Rotation;
+              wire.Route.InsertAfter( newNode, node );
+            }
             if ( GUILayout.Button( "Remove", skin.button, GUILayout.ExpandWidth( false ) ) ) {
               var frameToolOfNodeToRemove = Tools.FrameTool.FindActive( node.Frame );
               if ( frameToolOfNodeToRemove != null )
                 frameToolOfNodeToRemove.Remove();
               wire.Route.Remove( node );
             }
-            if ( GUILayout.Button( "Insert new after", skin.button, GUILayout.ExpandWidth( false ) ) ) {
-              WireRouteNode newNode = WireRouteNode.Create( Wire.NodeType.FreeNode );
-              newNode.Frame.Position = node.Frame.Position;
-              newNode.Frame.Rotation = node.Frame.Rotation;
-              wire.Route.InsertAfter( newNode, node );
-            }
             EditorGUILayout.EndHorizontal();
           }
 
           newElementSeparator();
         }
+
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Space( 12 );
+        EditorGUILayout.BeginVertical();
+        GUILayout.Space( 12 );
+        if ( GUILayout.Button( "Add node", skin.button ) ) {
+          WireRouteNode newNode = WireRouteNode.Create( Wire.NodeType.FreeNode );
+          if ( wire.Route.NumNodes == 0 ) {
+            newNode.Frame.Position = Vector3.zero;
+            newNode.Frame.Rotation = Quaternion.identity;
+          }
+          else {
+            newNode.Frame.Position = wire.Route.Last().Frame.Position;
+            newNode.Frame.Rotation = wire.Route.Last().Frame.Rotation;
+          }
+          wire.Route.Add( newNode );
+        }
+        GUILayout.Space( 12 );
+        EditorGUILayout.EndVertical();
+        EditorGUILayout.EndHorizontal();
       }
 
       Separator();

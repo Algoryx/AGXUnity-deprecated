@@ -65,6 +65,22 @@ namespace AgXUnity
       return true;
     }
 
+    public bool InsertBefore( WireRouteNode nodeToInsert, WireRouteNode beforeThisNode )
+    {
+      if ( nodeToInsert == null || m_nodes.Contains( nodeToInsert ) )
+        return false;
+
+      int index = m_nodes.IndexOf( beforeThisNode );
+      if ( index < 0 )
+        return false;
+
+      m_nodes.Insert( index, nodeToInsert );
+
+      OnAddedToList( nodeToInsert );
+
+      return true;
+    }
+
     /// <summary>
     /// Insert <paramref name="nodeToInsert"/> into this route, after <paramref name="afterThisNode"/>.
     /// </summary>

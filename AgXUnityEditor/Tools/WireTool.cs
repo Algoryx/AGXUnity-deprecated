@@ -74,7 +74,7 @@ namespace AgXUnityEditor.Tools
     public override void OnInspectorGUI( GUISkin skin )
     {
       EditorGUILayout.BeginHorizontal();
-      GUILayout.Label( Utils.GUI.MakeLabel( "Tools:" ), skin.label );
+      GUILayout.Label( Utils.GUI.MakeLabel( "Tools:", true ), skin.label );
       GUILayout.FlexibleSpace();
       Utils.GUI.EnumButtonList<ToolMode>(
           e => 

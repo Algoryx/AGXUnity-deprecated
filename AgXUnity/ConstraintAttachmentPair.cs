@@ -3,6 +3,7 @@ using UnityEngine;
 
 namespace AgXUnity
 {
+  // TODO: Inherit from ScriptAsset.
   [Serializable]
   public class ConstraintAttachmentPair
   {
@@ -29,6 +30,7 @@ namespace AgXUnity
       }
     }
 
+    // TODO: Has to be CreateInstance.
     [SerializeField]
     private Frame m_referenceFrame = new Frame();
     public Frame ReferenceFrame
@@ -36,6 +38,7 @@ namespace AgXUnity
       get { return m_referenceFrame; }
     }
 
+    // TODO: Has to be CreateInstance.
     [SerializeField]
     private Frame m_connectedFrame = new Frame();
     public Frame ConnectedFrame
