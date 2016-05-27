@@ -76,7 +76,7 @@ namespace AgXUnity
       }
     }
 
-    public Wire.RouteNode WinchNode
+    public WireRouteNode WinchNode
     {
       get
       {
@@ -84,7 +84,7 @@ namespace AgXUnity
         if ( wire == null )
           return null;
 
-        return wire.Route.Nodes.Find( node => node.Winch == this );
+        return wire.Route.FirstOrDefault( node => node.Winch == this );
       }
     }
 

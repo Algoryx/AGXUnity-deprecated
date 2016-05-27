@@ -122,6 +122,32 @@ namespace AgXUnity.Utils
       return Vector3.Distance( point, segmentPoint );
     }
 
+    public struct ShortestDistanceSegmentSegmentResult
+    {
+      public ShortestDistanceSegmentSegmentResult( Vector3 pointOnSegment1, Vector3 pointOnSegment2 )
+      {
+        PointOnSegment1 = pointOnSegment1;
+        PointOnSegment2 = pointOnSegment2;
+      }
+
+      public Vector3 PointOnSegment1;
+      public Vector3 PointOnSegment2;
+
+      public float Distance { get { return Vector3.Distance( PointOnSegment1, PointOnSegment2 ); } }
+    }
+
+    public struct ClosestEdgeSegmentResult
+    {
+      public ClosestEdgeSegmentResult( MeshUtils.Edge edge, float distance )
+      {
+        Edge = edge;
+        Distance = distance;
+      }
+
+      public MeshUtils.Edge Edge;
+      public float Distance;
+    }
+
     /// <summary>
     /// Finds shortest distance between two line segments.
     /// </summary>
@@ -130,7 +156,7 @@ namespace AgXUnity.Utils
     /// <param name="segment2Begin">Begin point, second segment.</param>
     /// <param name="segment2End">End point, second segment.</param>
     /// <returns>Shortest distance between the two line segments.</returns>
-    public static float ShortestDistanceSegmentSegment( Vector3 segment1Begin, Vector3 segment1End, Vector3 segment2Begin, Vector3 segment2End )
+    public static ShortestDistanceSegmentSegmentResult ShortestDistanceSegmentSegment( Vector3 segment1Begin, Vector3 segment1End, Vector3 segment2Begin, Vector3 segment2End )
     {
       float eps       = float.Epsilon;
       Vector3 d1      = segment1End - segment1Begin;
@@ -148,7 +174,7 @@ namespace AgXUnity.Utils
       bool isParallel = false;
 
       if ( d1Length2 <= eps && d2Length2 <= eps )
-        return Vector3.Distance( segment1Begin, segment2Begin );
+        return new ShortestDistanceSegmentSegmentResult( segment1Begin, segment2Begin );
 
       if ( d1Length2 <= eps ) {
         t1 = 0.0f;
@@ -200,32 +226,25 @@ namespace AgXUnity.Utils
         }
       }
 
-      return Vector3.Distance( segment1Begin + t1 * d1, segment2Begin + t2 * d2 );
+      return new ShortestDistanceSegmentSegmentResult( segment1Begin + t1 * d1, segment2Begin + t2 * d2 );
     }
 
-    public static MeshUtils.Edge FindClosestEdgeToSegment( Vector3 segmentStart, Vector3 segmentEnd, MeshUtils.Edge[] edges, ref float bestDistance )
+    public static ClosestEdgeSegmentResult FindClosestEdgeToSegment( Vector3 segmentStart, Vector3 segmentEnd, MeshUtils.Edge[] edges )
     {
-      int bestEdge = edges.Length;
-      bestDistance = float.MaxValue;
+      ClosestEdgeSegmentResult result = new ClosestEdgeSegmentResult( null, float.PositiveInfinity );
       for ( int i = 0; i < edges.Length; ++i ) {
         var edge = edges[ i ];
         if ( edge == null )
           continue;
 
-        float distance = ShortestDistanceSegmentSegment( segmentStart, segmentEnd, edge.Start, edge.End );
-        if ( distance < bestDistance ) {
-          bestDistance = distance;
-          bestEdge = i;
+        float distance = ShortestDistanceSegmentSegment( segmentStart, segmentEnd, edge.Start, edge.End ).Distance;
+        if ( distance < result.Distance ) {
+          result.Edge     = edge;
+          result.Distance = distance;
         }
       }
 
-      return bestEdge < edges.Length ? edges[ bestEdge ] : null;
-    }
-
-    public static MeshUtils.Edge FindClosestEdgeToSegment( Vector3 segmentStart, Vector3 segmentEnd, MeshUtils.Edge[] edges )
-    {
-      float dummy = float.MaxValue;
-      return FindClosestEdgeToSegment( segmentStart, segmentEnd, edges, ref dummy );
+      return result;
     }
 
     public static ShapeUtils Create( Shape shape )

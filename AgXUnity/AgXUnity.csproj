@@ -118,6 +118,7 @@
     <Compile Include="WindAndWaterManager.cs" />
     <Compile Include="Wire.cs" />
     <Compile Include="WireRoute.cs" />
+    <Compile Include="WireRouteNode.cs" />
     <Compile Include="WireWinch.cs" />
   </ItemGroup>
   <ItemGroup>

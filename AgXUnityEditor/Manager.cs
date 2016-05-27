@@ -7,11 +7,6 @@ using AgXUnity.Utils;
 
 namespace AgXUnityEditor
 {
-  [CustomEditor( typeof( AgXUnity.ElementaryConstraint ) )]
-  public class ElementaryConstraintEditor : BaseEditor<AgXUnity.ElementaryConstraint>
-  {
-  }
-
   /// <summary>
   /// Manager object, initialized when the Unity editor is loaded, to handle
   /// all tools, behavior related etc. objects while in edit mode.
@@ -41,9 +36,24 @@ namespace AgXUnityEditor
     public static bool LeftMouseClick { get; private set; }
 
     /// <summary>
+    /// True if the current event is right mouse down.
+    /// </summary>
+    public static bool RightMouseClick { get; private set; }
+
+    /// <summary>
+    /// True if the right mouse button is pressed (and hold).
+    /// </summary>
+    public static bool RightMouseDown { get; private set; }
+
+    /// <summary>
     /// True if keyboard escape key is down.
     /// </summary>
     public static bool KeyEscapeDown { get; private set; }
+
+    /// <summary>
+    /// True if mouse + key combo is assumed to be a camera control move.
+    /// </summary>
+    public static bool IsCameraControl { get; private set; }
 
     /// <summary>
     /// Constructor called when the Unity editor is initialized.
@@ -64,6 +74,21 @@ namespace AgXUnityEditor
     }
 
     /// <summary>
+    /// Data that tracks certain events when we're hijacking left mouse button.
+    /// </summary>
+    private class HijackLeftMouseClickData
+    {
+      public bool AltPressed { get; set; }
+
+      public HijackLeftMouseClickData()
+      {
+        AltPressed = false;
+      }
+    };
+
+    private static HijackLeftMouseClickData m_hijackLeftMouseClickData = null;
+
+    /// <summary>
     /// Hijacks left mouse down from the editor and returns true when the button
     /// is released. This is the default behavior of the editor (select @ mouse up)
     /// and it's, without this method, impossible to detect mouse up events.
@@ -82,15 +107,30 @@ namespace AgXUnityEditor
 
       EventType currentMouseEventType = current.GetTypeForControl( GUIUtility.GetControlID( FocusType.Passive ) );
       bool hijackMouseDown = currentMouseEventType == EventType.MouseDown &&
-                             current.button == 0 &&                           // button 1 is FPS camera movement
+                             current.button == 0 &&                           
+                            !RightMouseDown &&                                // button 1 is FPS camera movement
                             !current.alt;                                     // alt down is track ball camera movement
       if ( hijackMouseDown ) {
+        m_hijackLeftMouseClickData = new HijackLeftMouseClickData();
         GUIUtility.hotControl = 0;
         Event.current.Use();
         return false;
       }
 
-      return !Event.current.alt && currentMouseEventType == EventType.MouseUp && Event.current.button == 0;
+      if ( m_hijackLeftMouseClickData != null ) {
+        m_hijackLeftMouseClickData.AltPressed |= current.alt;
+
+        bool leftMouseUp = !m_hijackLeftMouseClickData.AltPressed &&
+                            currentMouseEventType == EventType.MouseUp &&
+                            Event.current.button == 0;
+
+        if ( currentMouseEventType == EventType.MouseUp )
+          m_hijackLeftMouseClickData = null;
+
+        return leftMouseUp;
+      }
+
+      return false;
     }
 
     /// <summary>
@@ -133,44 +173,6 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
-    public static Tools.Tool ActivateTool( Tools.Tool tool )
-    {
-      RemoveActiveTool();
-
-      m_activeTool = tool;
-
-      return m_activeTool;
-    }
-
-    public static T ActivateTool<T>( Tools.Tool tool ) where T : Tools.Tool
-    {
-      return ActivateTool( tool ) as T;
-    }
-
-    public static void RemoveActiveTool()
-    {
-      if ( m_activeTool != null ) {
-        Tools.Tool tool = m_activeTool;
-
-        // PerformRemoveFromParent will check if the tool is the current active.
-        // If the tool wants to remove itself and is our m_activeToolData then
-        // we'll receive a call back to this method from PerformRemoveFromParent.
-        m_activeTool = null;
-
-        tool.PerformRemoveFromParent();
-      }
-    }
-
-    public static T GetActiveTool<T>() where T : Tools.Tool
-    {
-      return m_activeTool as T;
-    }
-
-    public static Tools.Tool GetActiveTool()
-    {
-      return m_activeTool;
-    }
-
     private static Dictionary<KeyCode, Utils.KeyHandler> m_keyHandlers = new Dictionary<KeyCode, Utils.KeyHandler>();
 
     private static string m_visualParentName = "Manager".To32BitFnv1aHash().ToString();
@@ -186,26 +188,39 @@ namespace AgXUnityEditor
       }
     };
 
-    private static Tools.Tool m_activeTool = null;
-
     private static void OnSceneView( SceneView sceneView )
     {
-      Event current = Event.current;
-      LeftMouseClick = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
-      KeyEscapeDown = current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
+      Event current   = Event.current;
+
+      LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
+      KeyEscapeDown   = current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
+
+      RightMouseClick = current.type == EventType.MouseDown && current.button == 1;
+      if ( RightMouseClick )
+        RightMouseDown = true;
+      if ( current.type == EventType.MouseUp && current.button == 1 )
+        RightMouseDown = false;
+
+      IsCameraControl = current.alt || RightMouseDown;
 
       foreach ( var keyHandler in m_keyHandlers.Values )
         keyHandler.Update( current );
 
+      foreach ( var primitive in m_visualPrimitives )
+        primitive.OnSceneView( sceneView );
+
       UpdateMouseOverPrimitives( current );
+
       if ( Selection.activeGameObject != null )
         Selection.activeGameObject = RouteGameObject( Selection.activeGameObject );
 
-      foreach ( var tool in m_persistentTools )
-        tool.OnSceneViewGUI( sceneView );
-
-      if ( m_activeTool != null )
-        m_activeTool.OnSceneViewGUI( sceneView );
+      // Persistent tools aren't updated when we have an active tool.
+      if ( Tools.Tool.GetActiveTool() != null )
+        Tools.Tool.GetActiveTool().OnSceneViewGUI( sceneView );
+      else {
+        foreach ( var tool in m_persistentTools )
+          tool.OnSceneViewGUI( sceneView );
+      }
 
       HandleWindowsGUI( sceneView );
 
@@ -217,7 +232,7 @@ namespace AgXUnityEditor
     private static void UpdateMouseOverPrimitives( Event current )
     {
       // Can't perform picking during repaint event.
-      if ( current == null || !current.isMouse )
+      if ( current == null || !(current.isMouse || current.isKey) )
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
@@ -234,7 +249,7 @@ namespace AgXUnityEditor
 
       // Set hideFlags to none so that picking detects our objects.
       foreach ( var primitive in m_visualPrimitives ) {
-        if ( primitive.Node == null )
+        if ( primitive.Node == null || !primitive.Pickable )
           continue;
 
         objHideFlags.Add( new { hideFlag = primitive.Node.hideFlags, obj = primitive } );

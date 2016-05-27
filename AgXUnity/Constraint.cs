@@ -153,7 +153,6 @@ namespace AgXUnity
         Debug.LogError( "Unable to initialize constraint. Reference object must contain a rigid body component.", m_attachmentPair.ReferenceObject );
         return false;
       }
-
       agx.Frame f1 = new agx.Frame();
       agx.Frame f2 = new agx.Frame();
         

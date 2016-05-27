@@ -53,12 +53,12 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    public static void PreTargetMembers<T>( T target, GUISkin skin ) where T : class
+    public static void TargetEditorEnable<T>( T target, GUISkin skin ) where T : class
     {
       if ( target is Wire )
-        PreTargetMembers( target as Wire, skin );
+        TargetEditorEnable( target as Wire, skin );
       else if ( target is Constraint )
-        PreTargetMembers( target as Constraint, skin );
+        TargetEditorEnable( target as Constraint, skin );
     }
 
     public static void TargetEditorDisable<T>( T target ) where T : class
@@ -67,6 +67,14 @@ namespace AgXUnityEditor.Utils
         TargetEditorDisable( target as Wire );
       else if ( target is Constraint )
         TargetEditorDisable( target as Constraint );
+    }
+
+    public static void PreTargetMembers<T>( T target, GUISkin skin ) where T : class
+    {
+      if ( target is Wire )
+        PreTargetMembers( target as Wire, skin );
+      else if ( target is Constraint )
+        PreTargetMembers( target as Constraint, skin );
     }
 
     public static string AddColorTag( string str, Color color )
@@ -151,7 +159,7 @@ namespace AgXUnityEditor.Utils
       return newValue;
     }
 
-    public static void HandleFrame( Frame frame, GUISkin skin, bool includeParentObjectField = true, float numPixelsIndentation = 0.0f )
+    public static void HandleFrame( Frame frame, GUISkin skin, bool includeParentObjectField = true, float numPixelsIndentation = 0.0f, Action<Tools.FrameTool> onEditButton = null )
     {
       EditorGUILayout.BeginHorizontal();
       GUILayout.Space( numPixelsIndentation );
@@ -166,12 +174,16 @@ namespace AgXUnityEditor.Utils
       GUILayout.Space( numPixelsIndentation );
       Tools.FrameTool frameTool = Tools.FrameTool.FindActive( frame );
       if ( GUILayout.Button( MakeLabel( "Edit" ), Utils.GUI.ConditionalCreateSelectedStyle( frameTool != null, skin.button ), new GUILayoutOption[] { GUILayout.Width( 32 ), GUILayout.Height( 16 * 2 ) } ) ) {
-        if ( frameTool != null ) {
-          frameTool.Remove();
-          frameTool = null;
+        if ( onEditButton != null )
+          onEditButton( frameTool );
+        else {
+          if ( frameTool != null ) {
+            frameTool.Remove();
+            frameTool = null;
+          }
+          else
+            frameTool = Tools.Tool.ActivateTool<Tools.FrameTool>( new Tools.FrameTool( frame ) );
         }
-        else
-          frameTool = Manager.ActivateTool<Tools.FrameTool>( new Tools.FrameTool( frame ) );
       }
       EditorGUILayout.BeginVertical();
       frame.LocalPosition = Vector3Field( MakeLabel( "Local position" ), frame.LocalPosition, skin.label );
@@ -257,6 +269,19 @@ namespace AgXUnityEditor.Utils
       return selectedStyle;
     }
 
+    public static Color ProBackgroundColor = new Color32( 56, 56, 56, 255 );
+    public static Color IndieBackgroundColor = new Color32( 194, 194, 194, 255 );
+
+    public static GUIStyle FadeNormalBackground( GUIStyle style, float t )
+    {
+      GUIStyle fadedStyle = new GUIStyle( style );
+      Texture2D background = EditorGUIUtility.isProSkin ?
+                               CreateColoredTexture( 1, 1, Color.Lerp( ProBackgroundColor, Color.white, t ) ) :
+                               CreateColoredTexture( 1, 1, Color.Lerp( IndieBackgroundColor, Color.black, t ) );
+      fadedStyle.normal.background = background;
+      return fadedStyle;
+    }
+
     public static GUIStyle ConditionalCreateSelectedStyle( bool selected, GUIStyle orgStyle )
     {
       return selected ? CreateSelectedStyle( orgStyle ) : orgStyle;
@@ -265,11 +290,11 @@ namespace AgXUnityEditor.Utils
     public static void OnToolInspectorGUI( Tools.Tool tool, object target, GUISkin skin )
     {
       if ( tool != null ) {
-        Separator( 4.0f );
+        Separator( 2.0f );
         tool.OnInspectorGUI( skin );
         if ( target is UnityEngine.Object )
           EditorUtility.SetDirty( target as UnityEngine.Object );
-        Separator( 4.0f );
+        Separator( 2.0f );
       }
       else
         Separator();

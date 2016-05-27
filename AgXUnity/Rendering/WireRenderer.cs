@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using AgXUnity.Utils;
 
@@ -37,12 +38,12 @@ namespace AgXUnity.Rendering
         return;
 
       if ( wire.Native == null )
-        RenderRoute( wire.Route.Nodes, wire.Radius );
+        RenderRoute( wire.Route, wire.Radius );
       else
         Render( wire );
     }
 
-    private void RenderRoute( List<Wire.RouteNode> route, float radius )
+    private void RenderRoute( WireRoute route, float radius )
     {
       if ( route == null )
         return;
@@ -50,8 +51,9 @@ namespace AgXUnity.Rendering
       m_segmentSpawner.Begin();
 
       try {
-        for ( int i = 1; i < route.Count; ++i )
-          m_segmentSpawner.CreateSegment( route[ i - 1 ].Frame.Position, route[ i ].Frame.Position, radius );
+        WireRouteNode[] nodes = route.ToArray();
+        for ( int i = 1; i < nodes.Length; ++i )
+          m_segmentSpawner.CreateSegment( nodes[ i - 1 ].Frame.Position, nodes[ i ].Frame.Position, radius );
       }
       catch ( System.Exception e ) {
         Debug.LogException( e );

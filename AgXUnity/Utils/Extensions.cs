@@ -51,6 +51,18 @@ namespace AgXUnity.Utils
     }
 
     /// <summary>
+    /// Finds root/top level game object.
+    /// </summary>
+    /// <returns>Root/top level game object.</returns>
+    public static GameObject GetRoot( this GameObject gameObject )
+    {
+      if ( gameObject == null )
+        return null;
+
+      return gameObject.transform.root.gameObject;
+    }
+
+    /// <summary>
     /// Returns an initialized component - if present.
     /// </summary>
     /// <typeparam name="T">Component type.</typeparam>
@@ -186,15 +198,27 @@ namespace AgXUnity.Utils
       return new agx.Vec3( -(double)v.x, (double)v.y, (double)v.z );
     }
 
+    /// <summary>
+    /// Length of this quaternion.
+    /// </summary>
+    public static float Length( this Quaternion q )
+    {
+      return Mathf.Sqrt( q.Length2() );
+    }
+
+    /// <summary>
+    /// Length squared of this quaternion.
+    /// </summary>
+    public static float Length2( this Quaternion q )
+    {
+      return q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w;
+    }
+
     /// <returns>A new, normalized quaternion.</returns>
     public static Quaternion Normalize( this Quaternion q )
     {
       Quaternion result;
-      float sq = q.x * q.x;
-      sq += q.y * q.y;
-      sq += q.z * q.z;
-      sq += q.w * q.w;
-      float inv = 1.0f / Mathf.Sqrt( sq );
+      float inv = 1.0f / q.Length();
       result.x = q.x * inv;
       result.y = q.y * inv;
       result.z = q.z * inv;

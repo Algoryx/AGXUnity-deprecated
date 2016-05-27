@@ -8,25 +8,7 @@ namespace AgXUnityEditor.Tools
   {
     public static FrameTool FindActive( Frame frame )
     {
-      return FindActive( Manager.GetActiveTool(), frame );
-    }
-
-    private static FrameTool FindActive( Tool tool, Frame frame )
-    {
-      if ( tool == null )
-        return null;
-
-      FrameTool frameTool = tool as FrameTool;
-      if ( frameTool != null && frameTool.Frame == frame )
-        return frameTool;
-
-      foreach ( Tool child in tool.GetChildren() ) {
-        frameTool = FindActive( child, frame );
-        if ( frameTool != null )
-          return frameTool;
-      }
-
-      return null;
+      return FindActive<FrameTool>( frameTool => frameTool.Frame == frame );
     }
 
     /// <summary>
@@ -52,11 +34,6 @@ namespace AgXUnityEditor.Tools
       Alpha = alpha;
     }
 
-    public void Remove()
-    {
-      PerformRemoveFromParent();
-    }
-
     public override void OnSceneViewGUI( SceneView sceneView )
     {
       if ( Frame == null )
@@ -69,10 +46,21 @@ namespace AgXUnityEditor.Tools
 
       // Shows position handle if, e.g., scale or some other strange setting is used in the editor.
       bool isRotation = UnityEditor.Tools.current == UnityEditor.Tool.Rotate;
-      if ( !isRotation )
-        Frame.Position = PositionTool( Frame.Position, Frame.Rotation, Size, Alpha );
-      else
-        Frame.Rotation = RotationTool( Frame.Position, Frame.Rotation, Size, Alpha );
+
+      Undo.RecordObject( Frame, "FrameTool" );
+
+      // NOTE: Checking GUI changes before updating position/rotation to avoid
+      //       drift in the values.
+      if ( !isRotation ) {
+        var newPosition = PositionTool( Frame.Position, Frame.Rotation, Size, Alpha );
+        if ( Vector3.SqrMagnitude( Frame.Position - newPosition) > 1.0E-6f )
+          Frame.Position = newPosition;
+      }
+      else {
+        var newRotation = RotationTool( Frame.Position, Frame.Rotation, Size, Alpha );
+        if ( ( Quaternion.Inverse( Frame.Rotation ) * newRotation ).eulerAngles.sqrMagnitude > 1.0E-6f )
+          Frame.Rotation = newRotation;
+      }
     }
   }
 }

@@ -39,7 +39,7 @@ namespace AgXUnityEditor.Tools
         return;
 
       // We're not updating visual and result if the object selection window is active.
-      if ( !GetChild<SelectGameObjectTool>().SelectionWindowActive && m_raycast.Test( HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).Valid ) {
+      if ( !GetChild<SelectGameObjectTool>().SelectionWindowActive && m_raycast.Test( HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).ClosestEdge.Valid ) {
         EdgeVisual.Visible = true;
         EdgeVisual.Color = m_raycast.LastHit.ClosestEdge.Edge.Type == MeshUtils.Edge.EdgeType.Triangle ? Color.yellow : Color.red;
         EdgeVisual.SetTransform( m_raycast.LastHit.ClosestEdge.Edge.Start, m_raycast.LastHit.ClosestEdge.Edge.End, 0.045f );

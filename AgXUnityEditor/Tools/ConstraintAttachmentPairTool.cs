@@ -61,7 +61,6 @@ namespace AgXUnityEditor.Tools
         PerformRemoveFromParent();
       else if ( Manager.KeyEscapeDown ) {
         SelectObjectsState = SelectObjectsState + 1;
-        tool.Clear();
       }
     }
 
@@ -117,7 +116,7 @@ namespace AgXUnityEditor.Tools
       AddChild( new FrameTool( AttachmentPair.ReferenceFrame ) );
       RemoveChild( GetChild<EdgeDetectionTool>() );
 
-      Manager.ActivateTool( new FrameTool( AttachmentPair.ReferenceFrame ) );
+      ActivateTool( new FrameTool( AttachmentPair.ReferenceFrame ) );
     }
 
     public override void OnInspectorGUI( GUISkin skin )

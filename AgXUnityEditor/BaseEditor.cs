@@ -131,6 +131,8 @@ namespace AgXUnityEditor
       GUISkin guiSkin = EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector );
       guiSkin.label.richText = true;
 
+      Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
+
       // It's possible to detect when this editor/object becomes selected.
       //if ( Application.isEditor && target != null )
       //  Debug.Log( "Create!" );
@@ -345,7 +347,7 @@ namespace AgXUnityEditor
         var attachmentPair       = wrapper.Get<ConstraintAttachmentPair>();
         var f1                   = attachmentPair.ReferenceFrame;
         var f2                   = attachmentPair.ConnectedFrame;
-        var activeAttachmentTool = Manager.GetActiveTool<Tools.ConstraintAttachmentPairTool>();
+        var activeAttachmentTool = Tools.Tool.GetActiveTool<Tools.ConstraintAttachmentPairTool>();
 
         Utils.GUI.Separator();
 
@@ -355,9 +357,9 @@ namespace AgXUnityEditor
             e =>
             {
               if ( activeAttachmentTool == null || activeAttachmentTool.AttachmentPair != attachmentPair || activeAttachmentTool.Mode != e )
-                activeAttachmentTool = Manager.ActivateTool<Tools.ConstraintAttachmentPairTool>( new Tools.ConstraintAttachmentPairTool( attachmentPair, e ) );
+                activeAttachmentTool = Tools.Tool.ActivateTool<Tools.ConstraintAttachmentPairTool>( new Tools.ConstraintAttachmentPairTool( attachmentPair, e ) );
               else if ( activeAttachmentTool != null && activeAttachmentTool.Mode == e )
-                activeAttachmentTool = Manager.ActivateTool<Tools.ConstraintAttachmentPairTool>( null );
+                activeAttachmentTool = Tools.Tool.ActivateTool<Tools.ConstraintAttachmentPairTool>( null );
             },
             null,
             e =>
@@ -389,8 +391,8 @@ namespace AgXUnityEditor
         EditorGUILayout.EndHorizontal();
 
         // Remove frame tool if connected frame has one but the frames are synchronized.
-        if ( attachmentPair.Synchronized && Manager.GetActiveTool<Tools.FrameTool>() != null && Manager.GetActiveTool<Tools.FrameTool>().Frame == attachmentPair.ConnectedFrame )
-          Manager.RemoveActiveTool();
+        if ( attachmentPair.Synchronized && Tools.Tool.GetActiveTool<Tools.FrameTool>() != null && Tools.Tool.GetActiveTool<Tools.FrameTool>().Frame == attachmentPair.ConnectedFrame )
+          Tools.Tool.RemoveActiveTool();
 
         GUI.enabled = !attachmentPair.Synchronized;
         Utils.GUI.HandleFrame( f2, CurrentSkin, false, 18 );

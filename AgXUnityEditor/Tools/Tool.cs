@@ -70,8 +70,22 @@ namespace AgXUnityEditor.Tools
       position         = Handles.Slider( position, rotation * Vector3.up, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.y );
       Handles.color    = GetZAxisColor( alpha );
       position         = Handles.Slider( position, rotation * Vector3.forward, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.z );
-      Handles.color    = GetCenterColor( 0.6f * alpha );
-      position         = Handles.FreeMoveHandle( position, rotation, scale * handleSize * 0.1f, snapSetting, new Handles.DrawCapFunction( Handles.RectangleCap ) );
+
+      float slider2DSize = scale * handleSize * 0.15f;
+      Func<Vector3, Vector3, Vector3, Vector3> PlaneHandle = ( normal, dir1, dir2 ) =>
+      {
+        Vector3 offset = slider2DSize * ( rotation * dir1 + rotation * dir2 );
+        Vector3 result = Handles.Slider2D( position + offset, rotation * normal, rotation * dir1, rotation * dir2, slider2DSize, new Handles.DrawCapFunction( Handles.RectangleCap ), snapSetting.x );
+        result -= offset;
+        return result;
+      };
+
+      Handles.color = GetXAxisColor( 0.3f );
+      position      = PlaneHandle( Vector3.right,   Vector3.up,    Vector3.forward );
+      Handles.color = GetYAxisColor( 0.3f );        
+      position      = PlaneHandle( Vector3.up,      Vector3.right, Vector3.forward );
+      Handles.color = GetZAxisColor( 0.3f );        
+      position      = PlaneHandle( Vector3.forward, Vector3.right, Vector3.up );
 
       Handles.color = orgColor;
 
@@ -144,8 +158,108 @@ namespace AgXUnityEditor.Tools
       return newPosition - position;
     }
 
+    /// <summary>
+    /// Remove old tool (if present) and activate new. If <paramref name="tool"/> is null
+    /// the current active tool is removed.
+    /// </summary>
+    /// <param name="tool">New top level tool to activate - null is equal to RemoveActiveTool.</param>
+    /// <returns>The new tool.</returns>
+    public static Tool ActivateTool( Tool tool )
+    {
+      RemoveActiveTool();
+
+      m_active = tool;
+      m_active.OnAdd();
+
+      return m_active;
+    }
+
+    /// <summary>
+    /// Remove old tool (if present) and activate new. If <paramref name="tool"/> is null
+    /// the current active tool is removed.
+    /// </summary>
+    /// <typeparam name="T">Type of the tool passed to this method.</typeparam>
+    /// <param name="tool">New top level tool to activate - null is equal to RemoveActiveTool.</param>
+    /// <returns>The new tool.</returns>
+    public static T ActivateTool<T>( Tool tool ) where T : Tool
+    {
+      return ActivateTool( tool ) as T;
+    }
+
+    /// <summary>
+    /// Remove current, top level, active tool.
+    /// </summary>
+    public static void RemoveActiveTool()
+    {
+      if ( m_active != null ) {
+        Tool tool = m_active;
+
+        // PerformRemoveFromParent will check if the tool is the current active.
+        // If the tool wants to remove itself and is our m_activeToolData then
+        // we'll receive a call back to this method from PerformRemoveFromParent.
+        m_active = null;
+
+        tool.PerformRemoveFromParent();
+      }
+    }
+
+    /// <summary>
+    /// Fetch current active, top level, tool given type.
+    /// </summary>
+    /// <typeparam name="T">Type of the tool.</typeparam>
+    /// <returns>Active tool of type T.</returns>
+    public static T GetActiveTool<T>() where T : Tool
+    {
+      return m_active as T;
+    }
+
+    /// <summary>
+    /// Fetch current active, top level, tool.
+    /// </summary>
+    /// <returns>Current active, top level, tool.</returns>
+    public static Tool GetActiveTool()
+    {
+      return m_active;
+    }
+
+    /// <summary>
+    /// Searches active tool from top level, depth first, given predicate.
+    /// </summary>
+    /// <typeparam name="T">Type of the tool.</typeparam>
+    /// <param name="pred">Tool predicate.</param>
+    /// <returns>Tool given type and predicate if active - otherwise null.</returns>
+    public static T FindActive<T>( Predicate<T> pred ) where T : Tool
+    {
+      return FindActive( m_active, pred );
+    }
+    /// <summary>
+    /// Searches active tool from top level, depth first, given predicate.
+    /// </summary>
+    /// <typeparam name="T">Type of the tool.</typeparam>
+    /// <param name="tool">Parent tool to start from.</param>
+    /// <param name="pred">Tool predicate.</param>
+    /// <returns>Tool given type and predicate if active - otherwise null.</returns>
+    public static T FindActive<T>( Tool tool, Predicate<T> pred ) where T : Tool
+    {
+      if ( tool == null )
+        return null;
+
+      T typedTool = tool as T;
+      if ( typedTool != null && pred( typedTool ) )
+        return typedTool;
+
+      foreach ( Tool child in tool.GetChildren() ) {
+        T result = FindActive( child, pred );
+        if ( result != null )
+          return result;
+      }
+
+      return null;
+    }
+
+    private static Tool m_active  = null;
     private List<Tool> m_children = new List<Tool>();
-    private Tool m_parent = null;
+    private Tool m_parent         = null;
 
     private Dictionary<string, Utils.VisualPrimitive> m_visualPrimitives = new Dictionary<string, Utils.VisualPrimitive>();
 
@@ -183,12 +297,16 @@ namespace AgXUnityEditor.Tools
 
     public void PerformRemoveFromParent()
     {
-      if ( Manager.GetActiveTool() == this ) {
-        Manager.RemoveActiveTool();
+      if ( GetActiveTool() == this ) {
+        RemoveActiveTool();
         return;
       }
 
       PerformRemove();
+    }
+    public void Remove()
+    {
+      PerformRemoveFromParent();
     }
 
     protected void AddChild( Tool child )
