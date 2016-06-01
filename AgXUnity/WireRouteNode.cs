@@ -21,8 +21,7 @@ namespace AgXUnity
     /// <returns>Wire route node instance.</returns>
     public static WireRouteNode Create( Wire.NodeType type = Wire.NodeType.BodyFixedNode, GameObject parent = null, Vector3 localPosition = default( Vector3 ), Quaternion localRotation = default( Quaternion ) )
     {
-      WireRouteNode node = ScriptAsset.CreateInstance<WireRouteNode>();
-      node.m_frame = ScriptAsset.CreateInstance<Frame>();
+      WireRouteNode node = Create<WireRouteNode>();
 
       if ( object.Equals( localRotation, default( Quaternion ) ) )
         localRotation = Quaternion.identity;
@@ -104,9 +103,10 @@ namespace AgXUnity
     {
     }
 
-    public override void Destroy()
+    protected override void Construct()
     {
-      Native = null;
+      m_frame = Create<Frame>();
+      m_type  = Wire.NodeType.BodyFixedNode;
     }
 
     /// <summary>
@@ -154,6 +154,11 @@ namespace AgXUnity
       }
 
       return Native != null;
+    }
+
+    public override void Destroy()
+    {
+      Native = null;
     }
 
     private object m_editorData = null;

@@ -95,6 +95,7 @@ namespace AgXUnity
     /// <summary>
     /// Get or set the name of this elementary constraint.
     /// </summary>
+    [HideInInspector]
     public string NativeName
     {
       get { return m_nativeName; }
@@ -121,6 +122,7 @@ namespace AgXUnity
     /// <summary>
     /// Get the number of rows in this elementary constraint.
     /// </summary>
+    [HideInInspector]
     public int NumRows
     {
       get { return m_numRows; }

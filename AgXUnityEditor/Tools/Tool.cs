@@ -159,6 +159,20 @@ namespace AgXUnityEditor.Tools
     }
 
     /// <summary>
+    /// Searches CustomTool attribute and returns type of that tool - if present.
+    /// </summary>
+    /// <param name="obj">Object with optional attribute AgXUnity.CustomTool.</param>
+    /// <returns>Type of tool.</returns>
+    public static Type FindToolType( object obj )
+    {
+      AgXUnity.CustomTool customToolAttribute = obj.GetType().GetCustomAttributes( typeof( AgXUnity.CustomTool ), false ).FirstOrDefault() as AgXUnity.CustomTool;
+      if ( customToolAttribute == null )
+        return null;
+
+      return Type.GetType( customToolAttribute.ClassName );
+    }
+
+    /// <summary>
     /// Remove old tool (if present) and activate new. If <paramref name="tool"/> is null
     /// the current active tool is removed.
     /// </summary>
@@ -169,7 +183,8 @@ namespace AgXUnityEditor.Tools
       RemoveActiveTool();
 
       m_active = tool;
-      m_active.OnAdd();
+      if ( m_active != null )
+        m_active.OnAdd();
 
       return m_active;
     }
@@ -184,6 +199,30 @@ namespace AgXUnityEditor.Tools
     public static T ActivateTool<T>( Tool tool ) where T : Tool
     {
       return ActivateTool( tool ) as T;
+    }
+
+    /// <summary>
+    /// Activates tool given target and checks if target has attribute CustomTool.
+    /// If the attribute CustomTool is set this method tries to instantiate the
+    /// given implementation.
+    /// </summary>
+    /// <typeparam name="T">Target type.</typeparam>
+    /// <param name="target">Target object.</param>
+    /// <returns>New active tool if successful.</returns>
+    public static Tool ActivateToolGivenTarget<T>( T target ) where T : class
+    {
+      Type toolType = FindToolType( target );
+      if ( toolType == null )
+        return null;
+
+      try {
+        return ActivateTool( (Tool)Activator.CreateInstance( toolType, new object[] { target } ) );
+      }
+      catch ( Exception e ) {
+        Debug.LogException( e, target as UnityEngine.Object );
+      }
+
+      return null;
     }
 
     /// <summary>
@@ -214,6 +253,26 @@ namespace AgXUnityEditor.Tools
     }
 
     /// <summary>
+    /// Fetch current active, top level, tool given object with optional CustomTool attribute.
+    /// </summary>
+    /// <param name="toolClassName"></param>
+    /// <returns></returns>
+    public static Tool GetActiveTool( object obj )
+    {
+      if ( m_active == null || obj == null )
+        return null;
+
+      Type customToolType = FindToolType( obj );
+      if ( customToolType == null )
+        return null;
+
+      if ( m_active.GetType() == customToolType )
+        return (Tool)Convert.ChangeType( m_active, customToolType );
+
+      return null;
+    }
+
+    /// <summary>
     /// Fetch current active, top level, tool.
     /// </summary>
     /// <returns>Current active, top level, tool.</returns>
@@ -232,6 +291,7 @@ namespace AgXUnityEditor.Tools
     {
       return FindActive( m_active, pred );
     }
+
     /// <summary>
     /// Searches active tool from top level, depth first, given predicate.
     /// </summary>

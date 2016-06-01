@@ -130,6 +130,16 @@ namespace AgXUnity
       }
     }
 
+    private FrictionModel()
+    {
+    }
+
+    protected override void Construct()
+    {
+      m_type      = EType.IterativeProjectedFriction;
+      m_solveType = ESolveType.Split;
+    }
+
     protected override bool Initialize()
     {
       if ( m_frictionModel != null )

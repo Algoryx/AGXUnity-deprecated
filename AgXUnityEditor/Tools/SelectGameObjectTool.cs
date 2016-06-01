@@ -10,23 +10,31 @@ namespace AgXUnityEditor.Tools
   {
     public SelectGameObjectDropdownMenuTool MenuTool { get { return GetChild<SelectGameObjectDropdownMenuTool>(); } }
 
-    public bool SelectionWindowActive { get { return MenuTool.WindowIsActive; } }
+    public bool SelectionWindowActive { get { return MenuTool != null && MenuTool.WindowIsActive; } }
 
-    public SelectGameObjectTool( Action<GameObject> onSelectCallback )
+    public Action<GameObject> OnSelect = delegate { };
+
+    public SelectGameObjectTool()
     {
-      SelectGameObjectDropdownMenuTool menuTool = new SelectGameObjectDropdownMenuTool()
+      SelectGameObjectDropdownMenuTool menuTool = new SelectGameObjectDropdownMenuTool();
+      menuTool.RemoveOnClickMiss = false;
+      menuTool.OnSelect = go =>
       {
-        HideOnCameraControl = true,
-        HideOnKeyEscape     = true,
-        HideOnClickMiss     = true
+        OnSelect( go );
+        PerformRemoveFromParent();
       };
-
       AddChild( menuTool );
-      menuTool.OnSelect += onSelectCallback;
     }
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
+      OnSceneViewGUIChildren( sceneView );
+
+      if ( MenuTool == null ) {
+        PerformRemoveFromParent();
+        return;
+      }
+
       if ( ( !MenuTool.WindowIsActive || MenuTool.Target != Manager.MouseOverObject ) && Manager.HijackLeftMouseClick() ) {
         MenuTool.Target = Manager.MouseOverObject;
         MenuTool.Show();

@@ -3,9 +3,7 @@ using UnityEngine;
 
 namespace AgXUnity
 {
-  // TODO: Inherit from ScriptAsset.
-  [Serializable]
-  public class ConstraintAttachmentPair
+  public class ConstraintAttachmentPair : ScriptAsset
   {
     public GameObject ReferenceObject
     {
@@ -30,17 +28,15 @@ namespace AgXUnity
       }
     }
 
-    // TODO: Has to be CreateInstance.
     [SerializeField]
-    private Frame m_referenceFrame = new Frame();
+    private Frame m_referenceFrame = null;
     public Frame ReferenceFrame
     {
       get { return m_referenceFrame; }
     }
 
-    // TODO: Has to be CreateInstance.
     [SerializeField]
-    private Frame m_connectedFrame = new Frame();
+    private Frame m_connectedFrame = null;
     public Frame ConnectedFrame
     {
       get { return m_connectedFrame; }
@@ -54,7 +50,7 @@ namespace AgXUnity
       set { m_synchronized = value; }
     }
 
-    public ConstraintAttachmentPair( bool synchronized = true )
+    private ConstraintAttachmentPair()
     {
     }
 
@@ -64,6 +60,21 @@ namespace AgXUnity
         m_connectedFrame.Position = m_referenceFrame.Position;
         m_connectedFrame.Rotation = m_referenceFrame.Rotation;
       }
+    }
+
+    protected override void Construct()
+    {
+      m_referenceFrame = Create<Frame>();
+      m_connectedFrame = Create<Frame>();
+    }
+
+    protected override bool Initialize()
+    {
+      return true;
+    }
+
+    public override void Destroy()
+    {
     }
   }
 }

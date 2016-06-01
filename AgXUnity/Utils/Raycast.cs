@@ -121,6 +121,15 @@ namespace AgXUnity.Utils
       return ( LastHit = hit );
     }
 
+    public static bool HasRayCompatibleComponents( GameObject gameObject )
+    {
+      return gameObject != null &&
+             (
+               gameObject.GetComponent<MeshFilter>() != null ||
+               ( gameObject.GetComponent<Collide.Shape>() != null && gameObject.GetComponent<Collide.HeightField>() == null )
+             );
+    }
+
     public static Hit Test( GameObject target, Ray ray, float rayLength = 500.0f, bool includeAllChildren = false )
     {
       if ( target == null )

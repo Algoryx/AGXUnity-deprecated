@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using AgXUnity;
@@ -9,6 +10,31 @@ namespace AgXUnityEditor.Utils
 {
   public partial class GUI
   {
+    /// <summary>
+    /// Indent block.
+    /// </summary>
+    /// <example>
+    /// using ( new GUI.Indent( 16.0f ) ) {
+    ///   GUILayout.Label( "This label is indented 16 pixels." );
+    /// }
+    /// GUILayout.Label( "This label isn't indented." );
+    /// </example>
+    public class Indent : IDisposable
+    {
+      public Indent( float numPixels )
+      {
+        EditorGUILayout.BeginHorizontal();
+        GUILayout.Space( numPixels );
+        EditorGUILayout.BeginVertical();
+      }
+
+      public void Dispose()
+      {
+        EditorGUILayout.EndVertical();
+        EditorGUILayout.EndHorizontal();
+      }
+    }
+
     public class Prefs
     {
       public static string CreateKey( object obj )
@@ -55,26 +81,21 @@ namespace AgXUnityEditor.Utils
 
     public static void TargetEditorEnable<T>( T target, GUISkin skin ) where T : class
     {
-      if ( target is Wire )
-        TargetEditorEnable( target as Wire, skin );
-      else if ( target is Constraint )
-        TargetEditorEnable( target as Constraint, skin );
+      Tools.Tool.ActivateToolGivenTarget( target );
     }
 
     public static void TargetEditorDisable<T>( T target ) where T : class
     {
-      if ( target is Wire )
-        TargetEditorDisable( target as Wire );
-      else if ( target is Constraint )
-        TargetEditorDisable( target as Constraint );
+      var targetTool = Tools.Tool.GetActiveTool( target );
+      if ( targetTool != null )
+        Tools.Tool.RemoveActiveTool();
     }
 
     public static void PreTargetMembers<T>( T target, GUISkin skin ) where T : class
     {
-      if ( target is Wire )
-        PreTargetMembers( target as Wire, skin );
-      else if ( target is Constraint )
-        PreTargetMembers( target as Constraint, skin );
+      var targetTool = Tools.Tool.GetActiveTool( target );
+      if ( targetTool != null )
+        OnToolInspectorGUI( targetTool, target, skin );
     }
 
     public static string AddColorTag( string str, Color color )
@@ -82,27 +103,45 @@ namespace AgXUnityEditor.Utils
       return @"<color=" + color.ToHexStringRGBA() + @">" + str + @"</color>";
     }
 
-    public static GUIContent MakeLabel( string text, bool bold = false )
+    public static GUIContent MakeLabel( string text, bool bold = false, string toolTip = "" )
     {
       GUIContent label = new GUIContent();
       string boldBegin = bold ? "<b>" : "";
       string boldEnd   = bold ? "</b>" : "";
       label.text       = boldBegin + text + boldEnd;
+
+      if ( toolTip != string.Empty )
+        label.tooltip = toolTip;
+
       return label;
     }
 
-    public static GUIContent MakeLabel( string text, Color color, bool bold = false )
+    public static GUIContent MakeLabel( string text, int size, bool bold = false, string toolTip = "" )
     {
-      GUIContent label = MakeLabel( text, bold );
+      GUIContent label = MakeLabel( text, bold, toolTip );
+      label.text       = @"<size=" + size + @">" + label.text + @"</size>";
+      return label;
+    }
+
+    public static GUIContent MakeLabel( string text, Color color, bool bold = false, string toolTip = "" )
+    {
+      GUIContent label = MakeLabel( text, bold, toolTip );
       label.text       = AddColorTag( text, color );
       return label;
     }
 
-    public static GUIContent MakeLabel( string text, Color color, int size, bool bold = false )
+    public static GUIContent MakeLabel( string text, Color color, int size, bool bold = false, string toolTip = "" )
     {
-      GUIContent label = MakeLabel( text, color, bold );
-      label.text = @"<size=" + size + @">" + label.text + @"</size>";
+      GUIContent label = MakeLabel( text, size, bold, toolTip );
+      label.text       = AddColorTag( label.text, color );
       return label;
+    }
+
+    public static GUIStyle Align( GUIStyle style, TextAnchor anchor )
+    {
+      GUIStyle copy = new GUIStyle( style );
+      copy.alignment = anchor;
+      return copy;
     }
 
     public static Vector3 Vector3Field( GUIContent content, Vector3 value, GUIStyle style = null )
@@ -159,44 +198,70 @@ namespace AgXUnityEditor.Utils
       return newValue;
     }
 
-    public static void HandleFrame( Frame frame, GUISkin skin, bool includeParentObjectField = true, float numPixelsIndentation = 0.0f, Action<Tools.FrameTool> onEditButton = null )
+    public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f )
     {
-      EditorGUILayout.BeginHorizontal();
-      GUILayout.Space( numPixelsIndentation );
-      if ( includeParentObjectField ) {
+      Tools.FrameTool frameTool = Tools.FrameTool.FindActive( frame );
+      bool guiWasEnabled = UnityEngine.GUI.enabled;
+
+      using ( new Indent( numPixelsIndentation ) ) {
+        Separator();
+
+        UnityEngine.GUI.enabled = true;
         GameObject newParent = (GameObject)EditorGUILayout.ObjectField( MakeLabel( "Parent" ), frame.Parent, typeof( GameObject ), true );
+        UnityEngine.GUI.enabled = guiWasEnabled;
+
         if ( newParent != frame.Parent )
           frame.SetParent( newParent );
-      }
-      EditorGUILayout.EndHorizontal();
 
-      EditorGUILayout.BeginHorizontal();
-      GUILayout.Space( numPixelsIndentation );
-      Tools.FrameTool frameTool = Tools.FrameTool.FindActive( frame );
-      if ( GUILayout.Button( MakeLabel( "Edit" ), Utils.GUI.ConditionalCreateSelectedStyle( frameTool != null, skin.button ), new GUILayoutOption[] { GUILayout.Width( 32 ), GUILayout.Height( 16 * 2 ) } ) ) {
-        if ( onEditButton != null )
-          onEditButton( frameTool );
-        else {
-          if ( frameTool != null ) {
-            frameTool.Remove();
-            frameTool = null;
+        frame.LocalPosition = Vector3Field( MakeLabel( "Local position" ), frame.LocalPosition, skin.label );
+        frame.LocalRotation = Quaternion.Euler( Vector3Field( MakeLabel( "Local rotation" ), frame.LocalRotation.eulerAngles, skin.label ) );
+
+        if ( frameTool != null ) {
+          using ( new Indent( 12 ) ) {
+            Separator();
+
+            const char selectInSceneViewSymbol = 'p';//'\u2714';
+            const char selectPointSymbol       = '\u22A1';
+            const char selectEdgeSymbol        = '\u2196';
+            const float toolButtonWidth        = 25.0f;
+            const float toolButtonHeight       = 25.0f;
+            GUIStyle toolButtonStyle           = new GUIStyle( skin.button );
+            toolButtonStyle.fontSize           = 18;
+
+            bool toggleSelectParent   = false;
+            bool toggleFindGivenPoint = false;
+            bool toggleSelectEdge     = false;
+
+            EditorGUILayout.BeginHorizontal();
+            {
+              UnityEngine.GUI.enabled = true;
+              GUILayout.Label( MakeLabel( "Tools:", true ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
+
+              toggleSelectParent = GUILayout.Button( MakeLabel( selectInSceneViewSymbol.ToString(), false, "Select parent object in scene view" ),
+                                                     ConditionalCreateSelectedStyle( frameTool.SelectParent, toolButtonStyle ),
+                                                     new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+              UnityEngine.GUI.enabled = guiWasEnabled;
+
+              toggleFindGivenPoint = GUILayout.Button( MakeLabel( selectPointSymbol.ToString(), false, "Find position and direction given surface" ),
+                                                        ConditionalCreateSelectedStyle( frameTool.FindTransformGivenPointOnSurface, toolButtonStyle ),
+                                                        new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+              toggleSelectEdge = GUILayout.Button( MakeLabel( selectEdgeSymbol.ToString(), false, "Find position and direction given edge" ),
+                                                   ConditionalCreateSelectedStyle( frameTool.FindTransformGivenEdge, toolButtonStyle ),
+                                                   new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+            }
+            EditorGUILayout.EndHorizontal();
+
+            if ( toggleSelectParent )
+              frameTool.SelectParent = !frameTool.SelectParent;
+            if ( toggleFindGivenPoint )
+              frameTool.FindTransformGivenPointOnSurface = !frameTool.FindTransformGivenPointOnSurface;
+            if ( toggleSelectEdge )
+              frameTool.FindTransformGivenEdge = !frameTool.FindTransformGivenEdge;
+
+            Separator();
           }
-          else
-            frameTool = Tools.Tool.ActivateTool<Tools.FrameTool>( new Tools.FrameTool( frame ) );
         }
       }
-      EditorGUILayout.BeginVertical();
-      frame.LocalPosition = Vector3Field( MakeLabel( "Local position" ), frame.LocalPosition, skin.label );
-      frame.LocalRotation = Quaternion.Euler( Vector3Field( MakeLabel( "Local rotation" ), frame.LocalRotation.eulerAngles, skin.label ) );
-      EditorGUILayout.EndVertical();
-      EditorGUILayout.EndHorizontal();
-    }
-
-    public static GUIStyle EditorSkinLabel( TextAnchor alignment = TextAnchor.MiddleCenter )
-    {
-      GUIStyle style = new GUIStyle( Skin.label );
-      style.alignment = alignment;
-      return style;
     }
 
     private static GUISkin m_editorGUISkin = null;
@@ -290,14 +355,10 @@ namespace AgXUnityEditor.Utils
     public static void OnToolInspectorGUI( Tools.Tool tool, object target, GUISkin skin )
     {
       if ( tool != null ) {
-        Separator( 2.0f );
         tool.OnInspectorGUI( skin );
-        if ( target is UnityEngine.Object )
-          EditorUtility.SetDirty( target as UnityEngine.Object );
-        Separator( 2.0f );
+        //if ( target is UnityEngine.Object )
+        //  EditorUtility.SetDirty( target as UnityEngine.Object );
       }
-      else
-        Separator();
     }
   }
 }

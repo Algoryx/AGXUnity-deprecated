@@ -77,17 +77,17 @@ namespace AgXUnity
 
       // New local position/rotation given current world transform.
       if ( inheritWorldTransform ) {
+        Vector3 worldPosition = Position;
+        Quaternion worldRotation = Rotation;
+
         m_parent = parent;
 
-        LocalPosition = CalculateLocalPosition( Parent, Position );
-        LocalRotation = CalculateLocalRotation( Parent, Rotation );
+        LocalPosition = CalculateLocalPosition( Parent, worldPosition );
+        LocalRotation = CalculateLocalRotation( Parent, worldRotation );
       }
       // New world position/rotation given current local transform.
       else {
         m_parent = parent;
-
-        Position = CalculateWorldPosition( Parent, LocalPosition );
-        Rotation = CalculateWorldRotation( Parent, LocalRotation );
       }
     }
 
@@ -139,6 +139,17 @@ namespace AgXUnity
         return localRotation;
 
       return ( gameObject.transform.rotation * localRotation ).Normalize();
+    }
+
+    private Frame()
+    {
+    }
+
+    protected override void Construct()
+    {
+      m_parent        = null;
+      m_localPosition = Vector3.zero;
+      m_localRotation = Quaternion.identity;
     }
 
     protected override bool Initialize()

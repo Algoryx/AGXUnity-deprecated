@@ -18,7 +18,7 @@ namespace AgXUnityEditor.Utils
         return null;
       }
 
-      T asset = ScriptableObject.CreateInstance<T>();
+      T asset = ScriptAsset.Create<T>();
 
       string pathAndName = AssetDatabase.GenerateUniqueAssetPath( path + "/" + name + ".asset" );
 

@@ -48,6 +48,7 @@
     <Compile Include="Menus\TopMenu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\ConstraintAttachmentPairTool.cs" />
+    <Compile Include="Tools\ConstraintTool.cs" />
     <Compile Include="Tools\EdgeDetectionTool.cs" />
     <Compile Include="Tools\FindPointTool.cs" />
     <Compile Include="Tools\FrameTool.cs" />
@@ -59,13 +60,11 @@
     <Compile Include="Tools\WireRouteTool.cs" />
     <Compile Include="Tools\WireTool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />
-    <Compile Include="Utils\ConstraintGUI.cs" />
     <Compile Include="Utils\CustomEditorGenerator.cs" />
     <Compile Include="Utils\GUI.cs" />
     <Compile Include="Utils\KeyHandler.cs" />
     <Compile Include="Utils\VisualPrimitive.cs" />
     <Compile Include="SceneViewWindow.cs" />
-    <Compile Include="Utils\WireGUI.cs" />
     <Compile Include="Wizards\Wizard.cs" />
   </ItemGroup>
   <ItemGroup>

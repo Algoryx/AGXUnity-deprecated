@@ -18,7 +18,7 @@ namespace AgXUnityEditor.Tools
       string nullTag      = isNull       ? Utils.GUI.AddColorTag( "[null]", Color.red ) : "";
       string visualTag    = hasVisual    ? Utils.GUI.AddColorTag( "[Visual]", Color.yellow ) : "";
       string rigidBodyTag = hasRigidBody ? Utils.GUI.AddColorTag( "[RigidBody]", Color.Lerp( Color.blue, Color.white, 0.35f ) ) : "";
-      string shapeTag     = hasShape     ? Utils.GUI.AddColorTag( "[" + gameObject.GetComponent<AgXUnity.Collide.Shape>().GetType().Name + "]", Color.Lerp( Color.green, Color.white, 0.1f ) ) : "";
+      string shapeTag     = hasShape     ? Utils.GUI.AddColorTag( "[" + gameObject.GetComponent<AgXUnity.Collide.Shape>().GetType().Name + "]", Color.Lerp( Color.green, Color.black, 0.4f ) ) : "";
 
       string name = isNull ? "World" : gameObject.name;
 
@@ -31,21 +31,24 @@ namespace AgXUnityEditor.Tools
     public GameObject Target
     {
       get { return m_target; }
-      set
-      {
-        m_target = value;
-
-        BuildListGivenTarget();
-      }
+      set { SetTarget( value ); }
     }
 
     public bool WindowIsActive { get { return SceneViewWindow.GetWindowData( OnWindowGUI ) != null; } }
 
+    public GameObject[] GameObjects { get { return m_gameObjectList.ToArray(); } }
+
     public Action<GameObject> OnSelect = delegate { };
 
-    public bool HideOnKeyEscape     = true;
-    public bool HideOnCameraControl = true;
-    public bool HideOnClickMiss     = true;
+    public bool RemoveOnKeyEscape     = true;
+    public bool RemoveOnCameraControl = true;
+    public bool RemoveOnClickMiss     = true;
+
+    public void SetTarget( GameObject target, Predicate<GameObject> pred = null )
+    {
+      m_target = target;
+      BuildListGivenTarget( pred );
+    }
 
     public void Show()
     {
@@ -54,13 +57,10 @@ namespace AgXUnityEditor.Tools
 
     public void Show( Vector2 position )
     {
-      if ( WindowIsActive )
-        return;
-
-      SceneViewWindow.Show( OnWindowGUI, new Vector2( m_windowWidth, 0 ), Event.current.mousePosition + new Vector2( -0.5f * m_windowWidth, -10 ), WindowTitle.text );
+      SceneViewWindow.Show( OnWindowGUI, new Vector2( m_windowWidth, 0 ), position + new Vector2( -0.5f * m_windowWidth, -10 ), WindowTitle.text );
     }
 
-    public void Hide()
+    public override void OnRemove()
     {
       m_selected = null;
 
@@ -69,18 +69,17 @@ namespace AgXUnityEditor.Tools
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      bool hide = WindowIsActive && (
-                    ( HideOnKeyEscape && Manager.KeyEscapeDown ) ||
-                    ( HideOnCameraControl && Manager.IsCameraControl ) ||
-                    ( HideOnClickMiss && Manager.LeftMouseClick && !SceneViewWindow.GetWindowData( OnWindowGUI ).Contains( Event.current.mousePosition ) )
-                  );
+      bool remove = (
+                      ( RemoveOnKeyEscape && Manager.KeyEscapeDown ) ||
+                      ( RemoveOnCameraControl && Manager.IsCameraControl ) ||
+                      ( RemoveOnClickMiss && WindowIsActive && Manager.LeftMouseClick && !SceneViewWindow.GetWindowData( OnWindowGUI ).Contains( Event.current.mousePosition ) )
+                    );
 
-      if ( hide )
-        Hide();
+      if ( remove )
+        PerformRemoveFromParent();
       else if ( m_selected != null ) {
         OnSelect( m_selected.Object );
-        m_selected = null;
-        Hide();
+        PerformRemoveFromParent();
       }
     }
 
@@ -92,26 +91,32 @@ namespace AgXUnityEditor.Tools
     private class SelectedObject { public GameObject Object = null; }
     private SelectedObject m_selected = null;
 
-    private void BuildListGivenTarget()
+    private void BuildListGivenTarget( Predicate<GameObject> pred )
     {
+      if ( pred == null )
+        pred = go => { return true; };
+
       m_gameObjectList.Clear();
 
       m_windowWidth = Mathf.Max( 1.5f * Utils.GUI.Skin.label.CalcSize( WindowTitle ).x, Utils.GUI.Skin.button.CalcSize( GetGUIContent( Target ) ).x );
 
       if ( Target != null ) {
-        m_gameObjectList.Add( Target );
+        if ( pred( Target ) )
+          m_gameObjectList.Add( Target );
 
         Transform parent = Target.transform.parent;
         while ( parent != null ) {
           m_windowWidth = Mathf.Max( m_windowWidth, Utils.GUI.Skin.button.CalcSize( GetGUIContent( parent.gameObject ) ).x );
 
-          m_gameObjectList.Add( parent.gameObject );
+          if ( pred( parent.gameObject ) )
+            m_gameObjectList.Add( parent.gameObject );
           parent = parent.parent;
         }
       }
 
       // Always adding world at end of list. If Target == null this will be the only entry.
-      m_gameObjectList.Add( null );
+      if ( pred( null ) )
+        m_gameObjectList.Add( null );
     }
 
     private void OnWindowGUI( EventType eventType )

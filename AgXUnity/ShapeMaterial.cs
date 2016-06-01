@@ -104,6 +104,10 @@ namespace AgXUnity
       return tmpMaterial;
     }
 
+    protected override void Construct()
+    {
+    }
+
     protected override bool Initialize()
     {
       m_material = new agx.Material( name );

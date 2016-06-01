@@ -7,9 +7,9 @@ namespace AgXUnity
   /// <summary>
   /// Wire object.
   /// </summary>
-  [System.Serializable]
   [AddComponentMenu( "" )]
   [RequireComponent( typeof( Rendering.WireRenderer ) )]
+  [CustomTool( "AgXUnityEditor.Tools.WireTool" )]
   public class Wire : ScriptComponent
   {
     /// <summary>

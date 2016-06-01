@@ -24,6 +24,9 @@ namespace AgXUnityEditor.Tools
       get { return m_selected; }
       set
       {
+        if ( m_selected == value )
+          return;
+
         if ( GetParent() != null ) {
           WireRouteNodeTool[] allRnTools = GetParent().GetChildren<WireRouteNodeTool>();
           foreach ( WireRouteNodeTool rnTool in allRnTools ) {
@@ -35,7 +38,9 @@ namespace AgXUnityEditor.Tools
         m_selected = value;
 
         if ( m_selected )
-          AddChild( new FrameTool( Node.Frame ) );
+          AddChild( new FrameTool( Node.Frame ) { OnChangeDirtyTarget = Node.Wire } );
+
+        EditorUtility.SetDirty( Node.Wire );
       }
     }
 
@@ -65,26 +70,19 @@ namespace AgXUnityEditor.Tools
 
     public override void OnInspectorGUI( GUISkin skin )
     {
-      EditorGUILayout.BeginHorizontal();
-      GUILayout.Label( Utils.GUI.MakeLabel( "Tools:", true ), skin.label );
-      GUILayout.FlexibleSpace();
-      if ( GUILayout.Button( Utils.GUI.MakeLabel( "Find point on object" ) ) ) {
-        RemoveChild( GetChild<FindPointTool>() );
-        AddChild( new FindPointTool() { RemoveSelfWhenDone = true, OnNewPointData = OnNewPointData } );
-      }
-      EditorGUILayout.EndHorizontal();
+      //EditorGUILayout.BeginHorizontal();
+      //GUILayout.Label( Utils.GUI.MakeLabel( "Tools:", true ), skin.label );
+      //GUILayout.FlexibleSpace();
+      //if ( GUILayout.Button( Utils.GUI.MakeLabel( "Find point on object" ) ) ) {
+      //  RemoveChild( GetChild<FindPointTool>() );
+      //  AddChild( new FindPointTool() { RemoveSelfWhenDone = true, OnNewPointData = OnNewPointData } );
+      //}
+      //EditorGUILayout.EndHorizontal();
     }
 
     private void OnClick( Utils.VisualPrimitive primitive )
     {
       Selected = true;
-    }
-
-    private void OnNewPointData( FindPointTool.PointData pointData )
-    {
-      Node.Frame.SetParent( pointData.Parent );
-      Node.Frame.Position = pointData.WorldPosition;
-      Node.Frame.Rotation = pointData.WorldRotation;
     }
   }
 }
