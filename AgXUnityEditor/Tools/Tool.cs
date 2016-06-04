@@ -437,6 +437,18 @@ namespace AgXUnityEditor.Tools
         child.OnSceneViewGUI( sceneView );
     }
 
+    private class DefaultToolsHiddenState
+    {
+      public bool ToolsWasHidden = false;
+    }
+
+    private DefaultToolsHiddenState m_toolsHiddenState = null;
+    protected void HideDefaultHandlesEnableWhenRemoved()
+    {
+      m_toolsHiddenState = new DefaultToolsHiddenState() { ToolsWasHidden = UnityEditor.Tools.hidden };
+      UnityEditor.Tools.hidden = true;
+    }
+
     private void PerformRemove()
     {
       // OnRemove virtual callback.
@@ -459,6 +471,9 @@ namespace AgXUnityEditor.Tools
       Tool[] children = m_children.ToArray();
       foreach ( Tool child in children )
         child.PerformRemove();
+
+      if ( m_toolsHiddenState != null )
+        UnityEditor.Tools.hidden = m_toolsHiddenState.ToolsWasHidden;
     }
   }
 }

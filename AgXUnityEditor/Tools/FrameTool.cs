@@ -1,11 +1,19 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 using UnityEditor;
 using AgXUnity;
+using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
 {
   public class FrameTool : Tool
   {
+    /// <summary>
+    /// Search from root tool, through all children (depth first),
+    /// for a frame tool operating on <paramref name="frame"/>.
+    /// </summary>
+    /// <param name="frame">Frame to search frame tool for.</param>
+    /// <returns>First frame tool that matches <paramref name="frame"/>.</returns>
     public static FrameTool FindActive( Frame frame )
     {
       return FindActive<FrameTool>( frameTool => frameTool.Frame == frame );
@@ -42,8 +50,8 @@ namespace AgXUnityEditor.Tools
           selectGameObjectTool.OnSelect += parent =>
           {
             Frame.SetParent( parent );
-            RemoveChild( GetChild<SelectGameObjectTool>() );
-            DirtyTarget();
+
+            OnLocalToolDone( selectGameObjectTool );
           };
           AddChild( selectGameObjectTool );
         }
@@ -52,6 +60,9 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    /// <summary>
+    /// Enable/disable FindPointTool to find transform given surface/triangle.
+    /// </summary>
     public bool FindTransformGivenPointOnSurface
     {
       get { return GetChild<FindPointTool>() != null; }
@@ -66,7 +77,7 @@ namespace AgXUnityEditor.Tools
             Frame.Position = data.Triangle.Point;
             Frame.Rotation = FindRotationGivenParentTool( data.Triangle.ClosestEdge.Direction, data.Triangle.Normal );
 
-            DirtyTarget();
+            OnLocalToolDone( pointTool );
           };
           AddChild( pointTool );
         }
@@ -75,6 +86,9 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    /// <summary>
+    /// Enable/disable EdgeDetectionTool to find transform given edge.
+    /// </summary>
     public bool FindTransformGivenEdge
     {
       get { return GetChild<EdgeDetectionTool>() != null; }
@@ -89,7 +103,7 @@ namespace AgXUnityEditor.Tools
             Frame.Position = 0.5f * ( data.EdgeData.Edge.Start + data.EdgeData.Edge.End );
             Frame.Rotation = FindRotationGivenParentTool( data.EdgeData.Edge.Direction, data.EdgeData.Edge.Normal );
 
-            DirtyTarget();
+            OnLocalToolDone( edgeTool );
           };
 
           AddChild( edgeTool );
@@ -100,9 +114,14 @@ namespace AgXUnityEditor.Tools
     }
 
     /// <summary>
-    /// True if all tools related to the frame should be active. Default true.
+    /// Enable/disable transform handle tool. Default enable.
     /// </summary>
-    public bool RepositionToolsActive { get; set; }
+    public bool TransformHandleActive { get; set; }
+
+    /// <summary>
+    /// Callback when a local frame tool successfully exits.
+    /// </summary>
+    public Action<Tool> OnToolDoneCallback = delegate { };
 
     /// <summary>
     /// When the position/rotation has been changed and this property is
@@ -111,12 +130,28 @@ namespace AgXUnityEditor.Tools
     /// </summary>
     public UnityEngine.Object OnChangeDirtyTarget { get; set; }
 
+    /// <summary>
+    /// Construct given frame, size in scene view and transparency alpha.
+    /// </summary>
+    /// <param name="frame">Target frame to manipulate.</param>
+    /// <param name="size">Size of position/rotation handle in scene view.</param>
+    /// <param name="alpha">Transparency alpha.</param>
     public FrameTool( Frame frame, float size = 0.6f, float alpha = 1.0f )
     {
       Frame = frame;
       Size  = size;
       Alpha = alpha;
-      RepositionToolsActive = true;
+      TransformHandleActive = true;
+    }
+
+    public override void OnAdd()
+    {
+      DirtyTarget();
+    }
+
+    public override void OnRemove()
+    {
+      DirtyTarget();
     }
 
     public override void OnSceneViewGUI( SceneView sceneView )
@@ -133,7 +168,7 @@ namespace AgXUnityEditor.Tools
 
       Undo.RecordObject( Frame, "FrameTool" );
 
-      if ( !RepositionToolsActive )
+      if ( !TransformHandleActive )
         return;
 
       // Shows position handle if, e.g., scale or some other strange setting is used in the editor.
@@ -159,6 +194,76 @@ namespace AgXUnityEditor.Tools
         DirtyTarget();
     }
 
+    public override void OnInspectorGUI( GUISkin skin )
+    {
+      bool guiWasEnabled = UnityEngine.GUI.enabled;
+
+      const char selectInSceneViewSymbol = 'p';//'\u2714';
+      const char selectPointSymbol       = '\u22A1';
+      const char selectEdgeSymbol        = '\u2196';
+      const char positionHandleSymbol    = 'L';
+      const float toolButtonWidth        = 25.0f;
+      const float toolButtonHeight       = 25.0f;
+      GUIStyle toolButtonStyle           = new GUIStyle( skin.button );
+      toolButtonStyle.fontSize           = 18;
+
+      bool toggleSelectParent   = false;
+      bool toggleFindGivenPoint = false;
+      bool toggleSelectEdge     = false;
+      bool togglePositionHandle = false;
+
+      EditorGUILayout.BeginHorizontal();
+      {
+        UnityEngine.GUI.enabled = true;
+        GUILayout.Label( GUI.MakeLabel( "Tools:", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
+
+        using ( GUI.ToolButtonColor ) {
+          toggleSelectParent = GUILayout.Button( GUI.MakeLabel( selectInSceneViewSymbol.ToString(), false, "Select parent object in scene view" ),
+                                                 GUI.ConditionalCreateSelectedStyle( SelectParent, toolButtonStyle ),
+                                                 new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+          UnityEngine.GUI.enabled = guiWasEnabled;
+
+          toggleFindGivenPoint = GUILayout.Button( GUI.MakeLabel( selectPointSymbol.ToString(), false, "Find position and direction given surface" ),
+                                                   GUI.ConditionalCreateSelectedStyle( FindTransformGivenPointOnSurface, toolButtonStyle ),
+                                                   new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+          toggleSelectEdge = GUILayout.Button( GUI.MakeLabel( selectEdgeSymbol.ToString(), false, "Find position and direction given edge" ),
+                                               GUI.ConditionalCreateSelectedStyle( FindTransformGivenEdge, toolButtonStyle ),
+                                                new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+          togglePositionHandle = GUILayout.Button( GUI.MakeLabel( positionHandleSymbol.ToString(), false, "Position/rotation handle" ),
+                                                   GUI.ConditionalCreateSelectedStyle( TransformHandleActive, toolButtonStyle ),
+                                                   new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+        }              
+      }
+      EditorGUILayout.EndHorizontal();
+
+      if ( toggleSelectParent )
+        SelectParent = !SelectParent;
+      if ( toggleFindGivenPoint )
+        FindTransformGivenPointOnSurface = !FindTransformGivenPointOnSurface;
+      if ( toggleSelectEdge )
+        FindTransformGivenEdge = !FindTransformGivenEdge;
+      if ( togglePositionHandle )
+        TransformHandleActive = !TransformHandleActive;
+
+      GUI.Separator();
+    }
+
+    /// <summary>
+    /// Call this method when a tool spawned by this tool exits, successfully.
+    /// </summary>
+    /// <param name="localTool">Tool that is about to be removed with exit success.</param>
+    private void OnLocalToolDone( Tool localTool )
+    {
+      OnToolDoneCallback( localTool );
+
+      DirtyTarget();
+    }
+
+    /// <summary>
+    /// If OnChangeDirtyTarget is set and changes are made from outside of
+    /// the Inspector tab (e.g., scene view operations), this method will
+    /// flag the object as dirty which will result in Inspector GUI update.
+    /// </summary>
     private void DirtyTarget()
     {
       if ( OnChangeDirtyTarget != null )

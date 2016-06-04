@@ -35,6 +35,22 @@ namespace AgXUnityEditor.Utils
       }
     }
 
+    public class ColorBlock : IDisposable
+    {
+      private Color m_prevColor = default( Color );
+
+      public ColorBlock( Color color )
+      {
+        m_prevColor = UnityEngine.GUI.color;
+        UnityEngine.GUI.color = color;
+      }
+
+      public void Dispose()
+      {
+        UnityEngine.GUI.color = m_prevColor;
+      }
+    }
+
     public class Prefs
     {
       public static string CreateKey( object obj )
@@ -198,14 +214,13 @@ namespace AgXUnityEditor.Utils
       return newValue;
     }
 
-    public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f )
+    public static ColorBlock ToolButtonColor { get { return new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.yellow, 0.1f ) ); } }
+
+    public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )
     {
-      Tools.FrameTool frameTool = Tools.FrameTool.FindActive( frame );
       bool guiWasEnabled = UnityEngine.GUI.enabled;
 
       using ( new Indent( numPixelsIndentation ) ) {
-        Separator();
-
         UnityEngine.GUI.enabled = true;
         GameObject newParent = (GameObject)EditorGUILayout.ObjectField( MakeLabel( "Parent" ), frame.Parent, typeof( GameObject ), true );
         UnityEngine.GUI.enabled = guiWasEnabled;
@@ -216,51 +231,12 @@ namespace AgXUnityEditor.Utils
         frame.LocalPosition = Vector3Field( MakeLabel( "Local position" ), frame.LocalPosition, skin.label );
         frame.LocalRotation = Quaternion.Euler( Vector3Field( MakeLabel( "Local rotation" ), frame.LocalRotation.eulerAngles, skin.label ) );
 
-        if ( frameTool != null ) {
-          using ( new Indent( 12 ) ) {
-            Separator();
+        Separator();
 
-            const char selectInSceneViewSymbol = 'p';//'\u2714';
-            const char selectPointSymbol       = '\u22A1';
-            const char selectEdgeSymbol        = '\u2196';
-            const float toolButtonWidth        = 25.0f;
-            const float toolButtonHeight       = 25.0f;
-            GUIStyle toolButtonStyle           = new GUIStyle( skin.button );
-            toolButtonStyle.fontSize           = 18;
-
-            bool toggleSelectParent   = false;
-            bool toggleFindGivenPoint = false;
-            bool toggleSelectEdge     = false;
-
-            EditorGUILayout.BeginHorizontal();
-            {
-              UnityEngine.GUI.enabled = true;
-              GUILayout.Label( MakeLabel( "Tools:", true ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
-
-              toggleSelectParent = GUILayout.Button( MakeLabel( selectInSceneViewSymbol.ToString(), false, "Select parent object in scene view" ),
-                                                     ConditionalCreateSelectedStyle( frameTool.SelectParent, toolButtonStyle ),
-                                                     new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
-              UnityEngine.GUI.enabled = guiWasEnabled;
-
-              toggleFindGivenPoint = GUILayout.Button( MakeLabel( selectPointSymbol.ToString(), false, "Find position and direction given surface" ),
-                                                        ConditionalCreateSelectedStyle( frameTool.FindTransformGivenPointOnSurface, toolButtonStyle ),
-                                                        new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
-              toggleSelectEdge = GUILayout.Button( MakeLabel( selectEdgeSymbol.ToString(), false, "Find position and direction given edge" ),
-                                                   ConditionalCreateSelectedStyle( frameTool.FindTransformGivenEdge, toolButtonStyle ),
-                                                   new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
-            }
-            EditorGUILayout.EndHorizontal();
-
-            if ( toggleSelectParent )
-              frameTool.SelectParent = !frameTool.SelectParent;
-            if ( toggleFindGivenPoint )
-              frameTool.FindTransformGivenPointOnSurface = !frameTool.FindTransformGivenPointOnSurface;
-            if ( toggleSelectEdge )
-              frameTool.FindTransformGivenEdge = !frameTool.FindTransformGivenEdge;
-
-            Separator();
-          }
-        }
+        Tools.FrameTool frameTool = null;
+        if ( includeFrameToolIfPresent && ( frameTool = Tools.FrameTool.FindActive( frame ) ) != null )
+          using ( new Indent( 12 ) )
+            frameTool.OnInspectorGUI( skin );
       }
     }
 
@@ -277,17 +253,20 @@ namespace AgXUnityEditor.Utils
 
     public static void Separator( float height = 1.0f, float space = 2.0f )
     {
-      Texture2D lineTexture = new Texture2D( 1, 1, TextureFormat.RGBA32, true );
-
-      if ( EditorGUIUtility.isProSkin )
-        lineTexture.SetPixel( 0, 1, Color.white );
-      else
-        lineTexture.SetPixel( 0, 1, Color.black );
-
-      lineTexture.Apply();
+      Texture2D lineTexture = EditorGUIUtility.isProSkin ?
+                                Texture2D.whiteTexture :
+                                Texture2D.blackTexture;
 
       GUILayout.Space( space );
       EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( height ) } ), lineTexture );
+      GUILayout.Space( space );
+    }
+
+    public static void Separator3D( float space = 2.0f )
+    {
+      GUILayout.Space( space );
+      EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( 1f ) } ), Texture2D.whiteTexture );
+      EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( 1f ) } ), Texture2D.blackTexture );
       GUILayout.Space( space );
     }
 

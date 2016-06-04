@@ -9,30 +9,14 @@ namespace AgXUnityEditor.Tools
 {
   public class WireTool : Tool
   {
-    public enum ToolMode
+    public static WireRouteNodeTool FindSelectedRouteNode()
     {
-      None,
-      AddNodes
+      return FindActive<WireRouteNodeTool>( routeNodeTool => { return routeNodeTool.Selected; } );
     }
 
-    private ToolMode m_mode = ToolMode.None;
-    public ToolMode Mode
+    public static void SetWireRouteFoldoutState( Wire wire, bool unfolded )
     {
-      get { return m_mode; }
-      set
-      {
-        if ( m_mode == ToolMode.AddNodes )
-          RemoveChild( GetChild<WireRouteTool>() );
-
-        m_mode = value;
-
-        if ( m_mode == ToolMode.AddNodes ) {
-          AddChild( new WireRouteTool( Wire ) );
-          WireRouteNode lastNode = Wire.Route.LastOrDefault();
-          if ( lastNode != null )
-            GetOrCreateNodeTool( lastNode ).Selected = true;
-        }
-      }
+      GUI.Prefs.SetBool( wire.Route, unfolded );
     }
 
     public Wire Wire { get; private set; }
@@ -44,6 +28,8 @@ namespace AgXUnityEditor.Tools
 
     public override void OnAdd()
     {
+      HideDefaultHandlesEnableWhenRemoved();
+
       Wire.Route.OnNodeAdded   += OnNodeAddedToRoute;
       Wire.Route.OnNodeRemoved += OnNodeRemovedFromRoute;
     }
@@ -72,195 +58,129 @@ namespace AgXUnityEditor.Tools
 
     public override void OnInspectorGUI( GUISkin skin )
     {
-      if ( GUI.Prefs.SetBool( Wire.Route, EditorGUILayout.Foldout( GUI.Prefs.GetOrCreateBool( Wire.Route, true ), GUI.MakeLabel( "Route" ) ) ) ) {
-        using ( new GUI.Indent( 12 ) ) {
-          foreach ( WireRouteNode node in Wire.Route.ToList() ) {
-            Undo.RecordObject( node, "RouteNode" );
+      //const char addNodesToolSymbol = '\u260D';
+      //const float toolButtonWidth   = 25.0f;
+      //const float toolButtonHeight  = 25.0f;
+      //GUIStyle toolButtonStyle      = new GUIStyle( skin.button );
+      //toolButtonStyle.fontSize      = 18;
 
-            WireRouteNodeTool rnTool = GetOrCreateNodeTool( node );
-
-            EditorGUILayout.BeginHorizontal();
-            {
-              rnTool.Selected = GUILayout.Button( GUI.MakeLabel( rnTool.Selected ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !rnTool.Selected : rnTool.Selected;
-              GUILayout.Label( GUI.MakeLabel( node.Type.ToString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Frame.Parent ).text ), skin.label );
-              if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
-                rnTool.Selected = !rnTool.Selected;
-                GUIUtility.ExitGUI();
-              }
-            }
-            EditorGUILayout.EndHorizontal();
-
-            if ( rnTool.Selected ) {
-              using ( new GUI.Indent( 12 ) ) {
-                GUI.Separator();
-
-                Wire.NodeType newNodeType = (Wire.NodeType)EditorGUILayout.EnumPopup( GUI.MakeLabel( "Type" ), node.Type, skin.button );
-                if ( newNodeType != node.Type ) {
-                  // Changing FROM winch and the wire will destroy the WireWinch component.
-                  // If we don't exit GUI we'll get an exception when the editor tries to
-                  // render GUI of the removed component.
-                  bool exitGUI = node.Type == Wire.NodeType.WinchNode;
-
-                  node.Type = newNodeType;
-
-                  if ( exitGUI )
-                    GUIUtility.ExitGUI();
-                }
-
-                GUI.HandleFrame( node.Frame, skin, 4.0f );
-              }
-            }
-          }
-        }
-      }
-
+      //bool toggleAddNodesTool = false;
       //EditorGUILayout.BeginHorizontal();
-      //GUILayout.Label( Utils.GUI.MakeLabel( "Tools:", true ), skin.label );
-      //GUILayout.FlexibleSpace();
-      //Utils.GUI.EnumButtonList<ToolMode>(
-      //    e => 
-      //    {
-      //      if ( e == Mode )
-      //        Mode = ToolMode.None;
-      //      else
-      //        Mode = e;
-      //    },
-      //    e => { return e != ToolMode.None; },
-      //    e => { return Utils.GUI.ConditionalCreateSelectedStyle( e == Mode, skin.button ); },
-      //    new GUILayoutOption[] { GUILayout.Height( 16.0f ) }
-      //  );
+      //{
+      //  GUILayout.Label( GUI.MakeLabel( "Tools:", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
+      //  toggleAddNodesTool = GUILayout.Button( GUI.MakeLabel( addNodesToolSymbol.ToString(), false, "Add nodes to route" ),
+      //                                         GUI.ConditionalCreateSelectedStyle( AddNodesToRouteTool, toolButtonStyle ),
+      //                                         new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+      //}
       //EditorGUILayout.EndHorizontal();
 
-      //if ( GUI.Prefs.SetBool( Wire.Route, EditorGUILayout.Foldout( GUI.Prefs.GetOrCreateBool( Wire.Route, true ), GUI.MakeLabel( "Route" ) ) ) ) {
-      //  Action newElementSeparator = () =>
-      //  {
-      //    EditorGUILayout.BeginHorizontal();
-      //    GUILayout.Space( 12 );
-      //    GUI.Separator();
-      //    EditorGUILayout.EndHorizontal();
-      //  };
-
-      //  // TODO: Highlight nodes that are wrong!
-
-      //  if ( Wire.Route.NumNodes == 0 )
-      //    GUILayout.Label( GUI.MakeLabel( "Empty", true ), skin.label );
-      //  else {
-      //    // TODO: Optimize GUI, avoid GUILayout.
-      //    foreach ( WireRouteNode node in Wire.Route.ToList() ) {
-      //      newElementSeparator();
-
-      //      Undo.RecordObject( node, "RouteNode" );
-
-      //      EditorGUILayout.BeginHorizontal();
-      //      GUILayout.Space( 18 );
-      //      Tools.WireRouteNodeTool rnTool = Tools.WireRouteNodeTool.GetRouteNodeTool( node );
-      //      if ( rnTool != null && rnTool.Selected )
-      //        EditorGUILayout.BeginVertical( GUI.FadeNormalBackground( skin.label, 0.25f ) );
-      //      else
-      //        EditorGUILayout.BeginVertical();
-
-      //      Wire.NodeType newNodeType = (Wire.NodeType)EditorGUILayout.EnumPopup( GUI.MakeLabel( "Type" ), node.Type, skin.button );
-      //      if ( newNodeType != node.Type ) {
-      //        // Changing FROM winch and the wire will destroy the WireWinch component.
-      //        // If we don't exit GUI we'll get an exception when the editor tries to
-      //        // render GUI of the removed component.
-      //        bool exitGUI = node.Type == Wire.NodeType.WinchNode;
-
-      //        node.Type = newNodeType;
-
-      //        if ( exitGUI )
-      //          GUIUtility.ExitGUI();
-      //      }
-      //      //GUI.HandleFrameOld( node.Frame,
-      //      //                 skin,
-      //      //                 true,
-      //      //                 4,
-      //      //                 frameTool =>
-      //      //                 {
-      //      //                   if ( frameTool != null && rnTool != null && frameTool.Frame == rnTool.Node.Frame )
-      //      //                     rnTool.Selected = false;
-      //      //                   else if ( rnTool != null )
-      //      //                     rnTool.Selected = true;
-      //      //                 } );
-      //      GUI.HandleFrame( node.Frame,
-      //                       skin,
-      //                       frameTool =>
-      //                       {
-      //                         if ( frameTool != null && rnTool != null && frameTool.Frame == rnTool.Node.Frame ) {
-      //                           rnTool.Selected = false;
-      //                           return null;
-      //                         }
-      //                         else if ( rnTool != null ) {
-      //                           rnTool.Selected = true;
-      //                           return rnTool.GetChild<FrameTool>();
-      //                         }
-      //                         return null;
-      //                       },
-      //                       4.0f );
-      //      EditorGUILayout.EndVertical();
-      //      EditorGUILayout.EndHorizontal();
-
-      //      //EditorGUILayout.BeginHorizontal();
-      //      //GUILayout.Space( 18 );
-      //      //EditorGUILayout.BeginVertical();
-      //      //if ( rnTool != null && rnTool.Selected )
-      //      //  GUI.OnToolInspectorGUI( rnTool, Wire, skin );
-      //      //EditorGUILayout.EndVertical();
-      //      //EditorGUILayout.EndHorizontal();
-
-      //      EditorGUILayout.BeginHorizontal();
-      //      GUILayout.FlexibleSpace();
-      //      if ( node == Wire.Route.First() && GUILayout.Button( "Insert new before", skin.button, GUILayout.ExpandWidth( false ) ) ) {
-      //        WireRouteNode newNode = WireRouteNode.Create( Wire.NodeType.FreeNode );
-      //        newNode.Frame.Position = Vector3.zero;
-      //        newNode.Frame.Rotation = Quaternion.identity;
-      //        Wire.Route.InsertBefore( newNode, node );
-      //      }
-      //      if ( node != Wire.Route.Last() && GUILayout.Button( "Insert new after", skin.button, GUILayout.ExpandWidth( false ) ) ) {
-      //        WireRouteNode newNode = WireRouteNode.Create( Wire.NodeType.FreeNode );
-      //        newNode.Frame.Position = node.Frame.Position;
-      //        newNode.Frame.Rotation = node.Frame.Rotation;
-      //        Wire.Route.InsertAfter( newNode, node );
-      //      }
-      //      if ( GUILayout.Button( "Remove", skin.button, GUILayout.ExpandWidth( false ) ) ) {
-      //        var frameToolOfNodeToRemove = Tools.FrameTool.FindActive( node.Frame );
-      //        if ( frameToolOfNodeToRemove != null )
-      //          frameToolOfNodeToRemove.Remove();
-      //        Wire.Route.Remove( node );
-      //      }
-      //      EditorGUILayout.EndHorizontal();
-      //    }
-
-      //    newElementSeparator();
-      //  }
-
-      //  EditorGUILayout.BeginHorizontal();
-      //  GUILayout.Space( 12 );
-      //  EditorGUILayout.BeginVertical();
-      //  GUILayout.Space( 12 );
-      //  if ( GUILayout.Button( "Add node", skin.button ) ) {
-      //    WireRouteNode newNode = WireRouteNode.Create( Wire.NodeType.FreeNode );
-      //    if ( Wire.Route.NumNodes == 0 ) {
-      //      newNode.Frame.Position = Vector3.zero;
-      //      newNode.Frame.Rotation = Quaternion.identity;
-      //    }
-      //    else {
-      //      newNode.Frame.Position = Wire.Route.Last().Frame.Position;
-      //      newNode.Frame.Rotation = Wire.Route.Last().Frame.Rotation;
-      //    }
-      //    Wire.Route.Add( newNode );
-      //  }
-      //  GUILayout.Space( 12 );
-      //  EditorGUILayout.EndVertical();
-      //  EditorGUILayout.EndHorizontal();
+      //if ( AddNodesToRouteTool ) {
+      //  GetChild<WireRouteTool>().OnInspectorGUI( skin );
       //}
 
       //GUI.Separator();
+
+      using ( new GUI.Indent( 12 ) )
+        RouteGUI( skin );
+
+      GUI.Separator();
     }
 
-    public static void SetWireRouteFoldoutState( Wire wire, bool unfolded )
+    private static GUI.ColorBlock NodeListButtonColor { get { return new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }
+    private void RouteGUI( GUISkin skin )
     {
-      GUI.Prefs.SetBool( wire.Route, unfolded );
+      if ( !GUI.Prefs.SetBool( Wire.Route, EditorGUILayout.Foldout( GUI.Prefs.GetOrCreateBool( Wire.Route, true ), GUI.MakeLabel( "Route" ) ) ) )
+        return;
+
+      GUIStyle toolButtonStyle       = new GUIStyle( skin.button );
+      toolButtonStyle.fontSize       = 16;
+      WireRouteNode insertNodeBefore = null;
+      WireRouteNode insertNodeAfter  = null;
+      WireRouteNode eraseNode        = null;
+      using ( new GUI.Indent( 12 ) ) {
+        foreach ( WireRouteNode node in Wire.Route.ToList() ) {
+          Undo.RecordObject( node, "RouteNode" );
+
+          GUI.Separator3D();
+
+          WireRouteNodeTool rnTool = GetOrCreateNodeTool( node );
+
+          EditorGUILayout.BeginHorizontal();
+          {
+            rnTool.Selected = GUILayout.Button( GUI.MakeLabel( rnTool.Selected ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !rnTool.Selected : rnTool.Selected;
+            GUILayout.Label( GUI.MakeLabel( node.Type.ToString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Frame.Parent ).text ), skin.label, GUILayout.ExpandWidth( true ) );
+            if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
+              rnTool.Selected = !rnTool.Selected;
+              GUIUtility.ExitGUI();
+            }
+
+            using ( NodeListButtonColor ) {
+              if ( rnTool.Selected ) {
+                if ( GUILayout.Button( GUI.MakeLabel( '\u21B0'.ToString(), false, "Add new node before this" ), toolButtonStyle, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  insertNodeBefore = node;
+                if ( GUILayout.Button( GUI.MakeLabel( '\u21B2'.ToString(), false, "Add new node after this" ), toolButtonStyle, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  insertNodeAfter = node;
+                if ( GUILayout.Button( GUI.MakeLabel( 'x'.ToString(), false, "Erase this node" ), toolButtonStyle, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  eraseNode = node;
+              }
+            }
+          }
+          EditorGUILayout.EndHorizontal();
+
+          if ( rnTool.Selected ) {
+            GUI.Separator();
+
+            using ( new GUI.Indent( 12 ) ) {
+              Wire.NodeType newNodeType = (Wire.NodeType)EditorGUILayout.EnumPopup( GUI.MakeLabel( "Type" ), node.Type, skin.button );
+              if ( newNodeType != node.Type ) {
+                // Changing FROM winch and the wire will destroy the WireWinch component.
+                // If we don't exit GUI we'll get an exception when the editor tries to
+                // render GUI of the removed component.
+                bool exitGUI = node.Type == Wire.NodeType.WinchNode;
+
+                node.Type = newNodeType;
+
+                if ( exitGUI )
+                  GUIUtility.ExitGUI();
+              }
+
+              GUI.Separator();
+
+              GUI.HandleFrame( node.Frame, skin, 4.0f );
+            }
+          }
+        }
+
+        if ( Wire.Route.NumNodes > 0 )
+          GUI.Separator3D();
+        else
+          GUILayout.Label( GUI.MakeLabel( "Empty", true ) );
+      }
+
+      EditorGUILayout.BeginHorizontal();
+      {
+        GUILayout.FlexibleSpace();
+        bool addNewNodeToList = false;
+        using ( NodeListButtonColor )
+          addNewNodeToList = GUILayout.Button( GUI.MakeLabel( '\u21B2'.ToString(), false, "Add new node to list" ), toolButtonStyle, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
+
+        if ( addNewNodeToList && Wire.Route.NumNodes > 0 )
+          insertNodeAfter = Wire.Route.Last();
+        else if ( addNewNodeToList )
+          Wire.Route.Add( WireRouteNode.Create( Wire.NodeType.FreeNode ) );
+      }
+      EditorGUILayout.EndHorizontal();
+
+      if ( eraseNode != null )
+        Wire.Route.Remove( eraseNode );
+      else if ( insertNodeAfter != null || insertNodeBefore != null ) {
+        WireRouteNode refNode = insertNodeAfter != null ? insertNodeAfter : insertNodeBefore;
+        WireRouteNode newNode = WireRouteNode.Create( refNode.Type, refNode.Frame.Parent, refNode.Frame.LocalPosition, refNode.Frame.LocalRotation );
+        if ( insertNodeAfter != null )
+          Wire.Route.InsertAfter( newNode, insertNodeAfter );
+        else
+          Wire.Route.InsertBefore( newNode, insertNodeBefore );
+      }
     }
 
     private WireRouteNodeTool GetOrCreateNodeTool( WireRouteNode node )

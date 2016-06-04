@@ -39,8 +39,6 @@ namespace AgXUnityEditor.Tools
 
         if ( m_selected )
           AddChild( new FrameTool( Node.Frame ) { OnChangeDirtyTarget = Node.Wire } );
-
-        EditorUtility.SetDirty( Node.Wire );
       }
     }
 
@@ -64,20 +62,8 @@ namespace AgXUnityEditor.Tools
 
       float radius = 3f * Node.Wire.Radius;
 
-      Visual.Visible = true;
+      Visual.Visible = !EditorApplication.isPlaying;
       Visual.SetTransform( Node.Frame.Position, Node.Frame.Rotation, radius, true, 2f * Node.Wire.Radius, Mathf.Max( 1.5f * Node.Wire.Radius, 0.25f ) );
-    }
-
-    public override void OnInspectorGUI( GUISkin skin )
-    {
-      //EditorGUILayout.BeginHorizontal();
-      //GUILayout.Label( Utils.GUI.MakeLabel( "Tools:", true ), skin.label );
-      //GUILayout.FlexibleSpace();
-      //if ( GUILayout.Button( Utils.GUI.MakeLabel( "Find point on object" ) ) ) {
-      //  RemoveChild( GetChild<FindPointTool>() );
-      //  AddChild( new FindPointTool() { RemoveSelfWhenDone = true, OnNewPointData = OnNewPointData } );
-      //}
-      //EditorGUILayout.EndHorizontal();
     }
 
     private void OnClick( Utils.VisualPrimitive primitive )

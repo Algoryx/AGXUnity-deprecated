@@ -10,6 +10,7 @@ namespace AgXUnity.Rendering
   [ExecuteInEditMode]
   public class WireRenderer : ScriptComponent
   {
+    [HideInInspector]
     [SerializeField]
     private SegmentSpawner m_segmentSpawner = null;
 
