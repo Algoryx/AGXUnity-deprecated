@@ -59,31 +59,26 @@ namespace AgXUnityEditor.Tools
     public override void OnInspectorGUI( GUISkin skin )
     {
       //const char addNodesToolSymbol = '\u260D';
-      //const float toolButtonWidth   = 25.0f;
-      //const float toolButtonHeight  = 25.0f;
-      //GUIStyle toolButtonStyle      = new GUIStyle( skin.button );
-      //toolButtonStyle.fontSize      = 18;
 
-      //bool toggleAddNodesTool = false;
-      //EditorGUILayout.BeginHorizontal();
-      //{
-      //  GUILayout.Label( GUI.MakeLabel( "Tools:", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
-      //  toggleAddNodesTool = GUILayout.Button( GUI.MakeLabel( addNodesToolSymbol.ToString(), false, "Add nodes to route" ),
-      //                                         GUI.ConditionalCreateSelectedStyle( AddNodesToRouteTool, toolButtonStyle ),
-      //                                         new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
-      //}
-      //EditorGUILayout.EndHorizontal();
-
-      //if ( AddNodesToRouteTool ) {
-      //  GetChild<WireRouteTool>().OnInspectorGUI( skin );
-      //}
-
-      //GUI.Separator();
-
-      using ( new GUI.Indent( 12 ) )
-        RouteGUI( skin );
+      if ( !EditorApplication.isPlaying ) {
+        using ( new GUI.Indent( 12 ) )
+          RouteGUI( skin );
+      }
 
       GUI.Separator();
+
+      if ( Wire.BeginWinch != null ) {
+        GUILayout.Label( GUI.MakeLabel( "Begin winch", true ), skin.label );
+        using ( new GUI.Indent( 12 ) )
+          BaseEditor<WireWinch>.Update( Wire.BeginWinch, skin );
+        GUI.Separator();
+      }
+      if ( Wire.EndWinch != null ) {
+        GUILayout.Label( GUI.MakeLabel( "End winch", true ), skin.label );
+        using ( new GUI.Indent( 12 ) )
+          BaseEditor<WireWinch>.Update( Wire.EndWinch, skin );
+        GUI.Separator();
+      }
     }
 
     private static GUI.ColorBlock NodeListButtonColor { get { return new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }

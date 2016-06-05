@@ -83,8 +83,7 @@ namespace AgXUnity
       set
       {
         m_wire = value;
-        if ( m_wire != null )
-          OnNodeType();
+        OnNodeType();
       }
     }
 
@@ -145,9 +144,6 @@ namespace AgXUnity
         if ( m_winch == null )
           throw new AgXUnity.Exception( "No reference to a wire winch component in the winch node." );
 
-        if ( m_winch.WinchNode != this )
-          throw new AgXUnity.Exception( "Winch node mismatch." );
-
         m_winch.GetInitialized<WireWinch>();
 
         Native = m_winch.Native != null ? m_winch.Native.getStopNode() : null;
@@ -177,16 +173,13 @@ namespace AgXUnity
     /// </summary>
     private void OnNodeType()
     {
-      if ( Type == Wire.NodeType.WinchNode ) {
-        if ( Wire != null && m_winch == null )
-          m_winch = Wire.gameObject.AddComponent<WireWinch>();
+      if ( m_winch != null ) {
+        if ( Wire == null || Type != Wire.NodeType.WinchNode )
+          ScriptAsset.DestroyImmediate( m_winch );
       }
-      else {
-        // This will give an exception in editor while doing GUI if the
-        // type is changed during GUI. Add the line "GUIUtility.ExitGUI();"
-        // if the node type is changed from WinchNode to something else.
-        if ( m_winch != null )
-          GameObject.DestroyImmediate( m_winch );
+      else if ( Wire != null && Type == Wire.NodeType.WinchNode ) {
+        m_winch = WireWinch.Create<WireWinch>();
+        m_winch.Wire = Wire;
       }
     }
   }

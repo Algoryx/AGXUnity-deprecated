@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using AgXUnity.Utils;
+﻿using System.Linq;
 using UnityEngine;
 
 namespace AgXUnity
@@ -164,10 +163,27 @@ namespace AgXUnity
       get { return m_route; }
       set
       {
-        m_route = value;
-        if ( m_route != null )
-          m_route.Wire = this;
+        m_route = value ?? new WireRoute();
+        m_route.Wire = this;
       }
+    }
+
+    /// <summary>
+    /// Winch at begin of this wire if exists.
+    /// </summary>
+    [HideInInspector]
+    public WireWinch BeginWinch
+    {
+      get { return Route.NumNodes > 0 ? Route.First().Winch : null; }
+    }
+
+    /// <summary>
+    /// Winch at end of this wire if exists.
+    /// </summary>
+    [HideInInspector]
+    public WireWinch EndWinch
+    {
+      get { return Route.NumNodes > 1 ? Route.Last().Winch : null; }
     }
 
     public Wire()
@@ -233,6 +249,14 @@ namespace AgXUnity
       }
 
       return m_native.initialized();
+    }
+
+    protected void LateUpdate()
+    {
+      if ( BeginWinch != null )
+        BeginWinch.OnLateUpdate();
+      if ( EndWinch != null )
+        EndWinch.OnLateUpdate();
     }
 
     protected override void OnDestroy()
