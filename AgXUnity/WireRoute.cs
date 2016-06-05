@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
+using AgXUnity.Utils;
 
 namespace AgXUnity
 {
@@ -19,6 +20,68 @@ namespace AgXUnity
   [System.Serializable]
   public class WireRoute : IEnumerable<WireRouteNode>
   {
+    public class ValidatedNode
+    {
+      public WireRouteNode Node = null;
+      public bool Valid         = true;
+      public string ErrorString = string.Empty;
+    }
+
+    public class ValidatedRoute : IEnumerable<ValidatedNode>
+    {
+      public bool Valid                = true;
+      public string ErrorString        = string.Empty;
+      public List<ValidatedNode> Nodes = new List<ValidatedNode>();
+
+      public IEnumerator<ValidatedNode> GetEnumerator()
+      {
+        return Nodes.GetEnumerator();
+      }
+
+      System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+      {
+        return GetEnumerator();
+      }
+    }
+
+    public ValidatedRoute GetValidated()
+    {
+      ValidatedRoute validatedRoute = new ValidatedRoute();
+      // Less than thee nodes is always valid from the nodes point of view.
+      if ( m_nodes.Count < 3 ) {
+        for ( int i = 0; i < NumNodes; ++i )
+          validatedRoute.Nodes.Add( new ValidatedNode() { Node = m_nodes[ i ], Valid = true } );
+      }
+      // More than two nodes. Intermediate nodes may not be body fixed, connecting or winch.
+      else {
+        validatedRoute.Nodes.Add( new ValidatedNode() { Node = m_nodes[ 0 ], Valid = true } );
+        for ( int i = 1; i < NumNodes - 1; ++i ) {
+          WireRouteNode node = m_nodes[ i ];
+          string errorString = node.Type == Wire.NodeType.BodyFixedNode ||
+                               node.Type == Wire.NodeType.ConnectingNode ||
+                               node.Type == Wire.NodeType.WinchNode ?
+                                 node.Type.ToString().SplitCamelCase() + " can only be at the begin or at the end of a wire." :
+                               string.Empty;
+          validatedRoute.Nodes.Add( new ValidatedNode() { Node = node, Valid = ( errorString == string.Empty ), ErrorString = errorString } );
+        }
+        validatedRoute.Nodes.Add( new ValidatedNode() { Node = m_nodes[ NumNodes - 1 ], Valid = true } );
+      }
+
+      if ( m_nodes.Count < 2 ) {
+        validatedRoute.Valid = false;
+        validatedRoute.ErrorString = "Route has to contain at least two or more nodes.";
+      }
+      else {
+        bool nodesValid = true;
+        foreach ( var validatedNode in validatedRoute.Nodes )
+          nodesValid &= validatedNode.Valid;
+        validatedRoute.Valid = nodesValid;
+        validatedRoute.ErrorString = "One or more nodes are wrong.";
+      }
+
+      return validatedRoute;
+    }
+
     /// <summary>
     /// List of route nodes.
     /// </summary>

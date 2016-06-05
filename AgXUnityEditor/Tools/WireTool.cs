@@ -87,28 +87,36 @@ namespace AgXUnityEditor.Tools
     }
 
     private static GUI.ColorBlock NodeListButtonColor { get { return new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }
+
     private void RouteGUI( GUISkin skin )
     {
       if ( !GUI.Prefs.SetBool( Wire.Route, EditorGUILayout.Foldout( GUI.Prefs.GetOrCreateBool( Wire.Route, true ), GUI.MakeLabel( "Route" ) ) ) )
         return;
 
-      GUIStyle toolButtonStyle       = new GUIStyle( skin.button );
-      toolButtonStyle.fontSize       = 16;
-      WireRouteNode insertNodeBefore = null;
-      WireRouteNode insertNodeAfter  = null;
-      WireRouteNode eraseNode        = null;
+      GUIStyle invalidNodeStyle               = new GUIStyle( skin.label );
+      invalidNodeStyle.normal.background      = GUI.CreateColoredTexture( 4, 4, Color.Lerp( UnityEngine.GUI.color, Color.red, 0.75f ) );
+      GUIStyle toolButtonStyle                = new GUIStyle( skin.button );
+      toolButtonStyle.fontSize                = 16;
+      WireRouteNode insertNodeBefore          = null;
+      WireRouteNode insertNodeAfter           = null;
+      WireRouteNode eraseNode                 = null;
+      WireRoute.ValidatedRoute validatedRoute = Wire.Route.GetValidated();
       using ( new GUI.Indent( 12 ) ) {
-        foreach ( WireRouteNode node in Wire.Route.ToList() ) {
+        foreach ( WireRoute.ValidatedNode validatedNode in validatedRoute ) {
+          WireRouteNode node = validatedNode.Node;
           Undo.RecordObject( node, "RouteNode" );
 
           GUI.Separator3D();
 
           WireRouteNodeTool rnTool = GetOrCreateNodeTool( node );
 
-          EditorGUILayout.BeginHorizontal();
+          if ( validatedNode.Valid )
+            EditorGUILayout.BeginHorizontal();
+          else
+            EditorGUILayout.BeginHorizontal( invalidNodeStyle );
           {
             rnTool.Selected = GUILayout.Button( GUI.MakeLabel( rnTool.Selected ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !rnTool.Selected : rnTool.Selected;
-            GUILayout.Label( GUI.MakeLabel( node.Type.ToString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Frame.Parent ).text ), skin.label, GUILayout.ExpandWidth( true ) );
+            GUILayout.Label( GUI.MakeLabel( node.Type.ToString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Frame.Parent ).text, false, validatedNode.ErrorString ), skin.label, GUILayout.ExpandWidth( true ) );
             if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
               rnTool.Selected = !rnTool.Selected;
               GUIUtility.ExitGUI();

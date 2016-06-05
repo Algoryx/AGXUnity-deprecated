@@ -76,6 +76,7 @@ namespace AgXUnity
       }
     }
 
+    [HideInInspector]
     public WireRouteNode WinchNode
     {
       get

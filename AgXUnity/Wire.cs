@@ -180,6 +180,16 @@ namespace AgXUnity
       if ( m_route == null )
         return false;
 
+      WireRoute.ValidatedRoute validatedRoute = Route.GetValidated();
+      if ( !validatedRoute.Valid ) {
+        Debug.LogError( validatedRoute.ErrorString, this );
+        for ( int i = 0; i < validatedRoute.Nodes.Count; ++i )
+          if ( !validatedRoute.Nodes[ i ].Valid )
+            Debug.LogError( "[" + i + "]: " + validatedRoute.Nodes[ i ].ErrorString, this );
+
+        return false;
+      }
+
       try {
         m_native = new agxWire.Wire( Radius, ResolutionPerUnitLength );
         Material = m_material != null ? m_material.GetInitialized<ShapeMaterial>() : null;

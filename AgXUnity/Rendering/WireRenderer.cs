@@ -38,7 +38,7 @@ namespace AgXUnity.Rendering
       if ( wire == null )
         return;
 
-      if ( wire.Native == null )
+      if ( !Application.isPlaying && wire.Native == null )
         RenderRoute( wire.Route, wire.Radius );
       else
         Render( wire );
@@ -77,8 +77,10 @@ namespace AgXUnity.Rendering
     private void Render( Wire wire )
     {
       if ( wire.Native == null ) {
-        m_segmentSpawner.Destroy();
-        m_segmentSpawner = null;
+        if ( m_segmentSpawner != null ) {
+          m_segmentSpawner.Destroy();
+          m_segmentSpawner = null;
+        }
         return;
       }
 
