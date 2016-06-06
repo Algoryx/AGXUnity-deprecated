@@ -25,11 +25,9 @@ namespace AgXUnityEditor.Tools
     public override void OnInspectorGUI( GUISkin skin )
     {
       GUILayout.Label( GUI.MakeLabel( "Mass properties", true ), skin.label );
-      using ( new GUI.Indent( 12 ) ) {
+      using ( new GUI.Indent( 12 ) )
         BaseEditor<MassProperties>.Update( RigidBody.MassProperties, skin );
-
-        GUI.Separator();
-      }
+      GUI.Separator();
     }
   }
 }
