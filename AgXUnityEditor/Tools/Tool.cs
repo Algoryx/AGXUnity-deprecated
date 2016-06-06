@@ -165,7 +165,7 @@ namespace AgXUnityEditor.Tools
     /// <returns>Type of tool.</returns>
     public static Type FindToolType( object obj )
     {
-      AgXUnity.CustomTool customToolAttribute = obj.GetType().GetCustomAttributes( typeof( AgXUnity.CustomTool ), false ).FirstOrDefault() as AgXUnity.CustomTool;
+      AgXUnity.CustomTool customToolAttribute = obj.GetType().GetCustomAttributes( typeof( AgXUnity.CustomTool ), true ).FirstOrDefault() as AgXUnity.CustomTool;
       if ( customToolAttribute == null )
         return null;
 
@@ -317,11 +317,24 @@ namespace AgXUnityEditor.Tools
       return null;
     }
 
+    /// <summary>
+    /// Call from Manager when it's time to update active tool scene view GUI.
+    /// </summary>
+    /// <param name="sceneView">Current scene view.</param>
+    public static void HandleOnSceneViewGUI( SceneView sceneView )
+    {
+      if ( m_active == null )
+        return;
+
+      m_active.HandleOnSceneView( sceneView );
+    }
+
     private static Tool m_active  = null;
     private List<Tool> m_children = new List<Tool>();
     private Tool m_parent         = null;
 
     private Dictionary<string, Utils.VisualPrimitive> m_visualPrimitives = new Dictionary<string, Utils.VisualPrimitive>();
+    private Dictionary<string, Utils.KeyHandler> m_keyHandlers = new Dictionary<string, Utils.KeyHandler>();
 
     public Tool()
     {
@@ -429,24 +442,74 @@ namespace AgXUnityEditor.Tools
       RemoveVisualPrimitive( m_visualPrimitives.First( kvp => kvp.Value == primitive ).Key );
     }
 
-    protected void OnSceneViewGUIChildren( SceneView sceneView )
+    protected void AddKeyHandler( string name, Utils.KeyHandler keyHandler )
     {
-      // An extra ToList here (i.e., copy of the original) to handle
-      // add /remove of children during this update.
+      if ( m_keyHandlers.ContainsKey( name ) ) {
+        Debug.Log( "Trying to add KeyHandler with non-unique name: " + name + ". KeyHandler ignored." );
+        return;
+      }
+
+      m_keyHandlers.Add( name, keyHandler );
+    }
+
+    protected void RemoveKeyHandler( string name )
+    {
+      RemoveKeyHandler( GetKeyHandler( name ) );
+    }
+
+    protected void RemoveKeyHandler( Utils.KeyHandler keyHandler )
+    {
+      if ( keyHandler == null || !m_keyHandlers.ContainsValue( keyHandler ) )
+        return;
+
+      keyHandler.OnRemove();
+
+      m_keyHandlers.Remove( m_keyHandlers.First( kvp => kvp.Value == keyHandler ).Key );
+    }
+
+    protected Utils.KeyHandler GetKeyHandler( string name )
+    {
+      Utils.KeyHandler keyHandler = null;
+      if ( m_keyHandlers.TryGetValue( name, out keyHandler ) )
+        return keyHandler;
+      return null;
+    }
+
+    /// <summary>
+    /// Depth first update of children.
+    /// </summary>
+    /// <param name="sceneView">Current scene view.</param>
+    private void HandleOnSceneView( SceneView sceneView )
+    {
       foreach ( var child in m_children.ToList() )
-        child.OnSceneViewGUI( sceneView );
+        child.HandleOnSceneView( sceneView );
+
+      foreach ( var keyHandler in m_keyHandlers.Values )
+        keyHandler.Update( Event.current );
+
+      OnSceneViewGUI( sceneView );
     }
 
-    private class DefaultToolsHiddenState
+    public class HideDefaultState
     {
-      public bool ToolsWasHidden = false;
+      private bool m_toolWasHidden = false;
+
+      public HideDefaultState()
+      {
+        m_toolWasHidden = UnityEditor.Tools.hidden;
+        UnityEditor.Tools.hidden = true;
+      }
+
+      public void OnRemove()
+      {
+        UnityEditor.Tools.hidden = m_toolWasHidden;
+      }
     }
 
-    private DefaultToolsHiddenState m_toolsHiddenState = null;
+    private HideDefaultState m_hideDefaultState = null;
     protected void HideDefaultHandlesEnableWhenRemoved()
     {
-      m_toolsHiddenState = new DefaultToolsHiddenState() { ToolsWasHidden = UnityEditor.Tools.hidden };
-      UnityEditor.Tools.hidden = true;
+      m_hideDefaultState = new HideDefaultState();
     }
 
     private void PerformRemove()
@@ -456,6 +519,11 @@ namespace AgXUnityEditor.Tools
 
       // Remove all windows that hasn't been closed.
       SceneViewWindow.CloseAllWindows( this );
+
+      // Remove all key handlers that hasn't been removed.
+      string[] keyHandlerNames = m_keyHandlers.Keys.ToArray();
+      foreach ( string keyHandlerName in keyHandlerNames )
+        RemoveKeyHandler( keyHandlerName );
 
       // Remove all visual primitives that hasn't been removed.
       string[] visualPrimitiveNames = m_visualPrimitives.Keys.ToArray();
@@ -472,8 +540,8 @@ namespace AgXUnityEditor.Tools
       foreach ( Tool child in children )
         child.PerformRemove();
 
-      if ( m_toolsHiddenState != null )
-        UnityEditor.Tools.hidden = m_toolsHiddenState.ToolsWasHidden;
+      if ( m_hideDefaultState != null )
+        m_hideDefaultState.OnRemove();
     }
   }
 }

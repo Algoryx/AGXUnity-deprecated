@@ -1,47 +1,44 @@
-﻿using System.ComponentModel;
-using AgXUnity.Utils;
+﻿using AgXUnity.Utils;
 using AgXUnity.Collide;
 using UnityEngine;
 
 namespace AgXUnity
 {
   /// <summary>
-  /// Components tailor made for the RigidBody class should inherit
-  /// from this base class, receiving synchronize callbacks when
-  /// needed.
-  /// </summary>
-  public abstract class RigidBodyComponent : ScriptComponent
-  {
-    /// <returns>Native instance if initialized - otherwise null.</returns>
-    protected agx.RigidBody GetNative()
-    {
-      RigidBody rb = gameObject.GetComponent<RigidBody>();
-      return rb != null ? rb.Native : null;
-    }
-  }
-
-  /// <summary>
   /// Rigid body object. Dynamic, kinematic or static, carrying mass and
   /// inertia. Possible to constrain and contains in general shapes.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Rigid Body" )]
-  [RequireComponent( typeof( MassProperties ) )]
+  [CustomTool( "AgXUnityEditor.Tools.RigidBodyTool" )]
   [DisallowMultipleComponent]
   public class RigidBody : ScriptComponent
   {
-    /// <summary>
-    /// Method name, for the shapes added to this body, to use when
-    /// e.g., their size has changed, affecting the mass and inertia.
-    /// </summary>
-    [HideInInspector]
-    public static string UpdateMassMethodName = "UpdateMassProperties";
-
     /// <summary>
     /// Native instance.
     /// </summary>
     private agx.RigidBody m_rb = null;
 
     #region Public Serialized Properties
+    [SerializeField]
+    private MassProperties m_massProperties = null;
+
+    /// <summary>
+    /// Mass properties of this rigid body.
+    /// </summary>
+    [HideInInspector]
+    public MassProperties MassProperties
+    {
+      get
+      {
+        if ( m_massProperties == null ) {
+          m_massProperties = MassProperties.Create<MassProperties>();
+          m_massProperties.RigidBody = this;
+        }
+
+        return m_massProperties;
+      }
+    }
+
     /// <summary>
     /// Motion control of this rigid body, paired with property MotionControl.
     /// </summary>
@@ -51,9 +48,9 @@ namespace AgXUnity
     /// <summary>
     /// Get or set motion control of this rigid body.
     /// </summary>
-    [Description("Change motion control:\n  - STATIC: Not moving, velocity and angular velocity ignored\n" +
-                                         "  - KINEMATICS: Infinitely heavy, controlled with velocity and angular velocity\n" +
-                                         "  - DYNAMICS: Moved given dynamics")]
+    [System.ComponentModel.Description( "Change motion control:\n  - STATIC: Not moving, velocity and angular velocity ignored\n" +
+                                        "  - KINEMATICS: Infinitely heavy, controlled with velocity and angular velocity\n" +
+                                        "  - DYNAMICS: Moved given dynamics" )]
     public agx.RigidBody.MotionControl MotionControl
     {
       get { return m_motionControl; }
@@ -193,58 +190,14 @@ namespace AgXUnity
     }
     #endregion
 
-    private void UpdateMassPropertiesAAAA( Shape sender )
-    {
-      // Not sure if possible to perform incremental update. For
-      // now we'll ignore the sender.
-
-      // If we don't have a mass properties component, we don't
-      // have to perform this action. (Calculated or native
-      // interface used.)
-      MassProperties massProperties = GetComponent<MassProperties>();
-      if ( massProperties == null )
-        return;
-
-      Shape[] shapes = GetComponentsInChildren<Shape>();
-      if ( shapes.Length == 0 )
-        return;
-
-      // Fill temporary rigid body with geometries to calculate
-      // mass and inertia.
-      using ( agx.RigidBody rb = new agx.RigidBody() ) {
-        foreach ( Shape shape in shapes ) {
-          agxCollide.Shape nativeShape = shape.CreateTemporaryNative();
-          if ( nativeShape != null ) {
-            agxCollide.Geometry geometry = new agxCollide.Geometry( nativeShape );
-            if ( shape.Material != null )
-              geometry.setMaterial( shape.Material.CreateTemporaryNative() );
-            rb.add( geometry, shape.GetNativeRigidBodyOffset( this ) );
-          }
-        }
-
-        massProperties.SetDefaultCalculated( rb );
-
-        while ( rb.getGeometries().Count > 0 ) {
-          agxCollide.Geometry geometry = rb.getGeometries()[ 0 ].get();
-          if ( geometry.getShapes().Count > 0 )
-            geometry.remove( geometry.getShapes()[ 0 ].get() );
-          rb.remove( geometry );
-        }
-      }
-    }
-
     #region Public Methods
     public void UpdateMassProperties()
     {
-      MassProperties massProperties = GetComponent<MassProperties>();
-      if ( massProperties == null )
-        return;
-
       // If we have a native instance we can assume the geometries to be
       // synchronized (added, correct position etc).
       if ( m_rb != null ) {
         m_rb.updateMassProperties();
-        massProperties.SetDefaultCalculated( m_rb );
+        MassProperties.SetDefaultCalculated( m_rb );
       }
       // The native instance hasn't been created yet - create temporary
       // body with temporary geometries/shapes.
@@ -262,7 +215,7 @@ namespace AgXUnity
             }
           }
 
-          massProperties.SetDefaultCalculated( rb );
+          MassProperties.SetDefaultCalculated( rb );
 
           // Hitting "Update" (mass or inertia in the Inspector) several times
           // will crash agx if we don't remove the geometries and shapes.

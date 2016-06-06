@@ -51,7 +51,9 @@
     <Compile Include="Tools\EdgeDetectionTool.cs" />
     <Compile Include="Tools\FindPointTool.cs" />
     <Compile Include="Tools\FrameTool.cs" />
+    <Compile Include="Tools\RigidBodyTool.cs" />
     <Compile Include="Tools\SelectGameObjectDropdownMenuTool.cs" />
+    <Compile Include="Tools\ShapeTool.cs" />
     <Compile Include="Tools\WireRouteNodeTool.cs" />
     <Compile Include="Tools\SelectGameObjectTool.cs" />
     <Compile Include="Tools\ShapeResizeTool.cs" />

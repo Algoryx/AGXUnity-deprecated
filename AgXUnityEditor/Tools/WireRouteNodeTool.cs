@@ -58,10 +58,7 @@ namespace AgXUnityEditor.Tools
         return;
       }
 
-      OnSceneViewGUIChildren( sceneView );
-
       float radius = 3f * Node.Wire.Radius;
-
       Visual.Visible = !EditorApplication.isPlaying;
       Visual.SetTransform( Node.Frame.Position, Node.Frame.Rotation, radius, true, 2f * Node.Wire.Radius, Mathf.Max( 1.5f * Node.Wire.Radius, 0.25f ) );
     }

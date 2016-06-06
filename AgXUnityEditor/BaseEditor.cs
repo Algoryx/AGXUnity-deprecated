@@ -283,7 +283,8 @@ namespace AgXUnityEditor
 
         float newValue = Utils.GUI.HandleDefaultAndUserValue( wrapper.Member.Name, valInField, CurrentSkin );
         if ( wrapper.IsValid( newValue ) ) {
-          valInField.Value = newValue;
+          if ( !valInField.UseDefault )
+            valInField.Value = newValue;
           value = valInField;
         }
       }
@@ -292,7 +293,8 @@ namespace AgXUnityEditor
 
         Vector3 newValue = Utils.GUI.HandleDefaultAndUserValue( wrapper.Member.Name, valInField, CurrentSkin );
         if ( wrapper.IsValid( newValue ) ) {
-          valInField.Value = newValue;
+          if ( !valInField.UseDefault )
+            valInField.Value = newValue;
           value = valInField;
         }
       }
@@ -325,74 +327,8 @@ namespace AgXUnityEditor
         HandleList( wrapper, target );
       }
       else if ( type == typeof( Frame ) && wrapper.CanRead() ) {
-        //frameTool =>
-        //{
-        //  if ( frameTool != null && frameTool.Frame == frame ) {
-        //    frameTool.Remove();
-        //    return null;
-        //  }
-        //  else
-        //    return Tools.Tool.ActivateTool<Tools.FrameTool>( new Tools.FrameTool( frame ) );
-        //}
-
         Frame frame = wrapper.Get<Frame>();
         Utils.GUI.HandleFrame( frame, CurrentSkin );
-      }
-      else if ( type == typeof( ConstraintAttachmentPair ) && wrapper.CanRead() ) {
-        // TODO: Remove code.
-        //var attachmentPair       = wrapper.Get<ConstraintAttachmentPair>();
-        //var f1                   = attachmentPair.ReferenceFrame;
-        //var f2                   = attachmentPair.ConnectedFrame;
-        //var activeAttachmentTool = Tools.Tool.GetActiveTool<Tools.ConstraintAttachmentPairTool>();
-
-        //Utils.GUI.Separator();
-
-        //EditorGUILayout.BeginHorizontal();
-        //GUILayout.Label( Utils.GUI.MakeLabel( "Tools" ), CurrentSkin.label );
-        //Utils.GUI.EnumButtonList<Tools.ConstraintAttachmentPairTool.ToolMode>(
-        //    e =>
-        //    {
-        //      if ( activeAttachmentTool == null || activeAttachmentTool.AttachmentPair != attachmentPair || activeAttachmentTool.Mode != e )
-        //        activeAttachmentTool = Tools.Tool.ActivateTool<Tools.ConstraintAttachmentPairTool>( new Tools.ConstraintAttachmentPairTool( attachmentPair, e ) );
-        //      else if ( activeAttachmentTool != null && activeAttachmentTool.Mode == e )
-        //        activeAttachmentTool = Tools.Tool.ActivateTool<Tools.ConstraintAttachmentPairTool>( null );
-        //    },
-        //    null,
-        //    e =>
-        //    {
-        //      return Utils.GUI.ConditionalCreateSelectedStyle( activeAttachmentTool != null &&
-        //                                                             activeAttachmentTool.AttachmentPair == attachmentPair &&
-        //                                                             activeAttachmentTool.Mode == e,
-        //                                                             CurrentSkin.button );
-        //    },
-        //    new GUILayoutOption[] { GUILayout.Height( 16.0f ) }
-        //  );
-        //EditorGUILayout.EndHorizontal();
-
-        //Utils.GUI.OnToolInspectorGUI( activeAttachmentTool, target, CurrentSkin );
-
-        //GUILayout.Label( Utils.GUI.MakeLabel( "Attachment frames:" ), CurrentSkin.label );
-
-        //GUILayout.Label( Utils.GUI.MakeLabel( "  Reference:", true ), CurrentSkin.label );
-        //attachmentPair.ReferenceObject = (GameObject)EditorGUILayout.ObjectField( Utils.GUI.MakeLabel( "    Object" ), attachmentPair.ReferenceObject, typeof( GameObject ), true );
-
-        //Utils.GUI.HandleFrame( f1, CurrentSkin, false, 18 );
-
-        //GUILayout.Label( Utils.GUI.MakeLabel( "  Connected:", true ), CurrentSkin.label );
-        //attachmentPair.ConnectedObject = (GameObject)EditorGUILayout.ObjectField( Utils.GUI.MakeLabel( "    Object" ), attachmentPair.ConnectedObject, typeof( GameObject ), true );
-
-        //EditorGUILayout.BeginHorizontal();
-        //GUILayout.Space( 18 );
-        //attachmentPair.Synchronized = GUILayout.Toggle( attachmentPair.Synchronized, Utils.GUI.MakeLabel( "Synchronized with reference" ), CurrentSkin.toggle );
-        //EditorGUILayout.EndHorizontal();
-
-        //// Remove frame tool if connected frame has one but the frames are synchronized.
-        //if ( attachmentPair.Synchronized && Tools.Tool.GetActiveTool<Tools.FrameTool>() != null && Tools.Tool.GetActiveTool<Tools.FrameTool>().Frame == attachmentPair.ConnectedFrame )
-        //  Tools.Tool.RemoveActiveTool();
-
-        //GUI.enabled = !attachmentPair.Synchronized;
-        //Utils.GUI.HandleFrame( f2, CurrentSkin, false, 18 );
-        //GUI.enabled = true;
       }
       else if ( ( type.BaseType == typeof( ScriptAsset ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
         bool allowSceneObject = type == typeof( GameObject ) ||

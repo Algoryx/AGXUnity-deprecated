@@ -52,8 +52,6 @@ namespace AgXUnityEditor.Tools
           AddChild( nodeTool );
         }
       }
-
-      OnSceneViewGUIChildren( sceneView );
     }
 
     public override void OnInspectorGUI( GUISkin skin )

@@ -37,11 +37,6 @@ namespace AgXUnityEditor.Tools
       ReferenceFrameTool = ConnectedFrameTool = null;
     }
 
-    public override void OnSceneViewGUI( SceneView sceneView )
-    {
-      OnSceneViewGUIChildren( sceneView );
-    }
-
     public override void OnInspectorGUI( GUISkin skin )
     {
       GUI.Separator();

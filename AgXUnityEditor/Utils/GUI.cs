@@ -172,7 +172,8 @@ namespace AgXUnityEditor.Utils
 
     public static ValueT HandleDefaultAndUserValue<ValueT>( string name, DefaultAndUserValue<ValueT> valInField, GUISkin skin ) where ValueT : struct
     {
-      ValueT newValue;
+      bool guiWasEnabled       = UnityEngine.GUI.enabled;
+      ValueT newValue          = default( ValueT );
       MethodInfo floatMethod   = typeof( EditorGUILayout ).GetMethod( "FloatField", new[] { typeof( string ), typeof( float ), typeof( GUILayoutOption[] ) } );
       MethodInfo vector3Method = typeof( EditorGUILayout ).GetMethod( "Vector3Field", new[] { typeof( string ), typeof( Vector3 ), typeof( GUILayoutOption[] ) } );
       MethodInfo method        = typeof( ValueT ) == typeof( float ) ?
@@ -183,38 +184,54 @@ namespace AgXUnityEditor.Utils
       if ( method == null )
         throw new NullReferenceException( "Unknown DefaultAndUserValue type: " + typeof( ValueT ).Name );
 
+      bool useDefaultToggled = false;
+      bool updateDefaultValue = false;
+      EditorGUILayout.BeginHorizontal();
       {
-        EditorGUILayout.BeginHorizontal();
-        {
-          var textDim = skin.label.CalcSize( new GUIContent( name.SplitCamelCase() ) );
-          GUILayout.Label( name.SplitCamelCase(), skin.label, GUILayout.MaxWidth( textDim.x ) );
-          if ( GUILayout.Button( MakeLabel( "Default" ), ConditionalCreateSelectedStyle( valInField.UseDefault, skin.button ) ) )
-            valInField.UseDefault = true;
-          if ( GUILayout.Button( MakeLabel( "User specified" ), ConditionalCreateSelectedStyle( !valInField.UseDefault, skin.button ) ) )
-            valInField.UseDefault = false;
-        }
-        EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.BeginHorizontal();
-        {
-          EditorGUI.BeginDisabledGroup( valInField.UseDefault );
-          {
-            newValue = (ValueT)method.Invoke( null, new object[] { "", valInField.Value, new GUILayoutOption[] { } } );
-          }
-          EditorGUI.EndDisabledGroup();
-        }
-
-        if ( GUILayout.Button( MakeLabel( "Update" ), skin.button ) )
-          valInField.FireOnForcedUpdate();
-
-        EditorGUILayout.EndHorizontal();
+        useDefaultToggled = GUILayout.Button( MakeLabel( '\u2714'.ToString(), false, "If checked - value will be default. Uncheck to manually enter value." ), ConditionalCreateSelectedStyle( valInField.UseDefault, skin.button ), GUILayout.Width( 22 ) );
+        GUILayout.Label( MakeLabel( name.SplitCamelCase() ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.MaxWidth( 120 ) } );
+        UnityEngine.GUI.enabled = !valInField.UseDefault;
+        GUILayout.FlexibleSpace();
+        newValue = (ValueT)method.Invoke( null, new object[] { "", valInField.Value, new GUILayoutOption[] { } } );
+        UnityEngine.GUI.enabled = valInField.UseDefault;
+        updateDefaultValue = GUILayout.Button( MakeLabel( "Update", false, "Update default value" ), skin.button, GUILayout.Width( 52 ) );
+        UnityEngine.GUI.enabled = guiWasEnabled;
       }
-      Separator();
+      EditorGUILayout.EndHorizontal();
+
+      if ( useDefaultToggled ) {
+        valInField.UseDefault = !valInField.UseDefault;
+        updateDefaultValue    = valInField.UseDefault;
+
+        // We don't want the default value to be written to
+        // the user specified.
+        if ( !valInField.UseDefault )
+          newValue = valInField.UserValue;
+      }
+
+      if ( updateDefaultValue )
+        valInField.FireOnForcedUpdate();
 
       return newValue;
     }
 
-    public static ColorBlock ToolButtonColor { get { return new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.yellow, 0.1f ) ); } }
+    public class ToolButtonData
+    {
+      public static float Width  = 25f;
+      public static float Height = 25f;
+      public static GUIStyle Style( GUISkin skin, int fontSize = 18 )
+      {
+        GUIStyle style = new GUIStyle( skin.button );
+        style.fontSize = fontSize;
+        return style;
+      }
+      public static ColorBlock ColorBlock { get { return new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.yellow, 0.1f ) ); } }
+    }
+
+    public static void ToolsLabel( GUISkin skin )
+    {
+      GUILayout.Label( GUI.MakeLabel( "Tools:", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
+    }
 
     public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )
     {

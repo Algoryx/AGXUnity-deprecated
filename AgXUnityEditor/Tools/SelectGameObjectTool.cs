@@ -26,8 +26,6 @@ namespace AgXUnityEditor.Tools
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      OnSceneViewGUIChildren( sceneView );
-
       if ( MenuTool == null ) {
         PerformRemoveFromParent();
         return;

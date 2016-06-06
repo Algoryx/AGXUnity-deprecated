@@ -142,6 +142,8 @@ namespace AgXUnity
 
     [SerializeField]
     private ConstraintAttachmentPair m_attachmentPair = null;
+
+    [HideInInspector]
     public ConstraintAttachmentPair AttachmentPair { get { return m_attachmentPair; } }
 
     protected override bool Initialize()

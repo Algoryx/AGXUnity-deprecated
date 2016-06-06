@@ -159,8 +159,6 @@ namespace AgXUnityEditor.Tools
       if ( Frame == null )
         return;
 
-      OnSceneViewGUIChildren( sceneView );
-
       if ( GetParent() == null && Manager.KeyEscapeDown ) {
         PerformRemoveFromParent();
         return;
@@ -202,10 +200,6 @@ namespace AgXUnityEditor.Tools
       const char selectPointSymbol       = '\u22A1';
       const char selectEdgeSymbol        = '\u2196';
       const char positionHandleSymbol    = 'L';
-      const float toolButtonWidth        = 25.0f;
-      const float toolButtonHeight       = 25.0f;
-      GUIStyle toolButtonStyle           = new GUIStyle( skin.button );
-      toolButtonStyle.fontSize           = 18;
 
       bool toggleSelectParent   = false;
       bool toggleFindGivenPoint = false;
@@ -215,23 +209,23 @@ namespace AgXUnityEditor.Tools
       EditorGUILayout.BeginHorizontal();
       {
         UnityEngine.GUI.enabled = true;
-        GUILayout.Label( GUI.MakeLabel( "Tools:", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
+        GUI.ToolsLabel( skin );
 
-        using ( GUI.ToolButtonColor ) {
+        using ( GUI.ToolButtonData.ColorBlock ) {
           toggleSelectParent = GUILayout.Button( GUI.MakeLabel( selectInSceneViewSymbol.ToString(), false, "Select parent object in scene view" ),
-                                                 GUI.ConditionalCreateSelectedStyle( SelectParent, toolButtonStyle ),
-                                                 new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+                                                 GUI.ConditionalCreateSelectedStyle( SelectParent, GUI.ToolButtonData.Style( skin ) ),
+                                                 new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
           UnityEngine.GUI.enabled = guiWasEnabled;
 
           toggleFindGivenPoint = GUILayout.Button( GUI.MakeLabel( selectPointSymbol.ToString(), false, "Find position and direction given surface" ),
-                                                   GUI.ConditionalCreateSelectedStyle( FindTransformGivenPointOnSurface, toolButtonStyle ),
-                                                   new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+                                                   GUI.ConditionalCreateSelectedStyle( FindTransformGivenPointOnSurface, GUI.ToolButtonData.Style( skin ) ),
+                                                   new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
           toggleSelectEdge = GUILayout.Button( GUI.MakeLabel( selectEdgeSymbol.ToString(), false, "Find position and direction given edge" ),
-                                               GUI.ConditionalCreateSelectedStyle( FindTransformGivenEdge, toolButtonStyle ),
-                                                new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+                                               GUI.ConditionalCreateSelectedStyle( FindTransformGivenEdge, GUI.ToolButtonData.Style( skin ) ),
+                                                new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
           togglePositionHandle = GUILayout.Button( GUI.MakeLabel( positionHandleSymbol.ToString(), false, "Position/rotation handle" ),
-                                                   GUI.ConditionalCreateSelectedStyle( TransformHandleActive, toolButtonStyle ),
-                                                   new GUILayoutOption[] { GUILayout.Width( toolButtonWidth ), GUILayout.Height( toolButtonHeight ) } );
+                                                   GUI.ConditionalCreateSelectedStyle( TransformHandleActive, GUI.ToolButtonData.Style( skin ) ),
+                                                   new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
         }              
       }
       EditorGUILayout.EndHorizontal();

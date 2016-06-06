@@ -49,8 +49,6 @@ namespace AgXUnityEditor.Tools
         m_currentData.Triangle = Raycast.Test( m_currentData.Target, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).Triangle;
       }
 
-      OnSceneViewGUIChildren( sceneView );
-
       PointVisual.Visible = m_currentData != null && m_currentData.Triangle.Valid;
       if ( PointVisual.Visible ) {
         PointVisual.SetTransform( m_currentData.Triangle.Point, Quaternion.identity, 0.05f );

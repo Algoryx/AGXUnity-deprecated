@@ -44,8 +44,6 @@ namespace AgXUnityEditor.Tools
         m_currentData.EdgeData = Raycast.Test( m_currentData.Target, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).ClosestEdge;
       }
 
-      OnSceneViewGUIChildren( sceneView );
-
       EdgeVisual.Visible = m_currentData != null && m_currentData.EdgeData.Valid;
       if ( EdgeVisual.Visible ) {
         const float edgeRadius     = 0.035f;
