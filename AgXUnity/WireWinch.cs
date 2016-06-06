@@ -8,10 +8,19 @@ using UnityEngine;
 namespace AgXUnity
 {
   [AddComponentMenu( "" )]
-  public class WireWinch : ScriptComponent
+  public class WireWinch : ScriptAsset
   {
     [HideInInspector]
     public agxWire.WireWinchController Native { get; private set; }
+
+    [SerializeField]
+    private Wire m_wire = null;
+    [HideInInspector]
+    public Wire Wire
+    {
+      get { return m_wire; }
+      set { m_wire = value; }
+    }
 
     [SerializeField]
     private float m_speed = 0.0f;
@@ -76,52 +85,41 @@ namespace AgXUnity
       }
     }
 
-    [SerializeField]
-    private Vector3 m_localPosition = Vector3.zero;
-    [HideInInspector]
-    public Vector3 LocalPosition
-    {
-      get { return m_localPosition; }
-      set { m_localPosition = value; }
-    }
-
-    [SerializeField]
-    private Vector3 m_localDirection = Vector3.forward;
-    [HideInInspector]
-    public Vector3 LocalDirection
-    {
-      get { return m_localDirection; }
-      set { m_localDirection = value; }
-    }
-
-    [SerializeField]
-    private GameObject m_parent = null;
-    [HideInInspector]
-    public GameObject Parent
-    {
-      get { return m_parent; }
-      set { m_parent = value; }
-    }
-
     protected override bool Initialize()
     {
-      RigidBody rb = Parent.GetInitializedComponentInParent<RigidBody>();
-      Native = new agxWire.WireWinchController( rb != null ? rb.Native : null, LocalPosition.ToHandedVec3(), LocalDirection.ToHandedVec3() );
+      if ( Wire == null ) {
+        Debug.LogWarning( "Wire not assigned to winch. Winch invalid and ignored.", this );
+        return false;
+      }
 
-      return base.Initialize();
+      WireRouteNode winchNode = Wire.Route.FirstOrDefault( node => node.Winch == this );
+      if ( winchNode == null ) {
+        Debug.LogWarning( "Unable to initialize winch - no winch node assigned.", this );
+        return false;
+      }
+
+      RigidBody rb = winchNode.Frame.Parent != null ? winchNode.Frame.Parent.GetInitializedComponentInParent<RigidBody>() : null;
+      if ( rb == null )
+        Native = new agxWire.WireWinchController( null, winchNode.Frame.Position.ToHandedVec3(), ( winchNode.Frame.Rotation * Vector3.forward ).ToHandedVec3(), PulledInLength );
+      else
+        Native = new agxWire.WireWinchController( rb.Native, winchNode.Frame.CalculateLocalPosition( rb.gameObject ).ToHandedVec3(), ( winchNode.Frame.CalculateLocalRotation( rb.gameObject ) * Vector3.forward ).ToHandedVec3() );
+
+      return true;
     }
 
-    protected void LateUpdate()
+    public void OnLateUpdate()
     {
       if ( Native != null )
         m_pulledInLength = Convert.ToSingle( Native.getPulledInWireLength() );
     }
 
-    protected override void OnDestroy()
+    protected override void Construct()
+    {
+    }
+
+    public override void Destroy()
     {
       Native = null;
-
-      base.OnDestroy();
     }
   }
 }

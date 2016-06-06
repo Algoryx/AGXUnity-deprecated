@@ -18,6 +18,7 @@ namespace AgXUnity
   }
 
   [AddComponentMenu( "" )]
+  [CustomTool( "AgXUnityEditor.Tools.ConstraintTool" )]
   public class Constraint : ScriptComponent
   {
     public static Constraint Create( ConstraintType type, GameObject givenGameObject = null )
@@ -107,8 +108,9 @@ namespace AgXUnity
       if ( elements == null )
         return null;
 
-      GameObject constraintGameObject = givenGameObject ?? new GameObject( Factory.CreateName<Constraint>() );
+      GameObject constraintGameObject = givenGameObject ?? new GameObject( Factory.CreateName( "AgXUnity." + type ) );
       Constraint constraint           = constraintGameObject.AddComponent<Constraint>();
+      constraint.m_attachmentPair     = ScriptAsset.Create<ConstraintAttachmentPair>();
       constraint.m_type               = type;
 
       foreach ( var element in elements ) {
@@ -131,12 +133,17 @@ namespace AgXUnity
     public agx.Constraint Native { get { return m_native; } }
 
     [SerializeField]
-    ConstraintType m_type = ConstraintType.Hinge;
+    private ConstraintType m_type = ConstraintType.Hinge;
 
-    public Type NativeType { get { return Type.GetType( "agx." + m_type + ", agxDotNet" ); } }
+    [HideInInspector]
+    public ConstraintType Type { get { return m_type; } }
+
+    public Type NativeType { get { return System.Type.GetType( "agx." + m_type + ", agxDotNet" ); } }
 
     [SerializeField]
-    private ConstraintAttachmentPair m_attachmentPair = new ConstraintAttachmentPair();
+    private ConstraintAttachmentPair m_attachmentPair = null;
+
+    [HideInInspector]
     public ConstraintAttachmentPair AttachmentPair { get { return m_attachmentPair; } }
 
     protected override bool Initialize()
@@ -156,7 +163,6 @@ namespace AgXUnity
 
       agx.Frame f1 = new agx.Frame();
       agx.Frame f2 = new agx.Frame();
-        
       f1.setLocalTranslate( m_attachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
       f1.setLocalRotate( m_attachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -7,11 +8,6 @@ using AgXUnity.Utils;
 
 namespace AgXUnityEditor
 {
-  [CustomEditor( typeof( AgXUnity.ElementaryConstraint ) )]
-  public class ElementaryConstraintEditor : BaseEditor<AgXUnity.ElementaryConstraint>
-  {
-  }
-
   /// <summary>
   /// Manager object, initialized when the Unity editor is loaded, to handle
   /// all tools, behavior related etc. objects while in edit mode.
@@ -19,27 +15,6 @@ namespace AgXUnityEditor
   [InitializeOnLoad]
   public static class Manager
   {
-    /// <summary>
-    /// Tool data to activate tool.
-    /// </summary>
-    public class ToolData
-    {
-      /// <summary>
-      /// Active tool object.
-      /// </summary>
-      public Tools.Tool Tool = null;
-
-      /// <summary>
-      /// Called when the tool is removed by the manager.
-      /// </summary>
-      public Action<object> OnRemoveCallback = null;
-
-      /// <summary>
-      /// Argument to OnRemoveCallback callback.
-      /// </summary>
-      public object Subject = null;
-    }
-
     /// <summary>
     /// The game object mouse is currently over in scene view.
     /// </summary>
@@ -62,10 +37,25 @@ namespace AgXUnityEditor
     public static bool LeftMouseClick { get; private set; }
 
     /// <summary>
+    /// True if the current event is right mouse down.
+    /// </summary>
+    public static bool RightMouseClick { get; private set; }
+
+    /// <summary>
+    /// True if the right mouse button is pressed (and hold).
+    /// </summary>
+    public static bool RightMouseDown { get; private set; }
+
+    /// <summary>
     /// True if keyboard escape key is down.
     /// </summary>
     public static bool KeyEscapeDown { get; private set; }
 
+    /// <summary>
+    /// True if mouse + key combo is assumed to be a camera control move.
+    /// </summary>
+    public static bool IsCameraControl { get; private set; }
+    
     /// <summary>
     /// Constructor called when the Unity editor is initialized.
     /// </summary>
@@ -73,7 +63,8 @@ namespace AgXUnityEditor
     {
       // TODO: Check if custom editors are present and up to date?
 
-      SceneView.onSceneGUIDelegate += OnSceneView;
+      SceneView.onSceneGUIDelegate             += OnSceneView;
+      EditorApplication.hierarchyWindowChanged += OnHierarchyWindowChanged;
 
       m_visualsParent = GameObject.Find( m_visualParentName );
 
@@ -83,6 +74,19 @@ namespace AgXUnityEditor
       MouseOverObjectIncludingHidden = null;
       MouseOverObject                = null;
     }
+
+    /// <summary>
+    /// Data that tracks certain events when we're hijacking left mouse button.
+    /// </summary>
+    private class HijackLeftMouseClickData
+    {
+      public bool AltPressed { get; set; }
+
+      public HijackLeftMouseClickData()
+      {
+        AltPressed = false;
+      }
+    };
 
     /// <summary>
     /// Hijacks left mouse down from the editor and returns true when the button
@@ -103,28 +107,39 @@ namespace AgXUnityEditor
 
       EventType currentMouseEventType = current.GetTypeForControl( GUIUtility.GetControlID( FocusType.Passive ) );
       bool hijackMouseDown = currentMouseEventType == EventType.MouseDown &&
-                             current.button == 0 &&                           // button 1 is FPS camera movement
+                             current.button == 0 &&                           
+                            !RightMouseDown &&                                // button 1 is FPS camera movement
                             !current.alt;                                     // alt down is track ball camera movement
       if ( hijackMouseDown ) {
+        m_hijackLeftMouseClickData = new HijackLeftMouseClickData();
         GUIUtility.hotControl = 0;
         Event.current.Use();
         return false;
       }
 
-      return !Event.current.alt && currentMouseEventType == EventType.MouseUp && Event.current.button == 0;
+      if ( m_hijackLeftMouseClickData != null ) {
+        m_hijackLeftMouseClickData.AltPressed |= current.alt;
+
+        bool leftMouseUp = !m_hijackLeftMouseClickData.AltPressed &&
+                            currentMouseEventType == EventType.MouseUp &&
+                            Event.current.button == 0;
+
+        if ( currentMouseEventType == EventType.MouseUp )
+          m_hijackLeftMouseClickData = null;
+
+        return leftMouseUp;
+      }
+
+      return false;
     }
 
     /// <summary>
-    /// Callback from KeyHandler objects when constructed. The KeyCode has to be unique.
+    /// Request focus of the scene view window. E.g., when a button is pressed
+    /// in the inspector tab and objects in the scene view should respond.
     /// </summary>
-    public static void OnKeyHandlerConstruct( Utils.GUIHelper.KeyHandler handler )
+    public static void RequestSceneViewFocus()
     {
-      if ( m_keyHandlers.ContainsKey( handler.Key ) ) {
-        Debug.LogWarning( "Key handler with key: " + handler.Key + " already registered. Ignoring handler." );
-        return;
-      }
-
-      m_keyHandlers.Add( handler.Key, handler );
+      m_requestSceneViewFocus = true;
     }
 
     public static void OnVisualPrimitiveNodeCreate( Utils.VisualPrimitive primitive )
@@ -154,86 +169,44 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
-    public static bool ActivateTool( ToolData toolData )
-    {
-      if ( toolData == null || toolData.Tool == null )
-        return false;
-
-      RemoveActiveTool();
-
-      m_activeToolData = toolData;
-      toolData.Tool.OnAdd();
-
-      return true;
-    }
-
-    public static void RemoveActiveTool()
-    {
-      if ( m_activeToolData != null ) {
-        ToolData toolData = m_activeToolData;
-
-        // PerformRemoveFromParent will check if the tool is the current active.
-        // If the tool wants to remove itself and is our m_activeToolData then
-        // we'll receive a call back to this method from PerformRemoveFromParent.
-        m_activeToolData = null;
-
-        toolData.Tool.PerformRemoveFromParent();
-        if ( toolData.OnRemoveCallback != null )
-          toolData.OnRemoveCallback( m_activeToolData.Subject );
-      }
-    }
-
-    public static T GetActiveTool<T>() where T : Tools.Tool
-    {
-      return m_activeToolData != null ? m_activeToolData.Tool as T : null;
-    }
-
-    public static Tools.Tool GetActiveTool()
-    {
-      return m_activeToolData != null ? m_activeToolData.Tool : null;
-    }
-
-    public static ToolData GetActiveToolData()
-    {
-      return m_activeToolData;
-    }
-
-    private static Dictionary<KeyCode, Utils.GUIHelper.KeyHandler> m_keyHandlers = new Dictionary<KeyCode, Utils.GUIHelper.KeyHandler>();
+    private static string m_currentSceneName = string.Empty;
+    private static bool m_requestSceneViewFocus = false;
+    private static HijackLeftMouseClickData m_hijackLeftMouseClickData = null;
 
     private static string m_visualParentName = "Manager".To32BitFnv1aHash().ToString();
     private static GameObject m_visualsParent = null;
     private static HashSet<Utils.VisualPrimitive> m_visualPrimitives = new HashSet<Utils.VisualPrimitive>();
 
-    private static List<Tools.Tool> m_persistentTools = new List<Tools.Tool>()
-    {
-      new Tools.ShapeResizeTool()
-      {
-        ActivateKey       = new Utils.GUIHelper.KeyHandler( KeyCode.LeftControl ),
-        SymmetricScaleKey = new Utils.GUIHelper.KeyHandler( KeyCode.LeftShift )
-      }
-    };
-
-    private static ToolData m_activeToolData = null;
-
     private static void OnSceneView( SceneView sceneView )
     {
-      Event current = Event.current;
-      LeftMouseClick = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
-      KeyEscapeDown = current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
+      if ( m_requestSceneViewFocus ) {
+        sceneView.Focus();
+        m_requestSceneViewFocus = false;
+      }
 
-      foreach ( var keyHandler in m_keyHandlers.Values )
-        keyHandler.Update( current );
+      Event current   = Event.current;
+
+      LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
+      KeyEscapeDown   = current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
+
+      RightMouseClick = current.type == EventType.MouseDown && current.button == 1;
+      if ( RightMouseClick )
+        RightMouseDown = true;
+      if ( current.type == EventType.MouseUp && current.button == 1 )
+        RightMouseDown = false;
+
+      IsCameraControl = current.alt || RightMouseDown;
+
+      foreach ( var primitive in m_visualPrimitives )
+        primitive.OnSceneView( sceneView );
 
       UpdateMouseOverPrimitives( current );
+
       if ( Selection.activeGameObject != null )
         Selection.activeGameObject = RouteGameObject( Selection.activeGameObject );
 
-      foreach ( var tool in m_persistentTools )
-        tool.OnSceneViewGUI( sceneView );
-
-      if ( m_activeToolData != null )
-        m_activeToolData.Tool.OnSceneViewGUI( sceneView );
-
+      Tools.Tool.HandleOnSceneViewGUI( sceneView );
+ 
       HandleWindowsGUI( sceneView );
 
       LeftMouseClick = false;
@@ -244,7 +217,7 @@ namespace AgXUnityEditor
     private static void UpdateMouseOverPrimitives( Event current )
     {
       // Can't perform picking during repaint event.
-      if ( current == null || !current.isMouse )
+      if ( current == null || !(current.isMouse || current.isKey) )
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
@@ -261,7 +234,7 @@ namespace AgXUnityEditor
 
       // Set hideFlags to none so that picking detects our objects.
       foreach ( var primitive in m_visualPrimitives ) {
-        if ( primitive.Node == null )
+        if ( primitive.Node == null || !primitive.Pickable )
           continue;
 
         objHideFlags.Add( new { hideFlag = primitive.Node.hideFlags, obj = primitive } );
@@ -290,6 +263,37 @@ namespace AgXUnityEditor
     {
       var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
       return proxyTarget != null ? proxyTarget.Target : gameObject;
+    }
+
+    private static void OnHierarchyWindowChanged()
+    {
+      var scene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
+      if ( scene != null && scene.name != m_currentSceneName ) {
+        m_currentSceneName = scene.name;
+
+        // There shouldn't be any MassProperties components since we've
+        // changed them to be ScriptAssets.
+        AgXUnity.RigidBody[] bodies = UnityEngine.Object.FindObjectsOfType<AgXUnity.RigidBody>();
+        foreach ( var rb in bodies ) {
+          Component[] components = rb.GetComponents<Component>();
+          foreach ( var component in components ) {
+            if ( component.GetType() == typeof( AgXUnity.MassProperties ) ) {
+              Debug.Log( "Updating RigidBody by removing MassProperties component - copying the values to the new MassProperties instance." );
+              AgXUnity.MassProperties currentMassProperties = rb.MassProperties;
+              FieldInfo[] fields = component.GetType().GetFields( BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly );
+              foreach ( var f in fields ) {
+                if ( !f.IsNotSerialized )
+                  f.SetValue( currentMassProperties, f.GetValue( component ) );
+              }
+              Component.DestroyImmediate( component );
+            }
+          }
+
+          // 'm_rb' in MassProperties has been overwritten during the update. Update reference.
+          if ( rb.MassProperties.RigidBody == null )
+            rb.MassProperties.RigidBody = rb;
+        }
+      }
     }
 
     private static void HandleWindowsGUI( SceneView sceneView )

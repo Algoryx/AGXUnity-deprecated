@@ -8,9 +8,9 @@ namespace AgXUnity.Utils
   {
     public class TriangleHit
     {
-      public static TriangleHit Invalid = new TriangleHit() { Target = null, Vertices = new Vector3[ 0 ], Distance = float.PositiveInfinity };
+      public static TriangleHit Invalid { get { return new TriangleHit() { Target = null, Vertices = new Vector3[ 0 ], Distance = float.PositiveInfinity }; } }
 
-      public bool Valid { get { return this != Invalid; } }
+      public bool Valid { get { return Vertices.Length > 0 && Distance != float.PositiveInfinity; } }
 
       public GameObject Target { get; set; }
 
@@ -40,18 +40,20 @@ namespace AgXUnity.Utils
 
     public class ClosestEdgeHit
     {
-      public static ClosestEdgeHit Invalid = new ClosestEdgeHit() { Target = null, Edge = null };
+      public static ClosestEdgeHit Invalid { get { return new ClosestEdgeHit() { Target = null, Edge = null, Distance = float.PositiveInfinity }; } }
+
+      public bool Valid { get { return Edge != null && Distance != float.PositiveInfinity; } }
 
       public GameObject Target { get; set; }
 
       public MeshUtils.Edge Edge { get; set; }
+
+      public float Distance { get; set; }
     }
 
     public class Hit
     {
-      public static Hit Invalid = new Hit() { Triangle = TriangleHit.Invalid, ClosestEdge = ClosestEdgeHit.Invalid };
-
-      public bool Valid { get { return this != Invalid; } }
+      public static Hit Invalid { get { return new Hit() { Triangle = TriangleHit.Invalid, ClosestEdge = ClosestEdgeHit.Invalid }; } }
 
       public TriangleHit Triangle { get; set; }
 
@@ -105,21 +107,54 @@ namespace AgXUnity.Utils
       }
 
       if ( hit.Triangle.Valid )
-        hit.Triangle.ClosestEdge = ShapeUtils.FindClosestEdgeToSegment( ray.GetPoint( 0 ), ray.GetPoint( rayLength ), hit.Triangle.Edges );
+        hit.Triangle.ClosestEdge = ShapeUtils.FindClosestEdgeToSegment( ray.GetPoint( 0 ), ray.GetPoint( rayLength ), hit.Triangle.Edges ).Edge;
 
       List<MeshUtils.Edge> allEdges = FindPrincipalEdges( shape, 10.0f ).ToList();
       if ( hit.Triangle.Valid )
         allEdges.Add( hit.Triangle.ClosestEdge );
 
-      hit.ClosestEdge.Target = Target;
-      hit.ClosestEdge.Edge   = ShapeUtils.FindClosestEdgeToSegment( ray.GetPoint( 0 ), ray.GetPoint( rayLength ), allEdges.ToArray() );
+      var closestEdgeToSegmentResult = ShapeUtils.FindClosestEdgeToSegment( ray.GetPoint( 0 ), ray.GetPoint( rayLength ), allEdges.ToArray() );
+      hit.ClosestEdge.Target         = Target;
+      hit.ClosestEdge.Edge           = closestEdgeToSegmentResult.Edge;
+      hit.ClosestEdge.Distance       = closestEdgeToSegmentResult.Distance;
 
       return ( LastHit = hit );
     }
 
-    public static Hit Test( GameObject target, Ray ray, float rayLength = 500.0f )
+    public static bool HasRayCompatibleComponents( GameObject gameObject )
     {
-      return ( new Raycast() { Target = target } ).Test( ray, rayLength );
+      return gameObject != null &&
+             (
+               gameObject.GetComponent<MeshFilter>() != null ||
+               ( gameObject.GetComponent<Collide.Shape>() != null && gameObject.GetComponent<Collide.HeightField>() == null )
+             );
+    }
+
+    public static Hit Test( GameObject target, Ray ray, float rayLength = 500.0f, bool includeAllChildren = false )
+    {
+      if ( target == null )
+        return Hit.Invalid;
+
+      if ( !includeAllChildren )
+        return ( new Raycast() { Target = target } ).Test( ray, rayLength );
+
+      List<Hit> hitList = new List<Hit>()
+      {
+        ( new Raycast() { Target = target } ).Test( ray, rayLength )
+      };
+
+      foreach ( Transform child in target.transform )
+        hitList.Add( Test( child.gameObject, ray, rayLength, true ) );
+
+      Hit bestHit = Hit.Invalid;
+      foreach ( Hit hit in hitList ) {
+        if ( hit.Triangle.Valid && hit.Triangle.Distance < bestHit.Triangle.Distance )
+          bestHit.Triangle = hit.Triangle;
+        if ( hit.ClosestEdge.Valid && hit.ClosestEdge.Distance < bestHit.ClosestEdge.Distance )
+          bestHit.ClosestEdge = hit.ClosestEdge;
+      }
+
+      return bestHit;
     }
 
     private MeshUtils.Edge[] FindPrincipalEdges( Collide.Shape shape, float principalEdgeExtension )

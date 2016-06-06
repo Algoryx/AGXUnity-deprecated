@@ -8,52 +8,66 @@ namespace AgXUnityEditor.Tools
 {
   public class EdgeDetectionTool : Tool
   {
-    private Utils.VisualPrimitiveCylinder EdgeVisual { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveCylinder>( "edgeVisual" ); } }
-    private Raycast m_raycast = new Raycast();
-    private Action<Raycast.ClosestEdgeHit> m_onEdgeClickCallback = delegate { };
-
-    public GameObject Target
+    public class Data
     {
-      get { return m_raycast.Target; }
-      set { m_raycast.Target = value; }
+      public GameObject Target = null;
+      public Raycast.ClosestEdgeHit EdgeData = Raycast.ClosestEdgeHit.Invalid;
     }
 
-    public EdgeDetectionTool( Action<Raycast.ClosestEdgeHit> onEdgeClickCallback = null )
+    private Data m_currentData = null;
+
+    private Utils.VisualPrimitiveCylinder EdgeVisual { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveCylinder>( "edgeVisual", "Transparent/Diffuse" ); } }
+
+    public Action<Data> OnEdgeFound = delegate { };
+
+    public EdgeDetectionTool()
     {
       EdgeVisual.OnMouseClick += OnEdgeClick;
-      m_onEdgeClickCallback += onEdgeClickCallback;
-
-      AddChild( new SelectGameObjectTool( OnTargetChanged ) );
     }
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      if ( EdgeVisual.MouseOver )
+      if ( EdgeVisual.Visible && EdgeVisual.MouseOver )
         return;
 
-      EdgeVisual.Visible = false;
+      if ( m_currentData == null ) {
+        if ( GetChild<SelectGameObjectTool>() == null ) {
+          SelectGameObjectTool selectGameObjectTool = new SelectGameObjectTool();
+          selectGameObjectTool.OnSelect = go =>
+          {
+            m_currentData = new Data() { Target = go };
+          };
+          AddChild( selectGameObjectTool );
+        }
+      }
+      else {
+        m_currentData.EdgeData = Raycast.Test( m_currentData.Target, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).ClosestEdge;
+      }
 
-      OnSceneViewGUIChildren( sceneView );
+      EdgeVisual.Visible = m_currentData != null && m_currentData.EdgeData.Valid;
+      if ( EdgeVisual.Visible ) {
+        const float edgeRadius     = 0.035f;
+        const float defaultAlpha   = 0.25f;
+        const float mouseOverAlpha = 0.65f;
 
-      if ( Target == null )
-        return;
+        EdgeVisual.SetTransform( m_currentData.EdgeData.Edge.Start, m_currentData.EdgeData.Edge.End, edgeRadius );
 
-      // We're not updating visual and result if the object selection window is active.
-      if ( !GetChild<SelectGameObjectTool>().SelectionWindowActive && m_raycast.Test( HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) ).Valid ) {
-        EdgeVisual.Visible = true;
-        EdgeVisual.Color = m_raycast.LastHit.ClosestEdge.Edge.Type == MeshUtils.Edge.EdgeType.Triangle ? Color.yellow : Color.red;
-        EdgeVisual.SetTransform( m_raycast.LastHit.ClosestEdge.Edge.Start, m_raycast.LastHit.ClosestEdge.Edge.End, 0.045f );
+        if ( m_currentData.EdgeData.Edge.Type == MeshUtils.Edge.EdgeType.Triangle ) {
+          EdgeVisual.Color = new Color( Color.yellow.r, Color.yellow.g, Color.yellow.b, defaultAlpha );
+          EdgeVisual.MouseOverColor = new Color( Color.yellow.r, Color.yellow.g, Color.yellow.b, mouseOverAlpha );
+        }
+        else if ( m_currentData.EdgeData.Edge.Type == MeshUtils.Edge.EdgeType.Principal ) {
+          EdgeVisual.Color = new Color( Color.red.r, Color.red.g, Color.red.b, defaultAlpha );
+          EdgeVisual.MouseOverColor = new Color( Color.red.r, Color.red.g, Color.red.b, mouseOverAlpha );
+        }
       }
     }
 
     private void OnEdgeClick( Utils.VisualPrimitive primitive )
     {
-      m_onEdgeClickCallback( m_raycast.LastHit.ClosestEdge );
-    }
+      OnEdgeFound( m_currentData );
 
-    private void OnTargetChanged( GameObject newTarget )
-    {
-      Target = newTarget;
+      PerformRemoveFromParent();
     }
   }
 }

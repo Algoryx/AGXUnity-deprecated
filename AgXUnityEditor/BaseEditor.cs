@@ -123,15 +123,15 @@ namespace AgXUnityEditor
 
     public override void OnInspectorGUI()
     {
-      T data = target as T;
-
-      DrawDefaultInspectors( (object)data, data );
+      DrawMembersGUI( target, target as T, CurrentSkin );
     }
 
     public void OnEnable()
     {
       GUISkin guiSkin = EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector );
       guiSkin.label.richText = true;
+
+      Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
 
       // It's possible to detect when this editor/object becomes selected.
       //if ( Application.isEditor && target != null )
@@ -140,15 +140,17 @@ namespace AgXUnityEditor
 
     public void OnDestroy()
     {
+      Utils.GUI.TargetEditorDisable<T>( target as T );
+
       // It's possible to detect when this editor/object is being deleted
       // e.g., when the user presses delete.
       if ( !Application.isPlaying && Application.isEditor && target == null )
         AgXUnity.Rendering.DebugRenderManager.OnEditorDestroy();
     }
 
-    public static bool Update( T obj )
+    public static bool Update( T obj, GUISkin skin = null )
     {
-      return DrawDefaultInspectors( obj, obj );
+      return DrawMembersGUI( obj, obj, skin ?? EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector ) );
     }
 
     private static bool ShouldBeShownInInspector( MemberInfo memberInfo )
@@ -178,7 +180,9 @@ namespace AgXUnityEditor
       return false;
     }
 
-    private static bool DrawDefaultInspectors( object obj, T target )
+    private static GUISkin CurrentSkin { get { return EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector ); } }
+
+    private static bool DrawMembersGUI( object obj, T target, GUISkin skin )
     {
       if ( obj == null )
         return false;
@@ -187,6 +191,9 @@ namespace AgXUnityEditor
         return HandleCollisionGroupEntryPair( obj as CollisionGroupEntryPair );
       else if ( obj.GetType() == typeof( ContactMaterialEntry ) )
         return HandleContactMaterialEntry( obj as ContactMaterialEntry );
+
+      if ( obj == target )
+        Utils.GUI.PreTargetMembers( target, CurrentSkin );
 
       var fields = from fieldInfo in obj.GetType().GetFields( BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static )
                    where
@@ -218,12 +225,12 @@ namespace AgXUnityEditor
       object[] attributes = methodInfo.GetCustomAttributes( typeof( InvokableInInspector ), false );
       GUIContent label = null;
       if ( attributes.Length > 0 && ( attributes[ 0 ] as InvokableInInspector ).Label != "" )
-        label = Utils.GUIHelper.MakeLabel( ( attributes[ 0 ] as InvokableInInspector ).Label );
+        label = Utils.GUI.MakeLabel( ( attributes[ 0 ] as InvokableInInspector ).Label );
       else
         label = MakeLabel( methodInfo );
 
       bool invoked = false;
-      if ( GUILayout.Button( label, Utils.GUIHelper.EditorSkin.button, new GUILayoutOption[]{} ) ) {
+      if ( GUILayout.Button( label, CurrentSkin.button, new GUILayoutOption[]{} ) ) {
         methodInfo.Invoke( target, new object[] { } );
         invoked = true;
       }
@@ -241,81 +248,87 @@ namespace AgXUnityEditor
       Type type = wrapper.GetContainingType();
       if ( type == typeof( Vector4 ) && wrapper.CanRead() ) {
         Vector4 valInField = wrapper.Get<Vector4>();
-        value = EditorGUILayout.Vector4Field( MakeLabel( wrapper.Member ).text, valInField, null );
+        value = EditorGUILayout.Vector4Field( MakeLabel( wrapper.Member ).text, valInField );
       }
       else if ( type == typeof( Vector3 ) && wrapper.CanRead() ) {
         Vector3 valInField = wrapper.Get<Vector3>();
-        value = EditorGUILayout.Vector3Field( MakeLabel( wrapper.Member ).text, valInField, null );
+        value = EditorGUILayout.Vector3Field( MakeLabel( wrapper.Member ).text, valInField );
       }
       else if ( type == typeof( Vector2 ) && wrapper.CanRead() ) {
         Vector2 valInField = wrapper.Get<Vector2>();
-        value = EditorGUILayout.Vector2Field( MakeLabel( wrapper.Member ).text, valInField, null );
+        value = EditorGUILayout.Vector2Field( MakeLabel( wrapper.Member ).text, valInField );
       }
       else if ( ( type == typeof( float ) || type == typeof( double ) ) && wrapper.CanRead() ) {
         float valInField = type == typeof( double ) ? Convert.ToSingle( wrapper.Get<double>() ) : wrapper.Get<float>();
         FloatSliderInInspector slider = wrapper.GetAttribute<FloatSliderInInspector>();
         if ( slider != null )
-          value = EditorGUILayout.Slider( MakeLabel( wrapper.Member ), valInField, slider.Min, slider.Max, new GUILayoutOption[] { } );
+          value = EditorGUILayout.Slider( MakeLabel( wrapper.Member ), valInField, slider.Min, slider.Max );
         else
-          value = EditorGUILayout.FloatField( MakeLabel( wrapper.Member ).text, valInField );
+          value = EditorGUILayout.FloatField( MakeLabel( wrapper.Member ), valInField, CurrentSkin.textField );
       }
       else if ( type == typeof( int ) && wrapper.CanRead() ) {
         int valInField = wrapper.Get<int>();
-        value = EditorGUILayout.IntField( MakeLabel( wrapper.Member ).text, valInField );
+        value = EditorGUILayout.IntField( MakeLabel( wrapper.Member ), valInField, CurrentSkin.textField );
       }
       else if ( type == typeof( bool ) && wrapper.CanRead() ) {
         bool valInField = wrapper.Get<bool>();
-        value = EditorGUILayout.Toggle( MakeLabel( wrapper.Member ).text, valInField );
+        value = EditorGUILayout.Toggle( MakeLabel( wrapper.Member ), valInField, CurrentSkin.toggle );
       }
       else if ( type == typeof( Color ) && wrapper.CanRead() ) {
         Color valInField = wrapper.Get<Color>();
-        value = EditorGUILayout.ColorField( MakeLabel( wrapper.Member ).text, valInField );
+        value = EditorGUILayout.ColorField( MakeLabel( wrapper.Member ), valInField );
       }
       else if ( type == typeof( DefaultAndUserValueFloat ) && wrapper.CanRead() ) {
         DefaultAndUserValueFloat valInField = wrapper.Get<DefaultAndUserValueFloat>();
 
-        float newValue = HandleDefaultAndUserValue( wrapper.Member.Name, valInField );
+        float newValue = Utils.GUI.HandleDefaultAndUserValue( wrapper.Member.Name, valInField, CurrentSkin );
         if ( wrapper.IsValid( newValue ) ) {
-          valInField.Value = newValue;
+          if ( !valInField.UseDefault )
+            valInField.Value = newValue;
           value = valInField;
         }
       }
       else if ( type == typeof( DefaultAndUserValueVector3 ) && wrapper.CanRead() ) {
         DefaultAndUserValueVector3 valInField = wrapper.Get<DefaultAndUserValueVector3>();
 
-        Vector3 newValue = HandleDefaultAndUserValue( wrapper.Member.Name, valInField );
+        Vector3 newValue = Utils.GUI.HandleDefaultAndUserValue( wrapper.Member.Name, valInField, CurrentSkin );
         if ( wrapper.IsValid( newValue ) ) {
-          valInField.Value = newValue;
+          if ( !valInField.UseDefault )
+            valInField.Value = newValue;
           value = valInField;
         }
       }
       else if ( type == typeof( CollisionGroupEntry ) && wrapper.CanRead() ) {
         CollisionGroupEntry valInField = wrapper.Get<CollisionGroupEntry>();
-        valInField.Tag = EditorGUILayout.TextField( MakeLabel( wrapper.Member ), valInField.Tag, new GUILayoutOption[] { } );
+        valInField.Tag = EditorGUILayout.TextField( MakeLabel( wrapper.Member ), valInField.Tag, CurrentSkin.textField );
       }
       else if ( type == typeof( RangeReal ) ) {
         RangeReal valInField = wrapper.Get<RangeReal>();
         EditorGUILayout.BeginHorizontal();
-        valInField.Min = EditorGUILayout.FloatField( "Min", (float)valInField.Min );
-        valInField.Max = EditorGUILayout.FloatField( "Max", (float)valInField.Max );
+        valInField.Min = EditorGUILayout.FloatField( "Min", (float)valInField.Min, CurrentSkin.textField );
+        valInField.Max = EditorGUILayout.FloatField( "Max", (float)valInField.Max, CurrentSkin.textField );
         EditorGUILayout.EndHorizontal();
         value = valInField;
       }
       else if ( type == typeof( string ) && wrapper.CanRead() ) {
-        value = EditorGUILayout.TextField( MakeLabel( wrapper.Member ), wrapper.Get<string>(), new GUILayoutOption[] { } );
+        value = EditorGUILayout.TextField( MakeLabel( wrapper.Member ), wrapper.Get<string>(), CurrentSkin.textField );
       }
       else if ( type == typeof( System.String ) && wrapper.CanRead() ) {
         Debug.Log( "System: " + wrapper.Get<System.String>() );
       }
       else if ( type.IsEnum && type.IsVisible && wrapper.CanRead() ) {
         Enum valInField = wrapper.Get<System.Enum>();
-        value = EditorGUILayout.EnumPopup( MakeLabel( wrapper.Member ), valInField, new GUILayoutOption[] { } );
+        value = EditorGUILayout.EnumPopup( MakeLabel( wrapper.Member ), valInField, CurrentSkin.button );
       }
       else if ( type.IsArray && wrapper.CanRead() ) {
         HandleArray( wrapper.Get<Array>(), target );
       }
       else if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof( List<> ) && wrapper.CanRead() ) {
         HandleList( wrapper, target );
+      }
+      else if ( type == typeof( Frame ) && wrapper.CanRead() ) {
+        Frame frame = wrapper.Get<Frame>();
+        Utils.GUI.HandleFrame( frame, CurrentSkin );
       }
       else if ( ( type.BaseType == typeof( ScriptAsset ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
         bool allowSceneObject = type == typeof( GameObject ) ||
@@ -328,75 +341,6 @@ namespace AgXUnityEditor
         EditorGUILayout.EndHorizontal();
 
         isNullable = true;
-      }
-      else if ( type == typeof( Frame ) && wrapper.CanRead() ) {
-        Utils.GUIHelper.Separator();
-        GUILayout.Label( Utils.GUIHelper.MakeLabel( wrapper.Member.Name.SplitCamelCase() + ":" ) );
-        var frame = wrapper.Get<Frame>();
-        frame.LocalPosition = EditorGUILayout.Vector3Field( Utils.GUIHelper.MakeLabel( "  Position" ), frame.LocalPosition );
-        frame.LocalRotation = Quaternion.Euler( EditorGUILayout.Vector3Field( Utils.GUIHelper.MakeLabel( "  Rotation" ), frame.LocalRotation.eulerAngles ) );
-      }
-      else if ( type == typeof( ConstraintAttachmentPair ) && wrapper.CanRead() ) {
-        var attachmentPair = wrapper.Get<ConstraintAttachmentPair>();
-        var f1 = attachmentPair.ReferenceFrame;
-        var f2 = attachmentPair.ConnectedFrame;
-
-        Utils.GUIHelper.Separator();
-
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.Label( Utils.GUIHelper.MakeLabel( "Tools" ) );
-        Utils.GUIHelper.EnumButtonList<Tools.ConstraintAttachmentPairTool.ToolMode>(
-            e =>
-            {
-              Tools.ConstraintAttachmentPairTool currentTool = Manager.GetActiveTool<Tools.ConstraintAttachmentPairTool>();
-              if ( currentTool == null || currentTool.AttachmentPair != attachmentPair || currentTool.Mode != e )
-                Manager.ActivateTool( new Manager.ToolData() { Tool = new Tools.ConstraintAttachmentPairTool( attachmentPair, e ), Subject = attachmentPair } );
-              else if ( currentTool != null && currentTool.Mode == e )
-                Manager.RemoveActiveTool();
-            },
-            null,
-            new GUILayoutOption[] { GUILayout.Height( 16.0f ) }
-          );
-        EditorGUILayout.EndHorizontal();
-
-        Utils.GUIHelper.Separator();
-
-        GUILayout.Label( Utils.GUIHelper.MakeLabel( "Attachment frames:" ) );
-
-        GUILayout.Label( Utils.GUIHelper.MakeLabel( "  Reference:", true ) );
-        attachmentPair.ReferenceObject = (GameObject)EditorGUILayout.ObjectField( Utils.GUIHelper.MakeLabel( "    Object" ), attachmentPair.ReferenceObject, typeof( GameObject ), true );
-
-        Action<Frame> frameFunc = f =>
-        {
-          EditorGUILayout.BeginHorizontal();
-          GUILayout.Space( 18 );
-          if ( GUILayout.Button( Utils.GUIHelper.MakeLabel( "Edit" ), new GUILayoutOption[] { GUILayout.Width( 32 ), GUILayout.Height( 16 * 2 ) } ) ) {
-            Tools.FrameTool frameTool = Manager.GetActiveTool<Tools.FrameTool>();
-            if ( frameTool != null && frameTool.Frame == f )
-              Manager.RemoveActiveTool();
-            else
-              Manager.ActivateTool( new Manager.ToolData() { Tool = new Tools.FrameTool( f ), Subject = attachmentPair } );
-          }
-          EditorGUILayout.BeginVertical();
-          f.LocalPosition = Utils.GUIHelper.Vector3Field( Utils.GUIHelper.MakeLabel( "Position" ), f.LocalPosition );
-          f.LocalRotation = Quaternion.Euler( Utils.GUIHelper.Vector3Field( Utils.GUIHelper.MakeLabel( "Rotation" ), f.LocalRotation.eulerAngles ) );
-          EditorGUILayout.EndVertical();
-          EditorGUILayout.EndHorizontal();
-        };
-
-        frameFunc( f1 );
-
-        GUILayout.Label( Utils.GUIHelper.MakeLabel( "  Connected:", true ) );
-        attachmentPair.ConnectedObject = (GameObject)EditorGUILayout.ObjectField( Utils.GUIHelper.MakeLabel( "    Object" ), attachmentPair.ConnectedObject, typeof( GameObject ), true );
-
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.Space( 18 );
-        attachmentPair.Synchronized = GUILayout.Toggle( attachmentPair.Synchronized, Utils.GUIHelper.MakeLabel( "Synchronized with reference" ) );
-        EditorGUILayout.EndHorizontal();
-
-        GUI.enabled = !attachmentPair.Synchronized;
-        frameFunc( f2 );
-        GUI.enabled = true;
       }
       else if ( type.IsClass && wrapper.CanRead() ) {
       }
@@ -412,102 +356,21 @@ namespace AgXUnityEditor
 
       return false;
     }
-    
-    private static ValueT HandleDefaultAndUserValue<ValueT>( string name, DefaultAndUserValue<ValueT> valInField ) where ValueT : struct
-    {
-      ValueT newValue;
-      MethodInfo floatMethod   = typeof( EditorGUILayout ).GetMethod( "FloatField", new[] { typeof( string ), typeof( float ), typeof( GUILayoutOption[] ) } );
-      MethodInfo vector3Method = typeof( EditorGUILayout ).GetMethod( "Vector3Field", new[] { typeof( string ), typeof( Vector3 ), typeof( GUILayoutOption[] ) } );
-      MethodInfo method        = typeof( ValueT ) == typeof( float ) ?
-                                  floatMethod :
-                                 typeof( ValueT ) == typeof( Vector3 ) ?
-                                  vector3Method :
-                                  null;
-      if ( method == null )
-        throw new NullReferenceException( "Unknown DefaultAndUserValue type: " + typeof( ValueT ).Name );
 
-      {
-        EditorGUILayout.BeginHorizontal();
-        {
-          var textDim = GUI.skin.label.CalcSize( new GUIContent( name.SplitCamelCase() ) );
-          GUILayout.Label( name.SplitCamelCase(), GUILayout.MaxWidth( textDim.x ) );
-          int gridSelection = GUI.SelectionGrid( EditorGUILayout.GetControlRect( false ), Convert.ToInt32( valInField.UseDefault ), new string[] { "Default", "User specified" }, 2 );
-          valInField.UseDefault = gridSelection == 0;
-        }
-        EditorGUILayout.EndHorizontal();
-
-        EditorGUILayout.BeginHorizontal();
-        {
-          EditorGUI.BeginDisabledGroup( valInField.UseDefault );
-          {
-            newValue = (ValueT)method.Invoke( null, new object[] { "", valInField.Value, new GUILayoutOption[] { } } );
-          }
-          EditorGUI.EndDisabledGroup();
-        }
-
-        if ( GUILayout.Button( Utils.GUIHelper.MakeLabel( "Update" ) ) )
-          valInField.FireOnForcedUpdate();
-
-        EditorGUILayout.EndHorizontal();
-      }
-      Utils.GUIHelper.Separator();
-
-      return newValue;
-    }
-
-    private static string CreateEditorPrefsKey( object obj )
-    {
-      return obj.GetHashCode().ToString();
-    }
-
-    private static bool GetOrCreateBool( object obj, bool defaultValue = false )
-    {
-      string key = CreateEditorPrefsKey( obj );
-      if ( EditorPrefs.HasKey( key ) )
-        return EditorPrefs.GetBool( key );
-      return SetBool( obj, defaultValue );
-    }
-
-    private static int GetOrCreateInt( object obj, int defaultValue = -1 )
-    {
-      string key = CreateEditorPrefsKey( obj );
-      if ( EditorPrefs.HasKey( key ) )
-        return EditorPrefs.GetInt( key );
-      return SetInt( obj, defaultValue );
-    }
-
-    private static bool SetBool( object obj, bool value )
-    {
-      string key = CreateEditorPrefsKey( obj );
-      EditorPrefs.SetBool( key, value );
-      return value;
-    }
-
-    private static int SetInt( object obj, int value )
-    {
-      string key = CreateEditorPrefsKey( obj );
-      EditorPrefs.SetInt( key, value );
-      return value;
-    }
-
-    private static void RemoveInt( object obj )
-    {
-      string key = CreateEditorPrefsKey( obj );
-      EditorPrefs.DeleteKey( key );
-    }
-
-    private static bool HandleCollisionGroupEntryPair( CollisionGroupEntryPair collisionGroupPair )
+    public static bool HandleCollisionGroupEntryPair( CollisionGroupEntryPair collisionGroupPair )
     {
       if ( collisionGroupPair == null )
         return false;
 
-      collisionGroupPair.First.Tag = EditorGUILayout.TextField( "", collisionGroupPair.First.Tag, GUILayout.MaxWidth( 110 ) );
-      collisionGroupPair.Second.Tag = EditorGUILayout.TextField( "", collisionGroupPair.Second.Tag, GUILayout.MaxWidth( 110 ) );
+      EditorGUILayout.BeginHorizontal();
+      collisionGroupPair.First.Tag = EditorGUILayout.TextField( "", collisionGroupPair.First.Tag, CurrentSkin.textField, GUILayout.MaxWidth( 110 ) );
+      collisionGroupPair.Second.Tag = EditorGUILayout.TextField( "", collisionGroupPair.Second.Tag, CurrentSkin.textField, GUILayout.MaxWidth( 110 ) );
+      EditorGUILayout.EndHorizontal();
 
       return true;
     }
 
-    private static bool HandleContactMaterialEntry( ContactMaterialEntry contactMaterialEntry )
+    public static bool HandleContactMaterialEntry( ContactMaterialEntry contactMaterialEntry )
     {
       if ( contactMaterialEntry == null )
         return false;
@@ -517,15 +380,15 @@ namespace AgXUnityEditor
       return true;
     }
 
-    private static void HandleArray( Array array, T target )
+    public static void HandleArray( Array array, T target )
     {
       if ( array == null )
         return;
 
       if ( array.GetType().GetElementType() == typeof( ConstraintRowData ) ) {
         foreach ( ConstraintRowData crd in array ) {
-          if ( SetBool( crd, EditorGUILayout.Foldout( GetOrCreateBool( crd ), crd.DefinitionString ) ) ) {
-            bool changed = DrawDefaultInspectors( crd, target );
+          if ( Utils.GUI.Prefs.SetBool( crd, EditorGUILayout.Foldout( Utils.GUI.Prefs.GetOrCreateBool( crd ), crd.DefinitionString ) ) ) {
+            bool changed = DrawMembersGUI( crd, target, CurrentSkin );
             if ( changed )
               ( target as ElementaryConstraint ).OnRowDataChanged();
           }
@@ -533,18 +396,25 @@ namespace AgXUnityEditor
       }
       else {
         foreach ( object obj in array )
-          DrawDefaultInspectors( obj, target );
+          DrawMembersGUI( obj, target, CurrentSkin );
       }
     }
 
     private static void HandleList( InvokeWrapper wrapper, T target )
     {
       System.Collections.IList list = wrapper.Get<System.Collections.IList>();
-      if ( SetBool( list, EditorGUILayout.Foldout( GetOrCreateBool( list ), MakeLabel( wrapper.Member ) ) ) ) {
+      HandleList( list, MakeLabel( wrapper.Member ), target );
+    }
+
+    public static void HandleList( System.Collections.IList list, GUIContent label, T target )
+    {
+      if ( Utils.GUI.Prefs.SetBool( list, EditorGUILayout.Foldout( Utils.GUI.Prefs.GetOrCreateBool( list ), label ) ) ) {
         List<object> objectsToRemove = new List<object>();
         foreach ( object obj in list ) {
           EditorGUILayout.BeginHorizontal();
-          DrawDefaultInspectors( obj, target );
+          EditorGUILayout.BeginVertical();
+          DrawMembersGUI( obj, target, CurrentSkin );
+          EditorGUILayout.EndVertical();
           if ( GUILayout.Button( "Del", GUILayout.MaxWidth( 32 ) ) )
             objectsToRemove.Add( obj );
           EditorGUILayout.EndHorizontal();

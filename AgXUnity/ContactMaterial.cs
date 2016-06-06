@@ -165,6 +165,15 @@ namespace AgXUnity
       }
     }
 
+    private ContactMaterial()
+    {
+    }
+
+    protected override void Construct()
+    {
+      Debug.Log( FrictionCoefficients, this );
+    }
+
     protected override bool Initialize()
     {
       if ( Material1 == null || Material2 == null ) {

@@ -5,13 +5,21 @@ using AgXUnity.Utils;
 namespace AgXUnity
 {
   /// <summary>
-  /// Mass properties of a RigidBody. This component is a required
-  /// component in the RigidBody class.
+  /// Mass properties of a RigidBody.
   /// </summary>
   [AddComponentMenu( "" )]
-  [DisallowMultipleComponent]
-  public class MassProperties : RigidBodyComponent
+  public class MassProperties : ScriptAsset
   {
+    [SerializeField]
+    private RigidBody m_rb = null;
+
+    [HideInInspector]
+    public RigidBody RigidBody
+    {
+      get { return m_rb; }
+      set { m_rb = value; }
+    }
+
     /// <summary>
     /// Mass of the rigid body, holding both calculated and user specified,
     /// paired with property Mass.
@@ -96,6 +104,14 @@ namespace AgXUnity
       InertiaDiagonal.OnForcedUpdate += OnForcedMassInertiaUpdate;
     }
 
+    protected override void Construct()
+    {
+    }
+
+    public override void Destroy()
+    {
+    }
+
     public void SetDefaultCalculated( agx.RigidBody nativeRb )
     {
       if ( nativeRb == null )
@@ -107,23 +123,34 @@ namespace AgXUnity
 
     protected override bool Initialize()
     {
-      // When we're initialized, we've to make sure the rigid body is initialized.
-      RigidBody rb = GetComponent<RigidBody>();
-      // Seems a bit random, this will be strange if the rigid body is currently
-      // being initialized.
-      if ( rb.State == States.AWAKE )
-        rb.GetInitialized<RigidBody>();
-      else if ( rb.State == States.INITIALIZING && ( !Mass.UseDefault || !InertiaDiagonal.UseDefault ) )
-        Debug.LogException( new AgXUnity.Exception( "Rigid body is initializing with non-default mass property. The user values will probably not be propagated correctly." ), rb );
+      if ( RigidBody == null ) {
+        Debug.LogError( "RigidBody instance not assigned to MassProperties object." );
+        return false;
+      }
 
-      return base.Initialize();
+      RigidBody.GetInitialized<RigidBody>();
+
+      //// When we're initialized, we've to make sure the rigid body is initialized.
+      //RigidBody rb = GetComponent<RigidBody>();
+      //// Seems a bit random, this will be strange if the rigid body is currently
+      //// being initialized.
+      //if ( rb.State == States.AWAKE )
+      //  rb.GetInitialized<RigidBody>();
+      //else if ( rb.State == States.INITIALIZING && ( !Mass.UseDefault || !InertiaDiagonal.UseDefault ) )
+      //  Debug.LogException( new AgXUnity.Exception( "Rigid body is initializing with non-default mass property. The user values will probably not be propagated correctly." ), rb );
+
+      return true;
+    }
+
+    private agx.RigidBody GetNative()
+    {
+      return m_rb != null ? m_rb.Native : null;
     }
 
     private void OnForcedMassInertiaUpdate()
     {
-      RigidBody rb = GetComponent<RigidBody>();
-      if ( rb != null )
-        rb.UpdateMassProperties();
+      if ( RigidBody != null )
+        RigidBody.UpdateMassProperties();
     }
   }
 }

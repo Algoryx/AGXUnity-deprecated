@@ -115,4 +115,15 @@ namespace AgXUnity
              ( value[ 1 ] > 0 || ( m_acceptZero && value[ 1 ] == 0 ) );
     }
   }
+
+  [System.AttributeUsage( AttributeTargets.Class, AllowMultiple = false )]
+  public class CustomTool : Attribute
+  {
+    public string ClassName = "";
+
+    public CustomTool( string className )
+    {
+      ClassName = className;
+    }
+  }
 }

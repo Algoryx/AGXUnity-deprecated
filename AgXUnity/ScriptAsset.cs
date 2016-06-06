@@ -17,6 +17,14 @@ namespace AgXUnity
   /// </summary>
   public abstract class ScriptAsset : UnityEngine.ScriptableObject
   {
+    public static T Create<T>() where T : ScriptAsset
+    {
+      T instance = CreateInstance<T>();
+      instance.Construct();
+
+      return instance;
+    }
+
     /// <summary>
     /// Initializes any native objects. Use this method when components are initialized.
     /// </summary>
@@ -55,6 +63,13 @@ namespace AgXUnity
     /// Scene is taken down. Destroy/unreference any native object(s).
     /// </summary>
     public abstract void Destroy();
+
+    /// <summary>
+    /// Construct method called when a new instance of this object has been
+    /// instantiated. This is like the default constructor but it's possible
+    /// to create new instances from within this method.
+    /// </summary>
+    protected abstract void Construct();
 
     /// <summary>
     /// Initialize native objects. Properties will be synchronized after this call.

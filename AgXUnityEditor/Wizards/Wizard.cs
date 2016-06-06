@@ -31,7 +31,7 @@ namespace AgXUnityEditor.Wizards
   ///   
   ///   private void OnChooseName( EventType eventType )
   ///   {
-  ///     m_name = GUILayout.TextField( m_name, Utils.GUIHelper.EditorSkin.textField );
+  ///     m_name = GUILayout.TextField( m_name, Utils.GUI.Skin.textField );
   ///     // When the user presses button "Next" or "Previous" the state
   ///     // will change.
   ///     PrevNextButtons();
@@ -127,7 +127,7 @@ namespace AgXUnityEditor.Wizards
                             windowMethod.Invoke( this, new object[] { windowEventType } );
                           },
                           Enum.GetName( m_enumType, CurrentWindow ).ToString().SplitCamelCase(),
-                          Utils.GUIHelper.EditorSkin.window,
+                          Utils.GUI.Skin.window,
                           new GUILayoutOption[] { GUILayout.Width( WindowSize.x ) } );
       }
       else
@@ -164,11 +164,11 @@ namespace AgXUnityEditor.Wizards
         // Disable button "Previous" if we're in the first window.
         EditorGUI.BeginDisabledGroup( CurrentWindow == 0 );
         {
-          buttonPrevPressed = GUILayout.Button( Utils.GUIHelper.MakeLabel( "Previous" ), Utils.GUIHelper.EditorSkin.button );
+          buttonPrevPressed = GUILayout.Button( Utils.GUI.MakeLabel( "Previous" ), Utils.GUI.Skin.button );
         }
         EditorGUI.EndDisabledGroup();
 
-        buttonNextPressed = GUILayout.Button( Utils.GUIHelper.MakeLabel( "Next" ), Utils.GUIHelper.EditorSkin.button );
+        buttonNextPressed = GUILayout.Button( Utils.GUI.MakeLabel( "Next" ), Utils.GUI.Skin.button );
       }
       GUILayout.EndHorizontal();
 
