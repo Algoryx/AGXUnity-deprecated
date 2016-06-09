@@ -1,477 +1,299 @@
 ﻿using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace AgXUnity
 {
-  /// <summary>
-  /// Data object holding compliance, damping and force range
-  /// of a single constraint row.
-  /// </summary>
   [AddComponentMenu( "" )]
-  [System.Serializable]
-  public class ConstraintRowData
+  [Serializable]
+  public class ElementaryConstraintRowData
   {
-    public enum Def { Parameters = 0, U = 1 << 0, V = 1 << 1, N = 1 << 2, Linear = 1 << 3, Angular = 1 << 4 }
-
-    [ClampAboveZeroInInspector( true )]
-    public double Compliance = 1.0E-9;
-
-    [ClampAboveZeroInInspector( true )]
-    public double Damping = 2.5 / 50.0;
-
-    public RangeReal ForceRange = new RangeReal();
-
+    [SerializeField]
+    private int m_row = -1;
     [HideInInspector]
-    public Def Definition = Def.Parameters;
-
+    public int Row { get { return m_row; } }
     [HideInInspector]
-    public string DefinitionString
+    public ulong RowUInt64 { get { return Convert.ToUInt64( Row ); } }
+
+    [SerializeField]
+    private ElementaryConstraint m_elementaryConstraint = null;
+    [HideInInspector]
+    public ElementaryConstraint ElementaryConstraint { get { return m_elementaryConstraint; } }
+
+    [SerializeField]
+    private float m_compliance = 1.0E-10f;
+    [ClampAboveZeroInInspector( true )]
+    public float Compliance
     {
-      get
+      get { return m_compliance; }
+      set
       {
-        return ( Definition & ( Def.Linear | Def.Angular ) ).ToString() + " " + ( Definition & ( Def.U | Def.V | Def.N ) ).ToString();
+        m_compliance = value;
+        if ( ElementaryConstraint.Native != null )
+          ElementaryConstraint.Native.setCompliance( m_compliance, Row );
       }
     }
 
-    public void AssignTo( agx.ElementaryConstraint ec, int row )
+    [SerializeField]
+    private float m_damping = 2.0f / 60.0f;
+    [ClampAboveZeroInInspector( true )]
+    public float Damping
     {
-      ec.setCompliance( Compliance, row );
-      ec.setDamping( Damping, row );
-      ec.setForceRange( ForceRange.Native, (uint)row );
+      get { return m_damping; }
+      set
+      {
+        m_damping = value;
+        if ( ElementaryConstraint.Native != null )
+          ElementaryConstraint.Native.setDamping( m_damping, Row );
+      }
+    }
+
+    [SerializeField]
+    private RangeReal m_forceRange = new RangeReal();
+    public RangeReal ForceRange
+    {
+      get { return m_forceRange; }
+      set
+      {
+        m_forceRange = value;
+        if ( ElementaryConstraint.Native != null )
+          ElementaryConstraint.Native.setForceRange( m_forceRange.Native, RowUInt64 );
+      }
+    }
+
+    public ElementaryConstraintRowData( ElementaryConstraint elementaryConstraint, int row, agx.ElementaryConstraint tmpEc = null )
+    {
+      m_elementaryConstraint = elementaryConstraint;
+      m_row = row;
+      if ( tmpEc != null ) {
+        m_compliance = Convert.ToSingle( tmpEc.getCompliance( RowUInt64 ) );
+        m_damping = Convert.ToSingle( tmpEc.getDamping( RowUInt64 ) );
+        m_forceRange = new RangeReal( tmpEc.getForceRange( RowUInt64 ) );
+      }
     }
   }
 
-  /// <summary>
-  /// Elementary constraint base class.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class ElementaryConstraint : ScriptComponent
+  public class ElementaryConstraint : ScriptAsset
   {
-    #region Public Serialized Properties
-    /// <summary>
-    /// Compliance, damping and force range data for each row in
-    /// this elementary constraint.
-    /// </summary>
-    public ConstraintRowData[] RowData = null;
-
-    /// <summary>
-    /// Called from inspector/custom editor when ConstraintRowData has updated values.
-    /// </summary>
-    public void OnRowDataChanged()
+    public static ElementaryConstraint Create( agx.ElementaryConstraint tmpEc )
     {
-      agx.ElementaryConstraint ec = FindNativeElementaryConstraint( NativeName );
-      for ( int i = 0; ec != null && i < (int)ec.getNumRows(); ++i )
-        RowData[ i ].AssignTo( ec, i );
+      ElementaryConstraint elementaryConstraint = null;
+      Type controllerType = null;
+      if ( agx.RangeController.safeCast( tmpEc ) != null )
+        controllerType = agx.RangeController.safeCast( tmpEc ).GetType();
+      else if ( agx.TargetSpeedController.safeCast( tmpEc ) != null )
+        controllerType = agx.TargetSpeedController.safeCast( tmpEc ).GetType();
+      else if ( agx.LockController.safeCast( tmpEc ) != null )
+        controllerType = agx.LockController.safeCast( tmpEc ).GetType();
+      else if ( agx.ScrewController.safeCast( tmpEc ) != null )
+        controllerType = agx.ScrewController.safeCast( tmpEc ).GetType();
+      else if ( agx.ElectricMotorController.safeCast( tmpEc ) != null )
+        controllerType = agx.ElectricMotorController.safeCast( tmpEc ).GetType();
+
+      if ( controllerType != null )
+        elementaryConstraint = Create( Type.GetType( "AgXUnity." + controllerType.Name ) ) as ElementaryConstraint;
+      else
+        elementaryConstraint = Create<ElementaryConstraint>();
+
+      elementaryConstraint.Construct( tmpEc );
+
+      return elementaryConstraint;
     }
 
-    /// <summary>
-    /// Elementary constraint enable flag paired with property Enable.
-    /// </summary>
+    [SerializeField]
+    private string m_nativeName = string.Empty;
+
+    [HideInInspector]
+    public string NativeName { get { return m_nativeName; } }
+
     [SerializeField]
     private bool m_enable = true;
-
-    /// <summary>
-    /// Get or set enable.
-    /// </summary>
     public bool Enable
     {
       get { return m_enable; }
       set
       {
         m_enable = value;
-        agx.ElementaryConstraint ec = FindNativeElementaryConstraint( m_nativeName );
-        if ( ec != null )
-          ec.setEnable( m_enable );
+        if ( Native != null )
+          Native.setEnable( m_enable );
       }
     }
 
-    /// <summary>
-    /// Name of this elementary constraint paired with property NativeName.
-    /// </summary>
+    public int NumRows { get { return m_rowData.Length; } }
+
     [SerializeField]
-    private string m_nativeName = "";
+    private ElementaryConstraintRowData[] m_rowData = null;
+    public ElementaryConstraintRowData[] RowData { get { return m_rowData; } }
 
-    /// <summary>
-    /// Get or set the name of this elementary constraint.
-    /// </summary>
-    [HideInInspector]
-    public string NativeName
+    public agx.ElementaryConstraint Native { get; private set; }
+
+    public virtual bool OnConstraintInitialize( Constraint constraint )
     {
-      get { return m_nativeName; }
-      set
-      {
-        if ( m_nativeName == value )
-          return;
+      Native = constraint.Native.getElementaryConstraintGivenName( NativeName ) ??
+               constraint.Native.getSecondaryConstraintGivenName( NativeName );
 
-        // Synchronize name with the native object if it exist.
-        agx.ElementaryConstraint ec = FindNativeElementaryConstraint( m_nativeName );
-        m_nativeName = value;
-        if ( ec != null )
-          ec.setName( m_nativeName );
-      }
-    }
-    #endregion
-
-    /// <summary>
-    /// Number of rows assigned during construction.
-    /// </summary>
-    [SerializeField]
-    private int m_numRows = 0;
-
-    /// <summary>
-    /// Get the number of rows in this elementary constraint.
-    /// </summary>
-    [HideInInspector]
-    public int NumRows
-    {
-      get { return m_numRows; }
+      return GetInitialized<ElementaryConstraint>() != null;
     }
 
-    /// <summary>
-    /// Construct given number of rows and enable flag. Secondary
-    /// elementary constraints are in general disabled during
-    /// construct.
-    /// </summary>
-    /// <param name="numRows">Number of rows in this elementary constraint.</param>
-    /// <param name="enable">True if enabled.</param>
-    protected ElementaryConstraint( int numRows, bool enable = true )
+    protected virtual void Construct( agx.ElementaryConstraint tmpEc )
     {
-      m_numRows = numRows;
-      m_enable = enable;
+      m_nativeName = tmpEc.getName();
+      m_enable     = tmpEc.getEnable();
+      m_rowData    = new ElementaryConstraintRowData[ tmpEc.getNumRows() ];
+      for ( ulong i = 0; i < tmpEc.getNumRows(); ++i )
+        m_rowData[ i ] = new ElementaryConstraintRowData( this, Convert.ToInt32( i ), tmpEc );
     }
 
-    /// <summary>
-    /// Finds the constraint object that this elementary
-    /// constraint is part of.
-    /// </summary>
-    protected AgXUnity.Constraint Constraint
+    protected override void Construct()
     {
-      get
-      {
-        ScriptComponent[] components = GetComponents<ScriptComponent>();
-        foreach ( ScriptComponent component in components ) {
-          Constraint constraint = component as Constraint;
-          if ( constraint != null )
-            return constraint;
-        }
-
-        return null;
-      }
-    }
-
-    /// <summary>
-    /// Finds the native constraint instance that this elementary
-    /// constraint is part of - if created.
-    /// </summary>
-    protected agx.Constraint NativeConstraint
-    {
-      get
-      {
-        Constraint constraint = Constraint;
-        if ( constraint != null )
-          return constraint.Native;
-        return null;
-      }
-    }
-
-    /// <summary>
-    /// Finds native instance of a controller given name.
-    /// </summary>
-    /// <typeparam name="T">Controller type.</typeparam>
-    /// <param name="name">Name of the controller.</param>
-    /// <returns>Controller of type name T.</returns>
-    protected T FindNativeSecondaryConstraint<T>( string name ) where T : agx.ElementaryConstraint
-    {
-      agx.Constraint native = NativeConstraint;
-      if ( native == null )
-        return null;
-
-      // Not possible to cast from agx.ElementaryConstraint. We have
-      // to search given name and do explicit tests.
-      agx.ElementaryConstraint sc = native.getSecondaryConstraintGivenName( name );
-
-      if ( sc == null )
-        return null;
-
-      Type type = typeof( T );
-      if ( type == typeof( agx.RangeController ) )
-        return agx.RangeController.safeCast( sc ) as T;
-      else if ( type == typeof( agx.TargetSpeedController ) )
-        return agx.TargetSpeedController.safeCast( sc ) as T;
-      else if ( type == typeof( agx.LockController ) )
-        return agx.LockController.safeCast( sc ) as T;
-      else if ( type == typeof( agx.ScrewController ) )
-        return agx.ScrewController.safeCast( sc ) as T;
-      return null;
-    }
-
-    /// <summary>
-    /// Searches for native elementary- OR secondary constraint with the given name.
-    /// </summary>
-    /// <param name="name">Name of the elementary- or secondary constraint.</param>
-    /// <returns>Elementary- or secondary constraint if found - otherwise null.</returns>
-    protected agx.ElementaryConstraint FindNativeElementaryConstraint( string name )
-    {
-      agx.Constraint native = NativeConstraint;
-      if ( native == null )
-        return null;
-      return native.getElementaryConstraintGivenName( name ) ?? native.getSecondaryConstraintGivenName( name );
-    }
-
-    /// <summary>
-    /// Moves data from RowData to the native instance.
-    /// </summary>
-    protected bool InitializeData()
-    {
-      agx.ElementaryConstraint ec = FindNativeElementaryConstraint( NativeName );
-      for ( int i = 0; ec != null && i < NumRows; ++i )
-        RowData[ i ].AssignTo( ec, i );
-      return base.Initialize();
     }
 
     protected override bool Initialize()
     {
-      // It's up to the constraint to initialize its elementary constraints.
-      // We are a component, so if Unity tries to initialize us before the
-      // constraint, wait for the constraint (or never initialize because
-      // it's undefined).
-      Constraint constraint = Constraint;
-      return constraint != null && constraint.GetInitialized<Constraint>() != null && InitializeData();
-    }
-  }
+      if ( Native == null )
+        return false;
 
-  /// <summary>
-  /// Quat lock elementary constraint - three rows.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class ElementaryQuatLock : ElementaryConstraint
-  {
-    public ElementaryQuatLock()
-      : base( 3 )
+      // Manually synchronizing data for native row coupling.
+      foreach ( ElementaryConstraintRowData data in m_rowData )
+        Utils.PropertySynchronizer.Synchronize( data );
+
+      return true;
+    }
+
+    public override void Destroy()
     {
+      Native = null;
     }
   }
 
-  /// <summary>
-  /// Elementary spherical constraint - three rows.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class ElementarySphericalRel : ElementaryConstraint
+  public class ElementaryConstraintController : ElementaryConstraint
   {
-    public ElementarySphericalRel()
-      : base( 3 )
-    {
-    }
   }
 
-  /// <summary>
-  /// Elementary dot 2 constraint - one row.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class ElementaryDot2 : ElementaryConstraint
+  public class RangeController : ElementaryConstraintController
   {
-    public ElementaryDot2()
-      : base( 1 )
-    {
-    }
-  }
-
-  /// <summary>
-  /// Elementary dot 1 constraint - one row.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class ElementaryDot1 : ElementaryConstraint
-  {
-    public ElementaryDot1()
-      : base( 1 )
-    {
-    }
-  }
-
-  /// <summary>
-  /// Elementary contact normal constraint - one row.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class ElementaryContactNormal : ElementaryConstraint
-  {
-    public ElementaryContactNormal()
-      : base( 1 )
-    {
-    }
-  }
-
-  /// <summary>
-  /// Range controller - one row, disabled by default.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class RangeController : ElementaryConstraint
-  {
-    /// <summary>
-    /// Working range, paired with property Range.
-    /// </summary>
     [SerializeField]
     private RangeReal m_range = new RangeReal();
-
-    /// <summary>
-    /// Get or set working range of this range controller.
-    /// </summary>
     public RangeReal Range
     {
       get { return m_range; }
       set
       {
         m_range = value;
-
-        // Synchronize with native instance.
-        agx.RangeController native = FindNativeSecondaryConstraint<agx.RangeController>( NativeName );
-        if ( native != null ) {
-          native.setEnable( Enable );
-          native.setRange( m_range.Native );
-        }
+        if ( Native != null )
+          agx.RangeController.safeCast( Native ).setRange( m_range.Native );
       }
     }
-
-    public RangeController()
-      : base( 1, false ) { }
   }
 
-  /// <summary>
-  /// Target speed controller - one row, disabled by default.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class TargetSpeedMotor : ElementaryConstraint
+  public class TargetSpeedController : ElementaryConstraintController
   {
-    /// <summary>
-    /// Speed of the controller, paired with property Speed.
-    /// </summary>
     [SerializeField]
-    private float m_speed = 0.0f;
-
-    /// <summary>
-    /// Get or set speed of this controller.
-    /// </summary>
+    private float m_speed = 0f;
     public float Speed
     {
       get { return m_speed; }
       set
       {
         m_speed = value;
-
-        // Synchronize with native instance.
-        agx.TargetSpeedController native = FindNativeSecondaryConstraint<agx.TargetSpeedController>( NativeName );
-        if ( native != null ) {
-          native.setEnable( Enable );
-          native.setSpeed( m_speed );
-        }
+        if ( Native != null )
+          agx.TargetSpeedController.safeCast( Native ).setSpeed( m_speed );
       }
     }
 
-    public TargetSpeedMotor()
-      : base( 1, false ) { }
+    [SerializeField]
+    private bool m_lockAtZeroSpeed = false;
+    public bool LockAtZeroSpeed
+    {
+      get { return m_lockAtZeroSpeed; }
+      set
+      {
+        m_lockAtZeroSpeed = value;
+        if ( Native != null )
+          agx.TargetSpeedController.safeCast( Native ).setLockedAtZeroSpeed( m_lockAtZeroSpeed );
+      }
+    }
   }
 
-  /// <summary>
-  /// Lock controller - one row, disabled by default.
-  /// </summary>
-  [AddComponentMenu( "" )]
-  public class LockController : ElementaryConstraint
+  public class LockController : ElementaryConstraintController
   {
-    /// <summary>
-    /// Position of the lock, paired with property Position.
-    /// </summary>
     [SerializeField]
-    private float m_position = 0.0f;
-
-    /// <summary>
-    /// Get or set position of the lock.
-    /// </summary>
+    private float m_position = 0f;
     public float Position
     {
       get { return m_position; }
       set
       {
         m_position = value;
+        if ( Native != null )
+          agx.LockController.safeCast( Native ).setPosition( m_position );
+      }
+    }
+  }
 
-        // Synchronize with native instance.
-        agx.LockController native = FindNativeSecondaryConstraint<agx.LockController>( NativeName );
-        if ( native != null ) {
-          native.setEnable( Enable );
-          native.setPosition( m_position );
-        }
+  public class ScrewController : ElementaryConstraintController
+  {
+    [SerializeField]
+    private float m_lead = 0f;
+    public float Lead
+    {
+      get { return m_lead; }
+      set
+      {
+        m_lead = value;
+        if ( Native != null )
+          agx.ScrewController.safeCast( Native ).setLead( m_lead );
+      }
+    }
+  }
+
+  public class ElectricMotorController : ElementaryConstraintController
+  {
+    [SerializeField]
+    private float m_voltage = 0f;
+    public float Voltage
+    {
+      get { return m_voltage; }
+      set
+      {
+        m_voltage = value;
+        if ( Native != null )
+          agx.ElectricMotorController.safeCast( Native ).setVoltage( m_voltage );
       }
     }
 
-    public LockController()
-      : this( false ) { }
-
-    /// <summary>
-    /// Constructor used by the distance joint which has
-    /// this controller enabled by default.
-    /// </summary>
-    public LockController( bool enable )
-      : base( 1, enable ) { }
-  }
-
-  /// <summary>
-  /// Elementary constraint helper factory to build the different constraints.
-  /// This object holds elementary constraint type, name and row definition
-  /// (direction, rotational|translational).
-  /// </summary>
-  public struct ElementaryDef
-  {
-    public Type Type;
-    public string Name;
-    public List<ConstraintRowData.Def> Variables;
-
-    private static ElementaryDef Create<T>( string name, List<ConstraintRowData.Def> vars ) where T : ElementaryConstraint
+    [SerializeField]
+    private float m_armatureResistance = 0f;
+    public float ArmatureResistance
     {
-      return new ElementaryDef()
+      get { return m_armatureResistance; }
+      set
       {
-        Type = typeof( T ),
-        Name = name,
-        Variables = vars
-      };
+        m_armatureResistance = value;
+        if ( Native != null )
+          agx.ElectricMotorController.safeCast( Native ).setArmatureResistance( m_armatureResistance );
+      }
     }
 
-    private static ElementaryDef Create<T>( string name, ConstraintRowData.Def variable ) where T : ElementaryConstraint
+    [SerializeField]
+    private float m_torqueConstant = 0f;
+    public float TorqueConstant
     {
-      return Create<T>( name, new List<ConstraintRowData.Def>()
-                              {
-                                variable | ConstraintRowData.Def.U,
-                                variable | ConstraintRowData.Def.V,
-                                variable | ConstraintRowData.Def.N,
-                              } );
+      get { return m_torqueConstant; }
+      set
+      {
+        m_torqueConstant = value;
+        if ( Native != null )
+          agx.ElectricMotorController.safeCast( Native ).setTorqueConstant( m_torqueConstant );
+      }
     }
 
-    public static ElementaryDef CreateLinear<T>( string name ) where T : ElementaryConstraint
+    protected override void Construct( agx.ElementaryConstraint tmpEc )
     {
-      return Create<T>( name, ConstraintRowData.Def.Linear );
-    }
+      base.Construct( tmpEc );
 
-    public static ElementaryDef CreateAngular<T>( string name ) where T : ElementaryConstraint
-    {
-      return Create<T>( name, ConstraintRowData.Def.Angular );
-    }
-
-    public static ElementaryDef CreateLinear<T>( string name, ConstraintRowData.Def axis ) where T : ElementaryConstraint
-    {
-      return Create<T>( name, new List<ConstraintRowData.Def>() { ConstraintRowData.Def.Linear | axis } );
-    }
-
-    public static ElementaryDef CreateAngular<T>( string name, ConstraintRowData.Def axis ) where T : ElementaryConstraint
-    {
-      return Create<T>( name, new List<ConstraintRowData.Def>() { ConstraintRowData.Def.Angular | axis } );
-    }
-
-    public static ElementaryDef CreateLinear<T>( string name, ConstraintRowData.Def axis1, ConstraintRowData.Def axis2 ) where T : ElementaryConstraint
-    {
-      return Create<T>( name, new List<ConstraintRowData.Def>() { ConstraintRowData.Def.Linear | axis1, ConstraintRowData.Def.Linear | axis2 } );
-    }
-
-    public static ElementaryDef CreateAngular<T>( string name, ConstraintRowData.Def axis1, ConstraintRowData.Def axis2 ) where T : ElementaryConstraint
-    {
-      return Create<T>( name, new List<ConstraintRowData.Def>() { ConstraintRowData.Def.Angular | axis1, ConstraintRowData.Def.Angular | axis2 } );
+      m_voltage            = Convert.ToSingle( agx.ElectricMotorController.safeCast( tmpEc ).getVoltage() );
+      m_armatureResistance = Convert.ToSingle( agx.ElectricMotorController.safeCast( tmpEc ).getArmatureResistance() );
+      m_torqueConstant     = Convert.ToSingle( agx.ElectricMotorController.safeCast( tmpEc ).getTorqueConstant() );
     }
   }
 }

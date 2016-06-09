@@ -19,7 +19,12 @@ namespace AgXUnity
   {
     public static T Create<T>() where T : ScriptAsset
     {
-      T instance = CreateInstance<T>();
+      return Create( typeof( T ) ) as T;
+    }
+
+    public static ScriptAsset Create( System.Type type )
+    {
+      ScriptAsset instance = CreateInstance( type ) as ScriptAsset;
       instance.Construct();
 
       return instance;

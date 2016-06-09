@@ -39,7 +39,7 @@ namespace AgXUnity.Utils
     /// }
     /// </example>
     /// </summary>
-    public static void Synchronize( UnityEngine.Object obj )
+    public static void Synchronize( object obj )
     {
       if ( obj != null )
         ParseAndUpdateProperties( obj, obj.GetType() );
@@ -51,7 +51,7 @@ namespace AgXUnity.Utils
     /// </summary>
     /// <param name="obj">Object to parse and update.</param>
     /// <param name="type">Type of the object.</param>
-    private static void ParseAndUpdateProperties( UnityEngine.Object obj, Type type )
+    private static void ParseAndUpdateProperties( object obj, Type type )
     {
       FieldInfo[] fields = type.GetFields( BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly );
       foreach ( FieldInfo field in fields ) {
