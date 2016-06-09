@@ -8,7 +8,6 @@ using AgXUnity.Utils;
 
 namespace AgXUnityEditor
 {
-  // TODO: Any use of this one?
   public class EditorData : ScriptComponent
   {
     [Serializable]
