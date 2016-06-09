@@ -21,6 +21,8 @@ namespace AgXUnityEditor
     {
       GUISkin guiSkin = EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector );
       guiSkin.label.richText = true;
+      guiSkin.toggle.richText = true;
+      guiSkin.button.richText = true;
 
       Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
 

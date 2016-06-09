@@ -55,7 +55,46 @@ namespace AgXUnity.Utils
       return true;
     }
 
+    /// <summary>
+    /// Return true if type parameter matches type of the field/property.
+    /// </summary>
+    /// <typeparam name="U">Type.</typeparam>
+    /// <returns>True if type matches the field/property type.</returns>
     public bool IsType<U>() { return typeof( U ) == GetContainingType(); }
+
+    /// <summary>
+    /// Returns the current value given any object of matching type.
+    /// </summary>
+    /// <remarks>
+    /// If <paramref name="obj"/> isn't the object with this field/property
+    /// an exception will be thrown by the reflection core.
+    /// </remarks>
+    /// <typeparam name="U">Return type.</typeparam>
+    /// <param name="obj">Object with this field/property. Valid if null if this field/property is static.</param>
+    /// <returns>The value.</returns>
+    public U Get<U>( object obj )
+    {
+      var prevObj = Object;
+      Object      = obj;
+      U value     = Get<U>();
+      Object      = prevObj;
+      return value;
+    }
+
+    /// <summary>
+    /// Invoke set method in <paramref name="obj"/> given value.
+    /// </summary>
+    /// <param name="obj">Object with this field/property.</param>
+    /// <param name="value">Value.</param>
+    /// <returns>True if value was assigned.</returns>
+    public bool ConditionalSet( object obj, object value )
+    {
+      var prevObj = Object;
+      Object = obj;
+      bool ret = ConditionalSet( value );
+      Object = prevObj;
+      return ret;
+    }
 
     /// <summary>
     /// Checks if the property can read values, i.e., has a getter. This is

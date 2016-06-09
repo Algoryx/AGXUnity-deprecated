@@ -107,6 +107,7 @@ namespace AgXUnity
 
     [SerializeField]
     private bool m_enable = true;
+    [HideInInspector]
     public bool Enable
     {
       get { return m_enable; }
@@ -118,6 +119,7 @@ namespace AgXUnity
       }
     }
 
+    [HideInInspector]
     public int NumRows { get { return m_rowData.Length; } }
 
     [SerializeField]

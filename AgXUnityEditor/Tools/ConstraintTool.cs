@@ -201,14 +201,19 @@ namespace AgXUnityEditor.Tools
       else {
       }
 
-      wrapper.ConditionalSet( value );
+      if ( wrapper.ConditionalSet( value ) )
+        EditorUtility.SetDirty( Constraint );
     }
 
     private void HandleConstraintControllerGUI( ElementaryConstraintController controller, GUISkin skin )
     {
-      if ( GUI.Foldout( Selected( SelectedFoldout.Controller, ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( ConstraintUtils.FindName( controller ), true ), skin ) )
-        using ( new GUI.Indent( 12 ) )
-          BaseEditor<ElementaryConstraint>.Update( controller, skin );
+      if ( GUI.Foldout( Selected( SelectedFoldout.Controller, ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( ConstraintUtils.FindName( controller ), true ), skin ) ) {
+        using ( new GUI.Indent( 12 ) ) {
+          controller.Enable = GUILayout.Toggle( controller.Enable, GUI.MakeLabel( "Enable", controller.Enable ), skin.toggle );
+          using ( new GUI.Indent( 18 ) )
+            BaseEditor<ElementaryConstraint>.Update( controller, skin );
+        }
+      }
     }
   }
 }
