@@ -3,80 +3,25 @@ using UnityEngine;
 
 namespace AgXUnity
 {
-  [AddComponentMenu( "" )]
-  [Serializable]
-  public class ElementaryConstraintRowData
-  {
-    [SerializeField]
-    private int m_row = -1;
-    [HideInInspector]
-    public int Row { get { return m_row; } }
-    [HideInInspector]
-    public ulong RowUInt64 { get { return Convert.ToUInt64( Row ); } }
-
-    [SerializeField]
-    private ElementaryConstraint m_elementaryConstraint = null;
-    [HideInInspector]
-    public ElementaryConstraint ElementaryConstraint { get { return m_elementaryConstraint; } }
-
-    [SerializeField]
-    private float m_compliance = 1.0E-10f;
-    [ClampAboveZeroInInspector( true )]
-    public float Compliance
-    {
-      get { return m_compliance; }
-      set
-      {
-        m_compliance = value;
-        if ( ElementaryConstraint.Native != null )
-          ElementaryConstraint.Native.setCompliance( m_compliance, Row );
-      }
-    }
-
-    [SerializeField]
-    private float m_damping = 2.0f / 60.0f;
-    [ClampAboveZeroInInspector( true )]
-    public float Damping
-    {
-      get { return m_damping; }
-      set
-      {
-        m_damping = value;
-        if ( ElementaryConstraint.Native != null )
-          ElementaryConstraint.Native.setDamping( m_damping, Row );
-      }
-    }
-
-    [SerializeField]
-    private RangeReal m_forceRange = new RangeReal();
-    public RangeReal ForceRange
-    {
-      get { return m_forceRange; }
-      set
-      {
-        m_forceRange = value;
-        if ( ElementaryConstraint.Native != null )
-          ElementaryConstraint.Native.setForceRange( m_forceRange.Native, RowUInt64 );
-      }
-    }
-
-    public ElementaryConstraintRowData( ElementaryConstraint elementaryConstraint, int row, agx.ElementaryConstraint tmpEc = null )
-    {
-      m_elementaryConstraint = elementaryConstraint;
-      m_row = row;
-      if ( tmpEc != null ) {
-        m_compliance = Convert.ToSingle( tmpEc.getCompliance( RowUInt64 ) );
-        m_damping = Convert.ToSingle( tmpEc.getDamping( RowUInt64 ) );
-        m_forceRange = new RangeReal( tmpEc.getForceRange( RowUInt64 ) );
-      }
-    }
-  }
-
+  /// <summary>
+  /// Base of controllers and object of ordinary elementary constraints.
+  /// </summary>
   public class ElementaryConstraint : ScriptAsset
   {
+    /// <summary>
+    /// Create instance given temporary native elementary constraint.
+    /// </summary>
+    /// <param name="tmpEc">Temporary elementary constraint.</param>
+    /// <returns>New instance, as similar as possible, to the given native elementary constraint.</returns>
     public static ElementaryConstraint Create( agx.ElementaryConstraint tmpEc )
     {
+      if ( tmpEc == null )
+        return null;
+
       ElementaryConstraint elementaryConstraint = null;
+
+      // It's possible to know the type of controllers. We're basically not
+      // interested in knowing the type of the ordinary ones.
       Type controllerType = null;
       if ( agx.RangeController.safeCast( tmpEc ) != null )
         controllerType = agx.RangeController.safeCast( tmpEc ).GetType();
@@ -89,24 +34,42 @@ namespace AgXUnity
       else if ( agx.ElectricMotorController.safeCast( tmpEc ) != null )
         controllerType = agx.ElectricMotorController.safeCast( tmpEc ).GetType();
 
+      // This is a controller, instantiate the controller.
       if ( controllerType != null )
         elementaryConstraint = Create( Type.GetType( "AgXUnity." + controllerType.Name ) ) as ElementaryConstraint;
+      // This is an ordinary elementary constraint.
       else
         elementaryConstraint = Create<ElementaryConstraint>();
 
+      // Copies data from the native instance.
       elementaryConstraint.Construct( tmpEc );
 
       return elementaryConstraint;
     }
 
+    /// <summary>
+    /// Name of the native instance in the constraint. This is the
+    /// link to our native instance as long as we have access to
+    /// the native constraint.
+    /// </summary>
     [SerializeField]
     private string m_nativeName = string.Empty;
 
+    /// <summary>
+    /// Name of the native instance in the constraint.
+    /// </summary>
     [HideInInspector]
     public string NativeName { get { return m_nativeName; } }
 
+    /// <summary>
+    /// Enable flag. Paired with property Enable.
+    /// </summary>
     [SerializeField]
     private bool m_enable = true;
+
+    /// <summary>
+    /// Enable flag.
+    /// </summary>
     [HideInInspector]
     public bool Enable
     {
@@ -119,15 +82,35 @@ namespace AgXUnity
       }
     }
 
+    /// <summary>
+    /// Number of rows in this elementary constraint.
+    /// </summary>
     [HideInInspector]
     public int NumRows { get { return m_rowData.Length; } }
 
+    /// <summary>
+    /// Data (compliance, damping etc.) for each row in this elementary constraint.
+    /// Paired with property RowData.
+    /// </summary>
     [SerializeField]
     private ElementaryConstraintRowData[] m_rowData = null;
+
+    /// <summary>
+    /// Data (compliance, damping etc.) for each row in this elementary constraint.
+    /// </summary>
     public ElementaryConstraintRowData[] RowData { get { return m_rowData; } }
 
+    /// <summary>
+    /// Native instance of this elementary constraint. Only set when the
+    /// constraint is initialized and is simulating.
+    /// </summary>
     public agx.ElementaryConstraint Native { get; private set; }
 
+    /// <summary>
+    /// Callback from Constraint when it's being initialized.
+    /// </summary>
+    /// <param name="constraint">Constraint object this elementary constraint is part of.</param>
+    /// <returns>True if successful.</returns>
     public virtual bool OnConstraintInitialize( Constraint constraint )
     {
       Native = constraint.Native.getElementaryConstraintGivenName( NativeName ) ??
@@ -167,14 +150,28 @@ namespace AgXUnity
     }
   }
 
+  /// <summary>
+  /// Base class of controllers (such as motor, lock etc.).
+  /// </summary>
   public class ElementaryConstraintController : ElementaryConstraint
   {
   }
 
+  /// <summary>
+  /// Range controller object, constraining the angle of the constraint to be
+  /// within a given range.
+  /// </summary>
   public class RangeController : ElementaryConstraintController
   {
+    /// <summary>
+    /// Valid range of the constraint angle. Paired with property Range.
+    /// </summary>
     [SerializeField]
     private RangeReal m_range = new RangeReal();
+
+    /// <summary>
+    /// Valid range of the constraint angle.
+    /// </summary>
     public RangeReal Range
     {
       get { return m_range; }
@@ -187,10 +184,21 @@ namespace AgXUnity
     }
   }
 
+  /// <summary>
+  /// Target speed controller object, constraining the angle of the constraint to
+  /// be driven at a given speed.
+  /// </summary>
   public class TargetSpeedController : ElementaryConstraintController
   {
+    /// <summary>
+    /// Desired speed to drive the constraint angle. Paired with property Speed.
+    /// </summary>
     [SerializeField]
     private float m_speed = 0f;
+
+    /// <summary>
+    /// Desired speed to drive the constraint angle.
+    /// </summary>
     public float Speed
     {
       get { return m_speed; }
@@ -202,8 +210,16 @@ namespace AgXUnity
       }
     }
 
+    /// <summary>
+    /// State to lock at the current angle when the speed is set to zero.
+    /// Paired with property LockAtZeroSpeed.
+    /// </summary>
     [SerializeField]
     private bool m_lockAtZeroSpeed = false;
+
+    /// <summary>
+    /// State to lock at the current angle when the speed is set to zero.
+    /// </summary>
     public bool LockAtZeroSpeed
     {
       get { return m_lockAtZeroSpeed; }
@@ -216,10 +232,21 @@ namespace AgXUnity
     }
   }
 
+  /// <summary>
+  /// Lock controller object, constraining the angle of the constraint to
+  /// a given value.
+  /// </summary>
   public class LockController : ElementaryConstraintController
   {
+    /// <summary>
+    /// Desired position/angle to lock the angle to. Paired with property Position.
+    /// </summary>
     [SerializeField]
     private float m_position = 0f;
+
+    /// <summary>
+    /// Desired position/angle to lock the angle to.
+    /// </summary>
     public float Position
     {
       get { return m_position; }

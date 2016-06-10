@@ -38,6 +38,8 @@ namespace AgXUnity
         constraint.Type       = type;
         var attachmentPair    = constraint.AttachmentPair; // This will instantiate the attachment pair.
 
+        // Creating a temporary native instance of the constraint, including a rigid body and frames.
+        // Given this native instance we copy the default configuration.
         using ( agx.RigidBody tmpRb = new agx.RigidBody() )
         using ( agx.Frame tmpF1 = new agx.Frame() )
         using ( agx.Frame tmpF2 = new agx.Frame() )
@@ -161,6 +163,7 @@ namespace AgXUnity
         return false;
       }
 
+      // Synchronize frames to make sure connected frame is up to date.
       AttachmentPair.Update();
 
       RigidBody rb1 = m_attachmentPair.ReferenceObject.GetInitializedComponentInParent<RigidBody>();
@@ -169,13 +172,19 @@ namespace AgXUnity
         return false;
       }
 
+      // Native constraint frames.
       agx.Frame f1 = new agx.Frame();
       agx.Frame f2 = new agx.Frame();
+
+      // Note that the native constraint want 'f1' given in rigid body frame, and that
+      // 'ReferenceFrame' may be relative to any object in the children of the body.
       f1.setLocalTranslate( m_attachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
       f1.setLocalRotate( m_attachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
 
       RigidBody rb2 = m_attachmentPair.ConnectedObject != null ? m_attachmentPair.ConnectedObject.GetInitializedComponentInParent<RigidBody>() : null;
       if ( rb2 != null ) {
+        // Note that the native constraint want 'f2' given in rigid body frame, and that
+        // 'ReferenceFrame' may be relative to any object in the children of the body.
         f2.setLocalTranslate( m_attachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
         f2.setLocalRotate( m_attachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
       }
@@ -187,6 +196,7 @@ namespace AgXUnity
       try {
         Native = (agx.Constraint)Activator.CreateInstance( NativeType, new object[] { rb1.Native, f1, ( rb2 != null ? rb2.Native : null ), f2 } );
 
+        // Assigning native elementary constraints to our elementary constraint instances.
         foreach ( ElementaryConstraint ec in ElementaryConstraints )
           if ( !ec.OnConstraintInitialize( this ) )
             throw new Exception( "Unable to initialize elementary constraint: " + ec.NativeName + " (not present in native constraint)." );
