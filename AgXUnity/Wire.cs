@@ -25,14 +25,9 @@ namespace AgXUnity
     }
 
     /// <summary>
-    /// Native instance.
-    /// </summary>
-    private agxWire.Wire m_native = null;
-
-    /// <summary>
     /// Get native instance, if initialized.
     /// </summary>
-    public agxWire.Wire Native { get { return m_native; } }
+    public agxWire.Wire Native { get; private set; }
 
     /// <summary>
     /// Radius of this wire - default 0.015. Paired with property Radius.
@@ -207,7 +202,7 @@ namespace AgXUnity
       }
 
       try {
-        m_native = new agxWire.Wire( Radius, ResolutionPerUnitLength );
+        Native = new agxWire.Wire( Radius, ResolutionPerUnitLength );
         Material = m_material != null ? m_material.GetInitialized<ShapeMaterial>() : null;
         int nodeCounter = 0;
         foreach ( WireRouteNode routeNode in m_route ) {
@@ -217,23 +212,23 @@ namespace AgXUnity
           if ( node.getType() == agxWire.Node.Type.CONNECTING ) {
             // This is the first node, CM-node goes first.
             if ( nodeCounter == 0 ) {
-              success = success && m_native.add( node.getAsConnecting().getCmNode() );
-              success = success && m_native.add( node );
+              success = success && Native.add( node.getAsConnecting().getCmNode() );
+              success = success && Native.add( node );
             }
             // This has to be the last node, CM-node goes last.
             else {
-              success = success && m_native.add( node );
-              success = success && m_native.add( node.getAsConnecting().getCmNode() );
+              success = success && Native.add( node );
+              success = success && Native.add( node.getAsConnecting().getCmNode() );
             }
           }
           else if ( routeNode.Type == NodeType.WinchNode ) {
             if ( node == null )
               throw new AgXUnity.Exception( "Unable to initialize wire winch." );
 
-            success = success && m_native.add( routeNode.Winch.Native );
+            success = success && Native.add( routeNode.Winch.Native );
           }
           else
-            success = success && m_native.add( node );
+            success = success && Native.add( node );
 
           if ( !success )
             throw new AgXUnity.Exception( "Unable to add node " + nodeCounter + ": " + routeNode.Type );
@@ -241,14 +236,14 @@ namespace AgXUnity
           ++nodeCounter;
         }
 
-        GetSimulation().add( m_native );
+        GetSimulation().add( Native );
       }
       catch ( System.Exception e ) {
         Debug.LogException( e, this );
         return false;
       }
 
-      return m_native.initialized();
+      return Native.initialized();
     }
 
     protected void LateUpdate()
@@ -264,7 +259,7 @@ namespace AgXUnity
       if ( GetSimulation() != null )
         GetSimulation().remove( Native );
 
-      m_native = null;
+      Native = null;
 
       base.OnDestroy();
     }

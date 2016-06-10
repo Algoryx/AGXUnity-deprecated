@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using AgXUnity.Utils;
 
 namespace AgXUnity
 {
+  /// <summary>
+  /// Supported default constraint types.
+  /// </summary>
   public enum ConstraintType
   {
     Hinge,
@@ -21,139 +25,146 @@ namespace AgXUnity
   [CustomTool( "AgXUnityEditor.Tools.ConstraintTool" )]
   public class Constraint : ScriptComponent
   {
-    public static Constraint Create( ConstraintType type, GameObject givenGameObject = null )
+    /// <summary>
+    /// Create a new constraint component given constraint type.
+    /// </summary>
+    /// <param name="type">Type of constraint.</param>
+    /// <returns>Constraint component, added to a new game object - null if unsuccessful.</returns>
+    public static Constraint Create( ConstraintType type )
     {
-      if ( givenGameObject != null && givenGameObject.GetComponent<Constraint>() != null ) {
-        Debug.LogError( "Game object already have a AgXUnity.Constraint component. Create constraint failed.", givenGameObject );
+      GameObject constraintGameObject = new GameObject( Factory.CreateName( "AgXUnity." + type ) );
+      try {
+        Constraint constraint = constraintGameObject.AddComponent<Constraint>();
+        constraint.Type       = type;
+        var attachmentPair    = constraint.AttachmentPair; // This will instantiate the attachment pair.
+
+        // Creating a temporary native instance of the constraint, including a rigid body and frames.
+        // Given this native instance we copy the default configuration.
+        using ( agx.RigidBody tmpRb = new agx.RigidBody() )
+        using ( agx.Frame tmpF1 = new agx.Frame() )
+        using ( agx.Frame tmpF2 = new agx.Frame() )
+        using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
+          for ( ulong i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
+            ElementaryConstraint ec = ElementaryConstraint.Create( tmpConstraint.getElementaryConstraint( i ) );
+            if ( ec == null )
+              throw new Exception( "Failed to configure elementary constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
+
+            constraint.m_elementaryConstraints.Add( ec );
+          }
+
+          for ( ulong i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
+            ElementaryConstraint sc = ElementaryConstraint.Create( tmpConstraint.getSecondaryConstraint( i ) );
+            if ( sc == null )
+              throw new Exception( "Failed to configure elementary controller constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
+
+            constraint.m_elementaryConstraints.Add( sc );
+          }
+        }
+
+        return constraint;
+      }
+      catch ( System.Exception e ) {
+        Debug.LogException( e );
+        DestroyImmediate( constraintGameObject );
         return null;
       }
-
-      List<ElementaryDef> elements = null;
-      switch ( type ) {
-        case ConstraintType.Hinge:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateLinear<ElementarySphericalRel>( "SR" ),
-            ElementaryDef.CreateAngular<ElementaryDot1>( "D1_VN", ConstraintRowData.Def.V ),
-            ElementaryDef.CreateAngular<ElementaryDot1>( "D1_UN", ConstraintRowData.Def.U ),
-            ElementaryDef.CreateAngular<RangeController>( "RR", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateAngular<TargetSpeedMotor>( "MR", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateAngular<LockController>( "LR", ConstraintRowData.Def.N )
-          };
-          break;
-        case ConstraintType.Prismatic:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateAngular<ElementaryQuatLock>( "QL" ),
-            ElementaryDef.CreateLinear<ElementaryDot2>( "D2_U", ConstraintRowData.Def.U ),
-            ElementaryDef.CreateLinear<ElementaryDot2>( "D2_V", ConstraintRowData.Def.V ),
-            ElementaryDef.CreateLinear<RangeController>( "RT", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateLinear<TargetSpeedMotor>( "MT", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateLinear<LockController>( "LT", ConstraintRowData.Def.N )
-          };
-          break;
-        case ConstraintType.LockJoint:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateLinear<ElementarySphericalRel>( "SR" ),
-            ElementaryDef.CreateAngular<ElementaryQuatLock>( "QL" )
-          };
-          break;
-        case ConstraintType.CylindricalJoint:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateAngular<ElementaryDot1>( "D1_VN", ConstraintRowData.Def.U ),
-            ElementaryDef.CreateAngular<ElementaryDot1>( "D1_UN", ConstraintRowData.Def.V ),
-            ElementaryDef.CreateLinear<ElementaryDot2>( "D2_U", ConstraintRowData.Def.U ),
-            ElementaryDef.CreateLinear<ElementaryDot2>( "D2_V", ConstraintRowData.Def.V ),
-            ElementaryDef.CreateLinear<RangeController>( "RT", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateAngular<RangeController>( "RR", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateLinear<TargetSpeedMotor>( "MT", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateAngular<TargetSpeedMotor>( "MR", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateLinear<LockController>( "LT", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateAngular<LockController>( "LR", ConstraintRowData.Def.N )
-          };
-          break;
-        case ConstraintType.BallJoint:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateLinear<ElementarySphericalRel>( "SR" )
-          };
-          break;
-        case ConstraintType.AngularLockJoint:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateAngular<ElementaryQuatLock>( "QL" )
-          };
-          break;
-        case ConstraintType.DistanceJoint:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateLinear<RangeController>( "RT", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateLinear<TargetSpeedMotor>( "MT", ConstraintRowData.Def.N ),
-            ElementaryDef.CreateLinear<LockController>( "LT", ConstraintRowData.Def.N )
-          };
-          break;
-        case ConstraintType.PlaneJoint:
-          elements = new List<ElementaryDef>
-          {
-            ElementaryDef.CreateLinear<ElementaryContactNormal>( "CN", ConstraintRowData.Def.N )
-          };
-          break;
-        default:
-          Debug.LogError( "Unknown constraint type: " + type + "." );
-          break;
-      }
-
-      if ( elements == null )
-        return null;
-
-      GameObject constraintGameObject = givenGameObject ?? new GameObject( Factory.CreateName( "AgXUnity." + type ) );
-      Constraint constraint           = constraintGameObject.AddComponent<Constraint>();
-      constraint.m_attachmentPair     = ScriptAsset.Create<ConstraintAttachmentPair>();
-      constraint.m_type               = type;
-
-      foreach ( var element in elements ) {
-        ElementaryConstraint ec = (ElementaryConstraint)constraintGameObject.AddComponent( element.Type );
-        ec.NativeName = element.Name;
-
-        ec.RowData = new ConstraintRowData[ ec.NumRows ];
-        for ( int i = 0; i < ec.RowData.Length; ++i )
-          ec.RowData[ i ] = new ConstraintRowData();
-
-        // Check if the element supports enhanced editor description.
-        for ( int i = 0; ec.NumRows == element.Variables.Count && i < ec.NumRows; ++i )
-          ec.RowData[ i ].Definition = element.Variables[ i ];
-      }
-
-      return constraint;
     }
 
-    private agx.Constraint m_native = null;
-    public agx.Constraint Native { get { return m_native; } }
-
-    [SerializeField]
-    private ConstraintType m_type = ConstraintType.Hinge;
-
-    [HideInInspector]
-    public ConstraintType Type { get { return m_type; } }
-
-    public Type NativeType { get { return System.Type.GetType( "agx." + m_type + ", agxDotNet" ); } }
-
+    /// <summary>
+    /// Attachment pair of this constraint, holding parent objects and transforms.
+    /// Paired with property AttachmentPair.
+    /// </summary>
     [SerializeField]
     private ConstraintAttachmentPair m_attachmentPair = null;
 
+    /// <summary>
+    /// Attachment pair of this constraint, holding parent objects and transforms.
+    /// </summary>
     [HideInInspector]
-    public ConstraintAttachmentPair AttachmentPair { get { return m_attachmentPair; } }
+    public ConstraintAttachmentPair AttachmentPair
+    {
+      get
+      {
+        if ( m_attachmentPair == null )
+          m_attachmentPair = ConstraintAttachmentPair.Create<ConstraintAttachmentPair>();
+        return m_attachmentPair;
+      }
+    }
 
+    /// <summary>
+    /// Type of this constraint. Paired with property Type.
+    /// </summary>
+    [SerializeField]
+    private ConstraintType m_type = ConstraintType.Hinge;
+
+    /// <summary>
+    /// Type of this constraint.
+    /// </summary>
+    [HideInInspector]
+    public ConstraintType Type
+    {
+      get { return m_type; }
+      private set
+      {
+        m_type = value;
+      }
+    }
+
+    /// <summary>
+    /// Type of the native instance constructed from agxDotNet.dll and current ConstraintType.
+    /// </summary>
+    public Type NativeType { get { return System.Type.GetType( "agx." + m_type + ", agxDotNet" ); } }
+
+    /// <summary>
+    /// Native instance if this constraint is initialized - otherwise null.
+    /// </summary>
+    public agx.Constraint Native { get; private set; }
+
+    /// <summary>
+    /// List of elementary constraints in this constraint - controllers and ordinary.
+    /// </summary>
+    [SerializeField]
+    private List<ElementaryConstraint> m_elementaryConstraints = new List<ElementaryConstraint>();
+
+    /// <summary>
+    /// Array of elementary constraints in this constraint - controllers and ordinary.
+    /// </summary>
+    [HideInInspector]
+    public ElementaryConstraint[] ElementaryConstraints { get { return m_elementaryConstraints.ToArray(); } }
+
+    /// <summary>
+    /// Finds and returns an array of ordinary ElementaryConstraint objects, i.e., the ones
+    /// that aren't controllers.
+    /// </summary>
+    /// <returns>Array of ordinary elementary constraints.</returns>
+    public ElementaryConstraint[] GetOrdinaryElementaryConstraints()
+    {
+      return ( from ec in m_elementaryConstraints where ( ec as ElementaryConstraintController ) == null select ec ).ToArray();
+    }
+
+    /// <summary>
+    /// Finds and returns an array of controller elementary constraints, such as motor, lock, range etc.
+    /// </summary>
+    /// <returns>Array of controllers - if present.</returns>
+    public ElementaryConstraintController[] GetElementaryConstraintControllers()
+    {
+      return ( from ec in m_elementaryConstraints where ec is ElementaryConstraintController select ec as ElementaryConstraintController ).ToArray();
+    }
+
+    /// <summary>
+    /// Creates native instance and adds it to the simulation if this constraint
+    /// is properly configured.
+    /// </summary>
+    /// <returns>True if successful.</returns>
     protected override bool Initialize()
     {
-      if ( m_attachmentPair.ReferenceObject == null ) {
+      if ( AttachmentPair.ReferenceObject == null ) {
         Debug.LogError( "Unable to initialize constraint. Reference object must be valid and contain a rigid body component.", this );
         return false;
       }
 
-      m_attachmentPair.Update();
+      // Synchronize frames to make sure connected frame is up to date.
+      AttachmentPair.Update();
 
       RigidBody rb1 = m_attachmentPair.ReferenceObject.GetInitializedComponentInParent<RigidBody>();
       if ( rb1 == null ) {
@@ -161,13 +172,19 @@ namespace AgXUnity
         return false;
       }
 
+      // Native constraint frames.
       agx.Frame f1 = new agx.Frame();
       agx.Frame f2 = new agx.Frame();
+
+      // Note that the native constraint want 'f1' given in rigid body frame, and that
+      // 'ReferenceFrame' may be relative to any object in the children of the body.
       f1.setLocalTranslate( m_attachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
       f1.setLocalRotate( m_attachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
 
       RigidBody rb2 = m_attachmentPair.ConnectedObject != null ? m_attachmentPair.ConnectedObject.GetInitializedComponentInParent<RigidBody>() : null;
       if ( rb2 != null ) {
+        // Note that the native constraint want 'f2' given in rigid body frame, and that
+        // 'ReferenceFrame' may be relative to any object in the children of the body.
         f2.setLocalTranslate( m_attachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
         f2.setLocalRotate( m_attachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
       }
@@ -177,17 +194,32 @@ namespace AgXUnity
       }
 
       try {
-        m_native = (agx.Constraint)Activator.CreateInstance( NativeType, new object[] { rb1.Native, f1, ( rb2 != null ? rb2.Native : null ), f2 } );
+        Native = (agx.Constraint)Activator.CreateInstance( NativeType, new object[] { rb1.Native, f1, ( rb2 != null ? rb2.Native : null ), f2 } );
+
+        // Assigning native elementary constraints to our elementary constraint instances.
+        foreach ( ElementaryConstraint ec in ElementaryConstraints )
+          if ( !ec.OnConstraintInitialize( this ) )
+            throw new Exception( "Unable to initialize elementary constraint: " + ec.NativeName + " (not present in native constraint)." );
+
+        bool added = GetSimulation().add( Native );
+
+        return added && Native.getValid();
       }
       catch ( System.Exception e ) {
         Debug.LogException( e, gameObject );
+        return false;
       }
-
-      GetSimulation().add( m_native );
-
-      return m_native != null && m_native.getValid() && base.Initialize();
     }
 
+    protected override void OnDestroy()
+    {
+      if ( GetSimulation() != null )
+        GetSimulation().remove( Native );
+
+      Native = null;
+
+      base.OnDestroy();
+    }
 
     private static Mesh m_gizmosMesh = null;
     private static Mesh GetOrCreateGizmosMesh()

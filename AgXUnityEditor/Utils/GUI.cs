@@ -237,6 +237,7 @@ namespace AgXUnityEditor.Utils
     {
       bool guiWasEnabled = UnityEngine.GUI.enabled;
 
+      Undo.RecordObject( frame, "HandleFrame" );
       using ( new Indent( numPixelsIndentation ) ) {
         UnityEngine.GUI.enabled = true;
         GameObject newParent = (GameObject)EditorGUILayout.ObjectField( MakeLabel( "Parent" ), frame.Parent, typeof( GameObject ), true );
@@ -246,7 +247,13 @@ namespace AgXUnityEditor.Utils
           frame.SetParent( newParent );
 
         frame.LocalPosition = Vector3Field( MakeLabel( "Local position" ), frame.LocalPosition, skin.label );
-        frame.LocalRotation = Quaternion.Euler( Vector3Field( MakeLabel( "Local rotation" ), frame.LocalRotation.eulerAngles, skin.label ) );
+
+        // Converting from quaternions to Euler - make sure the actual Euler values has
+        // changed before updating local rotation to not mess up the undo stack.
+        Vector3 inputEuler  = frame.LocalRotation.eulerAngles;
+        Vector3 outputEuler = Vector3Field( MakeLabel( "Local rotation" ), inputEuler, skin.label );
+        if ( !ValueType.Equals( inputEuler, outputEuler ) )
+          frame.LocalRotation = Quaternion.Euler( outputEuler );
 
         Separator();
 
@@ -255,6 +262,22 @@ namespace AgXUnityEditor.Utils
           using ( new Indent( 12 ) )
             frameTool.OnInspectorGUI( skin );
       }
+    }
+
+    public static bool Foldout( EditorData.SelectedState state, GUIContent label, GUISkin skin )
+    {
+      EditorGUILayout.BeginHorizontal();
+      {
+        state.Selected = GUILayout.Button( GUI.MakeLabel( state.Selected ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !state.Selected : state.Selected;
+        GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
+        if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
+          state.Selected = !state.Selected;
+          GUIUtility.ExitGUI();
+        }
+      }
+      EditorGUILayout.EndHorizontal();
+
+      return state.Selected;
     }
 
     private static GUISkin m_editorGUISkin = null;

@@ -44,6 +44,7 @@ namespace AgXUnityEditor.Utils
 
     private static void GenerateEditor( Type type, string path )
     {
+      string classAndFilename = type.ToString().Replace( ".", string.Empty );
       string csFileContent = @"
 using System;
 using AgXUnity;
@@ -53,10 +54,10 @@ using UnityEditor;
 namespace AgXUnityEditor.Editors
 {
   [CustomEditor( typeof( " + type.ToString() + @" ) )]
-  public class " + type.Name + @"Editor : BaseEditor<" + type.ToString() + @">
+  public class " + classAndFilename + @"Editor : BaseEditor<" + type.ToString() + @">
   { }
 }";
-      File.WriteAllText( path + type.Name + "Editor.cs", csFileContent );
+      File.WriteAllText( path + classAndFilename + "Editor.cs", csFileContent );
     }
   }
 }

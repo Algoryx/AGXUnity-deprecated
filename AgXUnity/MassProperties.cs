@@ -130,15 +130,6 @@ namespace AgXUnity
 
       RigidBody.GetInitialized<RigidBody>();
 
-      //// When we're initialized, we've to make sure the rigid body is initialized.
-      //RigidBody rb = GetComponent<RigidBody>();
-      //// Seems a bit random, this will be strange if the rigid body is currently
-      //// being initialized.
-      //if ( rb.State == States.AWAKE )
-      //  rb.GetInitialized<RigidBody>();
-      //else if ( rb.State == States.INITIALIZING && ( !Mass.UseDefault || !InertiaDiagonal.UseDefault ) )
-      //  Debug.LogException( new AgXUnity.Exception( "Rigid body is initializing with non-default mass property. The user values will probably not be propagated correctly." ), rb );
-
       return true;
     }
 

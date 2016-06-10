@@ -43,6 +43,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BaseEditor.cs" />
+    <Compile Include="EditorData.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="Menus\AssetsMenu.cs" />
     <Compile Include="Menus\TopMenu.cs" />

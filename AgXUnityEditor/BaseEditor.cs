@@ -12,115 +12,6 @@ namespace AgXUnityEditor
 {
   public class BaseEditor<T> : UnityEditor.Editor where T : class
   {
-    #region Internal classes
-    private abstract class InvokeWrapper
-    {
-      protected object m_obj = null;
-
-      protected InvokeWrapper( object obj, MemberInfo member )
-      {
-        m_obj  = obj;
-        Member = member;
-      }
-
-      public MemberInfo Member { get; private set; }
-
-      public U GetAttribute<U>() where U : System.Attribute
-      {
-        object[] attributes = Member.GetCustomAttributes( typeof( U ), false );
-        return attributes.Length > 0 ? attributes[ 0 ] as U : null;
-      }
-
-      public bool IsValid( object value )
-      {
-        object[] clampAboveZeroAttributes = Member.GetCustomAttributes( typeof( ClampAboveZeroInInspector ), false );
-        if ( clampAboveZeroAttributes.Length > 0 )
-          return ( clampAboveZeroAttributes[ 0 ] as ClampAboveZeroInInspector ).IsValid( value );
-        return true;
-      }
-
-      /// <summary>
-      /// Checks if the property can read values, i.e., has a getter. This is
-      /// always true for public fields.
-      /// </summary>
-      /// <returns></returns>
-      public virtual bool CanRead() { return true; }
-
-      /// <summary>
-      /// Checks if the property can write values, i.e., has a setter. This
-      /// is always true for public fields.
-      /// </summary>
-      /// <returns></returns>
-      public virtual bool CanWrite() { return true; }
-      
-      /// <summary>
-      /// Returns the type of the field or property.
-      /// </summary>
-      /// <returns>Type of the field of property.</returns>
-      public abstract Type GetContainingType();
-
-      /// <summary>
-      /// Get current value. Note that this will throw if e.g., a property only
-      /// has a setter.
-      /// </summary>
-      /// <typeparam name="U">Type, e.g., bool, Vector3, etc..</typeparam>
-      /// <returns>Current value.</returns>
-      public abstract U Get<U>();
-
-      /// <summary>
-      /// Invoke set method if exist and the input is valid.
-      /// </summary>
-      /// <param name="value">Value to set.</param>
-      /// <returns>true if set method was called with new value.</returns>
-      public abstract bool ConditionalSet( object value );
-    }
-
-    /// <summary>
-    /// Wrapper class for editable fields.
-    /// </summary>
-    private class FieldWrapper : InvokeWrapper
-    {
-      public FieldInfo Field { get { return (FieldInfo)Member; } }
-
-      public FieldWrapper( object obj, FieldInfo fieldInfo )
-        : base( obj, fieldInfo ) { }
-
-      public override Type GetContainingType() { return Field.FieldType; }
-      public override U Get<U>() { return (U)Field.GetValue( m_obj ); }
-      public override bool ConditionalSet( object value )
-      {
-        if ( Field.IsLiteral || !IsValid( value ) )
-          return false;
-        Field.SetValue( m_obj, value );
-        return true;
-      }
-    }
-
-    /// <summary>
-    /// Wrapper class for editable properties.
-    /// </summary>
-    private class PropertyWrapper : InvokeWrapper
-    {
-      public PropertyInfo Property { get { return (PropertyInfo)Member; } }
-
-      public PropertyWrapper( object obj, PropertyInfo propertyInfo )
-        : base( obj, propertyInfo ) { }
-
-      public override bool CanRead() { return Property.GetGetMethod() != null; }
-      public override bool CanWrite() { return Property.GetSetMethod() != null; }
-
-      public override Type GetContainingType() { return Property.PropertyType; }
-      public override U Get<U>() { return (U)Property.GetValue( m_obj, null ); }
-      public override bool ConditionalSet( object value )
-      {
-        if ( Property.GetSetMethod() == null || !IsValid( value ) )
-          return false;
-        Property.SetValue( m_obj, value, null );
-        return true;
-      }
-    }
-    #endregion
-
     public override void OnInspectorGUI()
     {
       DrawMembersGUI( target, target as T, CurrentSkin );
@@ -130,6 +21,8 @@ namespace AgXUnityEditor
     {
       GUISkin guiSkin = EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector );
       guiSkin.label.richText = true;
+      guiSkin.toggle.richText = true;
+      guiSkin.button.richText = true;
 
       Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
 
@@ -195,23 +88,16 @@ namespace AgXUnityEditor
       if ( obj == target )
         Utils.GUI.PreTargetMembers( target, CurrentSkin );
 
-      var fields = from fieldInfo in obj.GetType().GetFields( BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static )
-                   where
-                     ShouldBeShownInInspector( fieldInfo )
-                   select fieldInfo;
-      var properties = from propertyInfo in obj.GetType().GetProperties( BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static )
-                       where
-                         ShouldBeShownInInspector( propertyInfo )
-                       select propertyInfo;
+      bool changed = false;
+      InvokeWrapper[] fieldsAndProperties = InvokeWrapper.FindFieldsAndProperties( obj );
+      foreach ( InvokeWrapper wrapper in fieldsAndProperties )
+        if ( ShouldBeShownInInspector( wrapper.Member ) )
+          changed = HandleType( wrapper, target ) || changed;
+
       var methods = from methodInfo in obj.GetType().GetMethods( BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static )
                     where
                       ShouldBeShownInInspector( methodInfo )
                     select methodInfo;
-
-      bool changed = false;
-
-      fields.ToList().ForEach( fieldInfo => changed = HandleType( new FieldWrapper( obj, fieldInfo ), target ) || changed );
-      properties.ToList().ForEach( propertyInfo => changed = HandleType( new PropertyWrapper( obj, propertyInfo ), target ) || changed );
       methods.ToList().ForEach( methodInfo => changed = HandleMethod( methodInfo, target ) || changed );
 
       return changed;
@@ -238,7 +124,7 @@ namespace AgXUnityEditor
       return invoked;
     }
 
-    private static bool HandleType( InvokeWrapper wrapper, T target )
+    public static bool HandleType( InvokeWrapper wrapper, T target )
     {
       if ( target != null && target is UnityEngine.Object )
         Undo.RecordObject( target as UnityEngine.Object, "" );
@@ -304,10 +190,18 @@ namespace AgXUnityEditor
       }
       else if ( type == typeof( RangeReal ) ) {
         RangeReal valInField = wrapper.Get<RangeReal>();
+
         EditorGUILayout.BeginHorizontal();
-        valInField.Min = EditorGUILayout.FloatField( "Min", (float)valInField.Min, CurrentSkin.textField );
-        valInField.Max = EditorGUILayout.FloatField( "Max", (float)valInField.Max, CurrentSkin.textField );
+        {
+          GUILayout.Label( MakeLabel( wrapper.Member ), CurrentSkin.label );
+          valInField.Min = EditorGUILayout.FloatField( "", (float)valInField.Min, CurrentSkin.textField, GUILayout.MaxWidth( 64 ) );
+          valInField.Max = EditorGUILayout.FloatField( "", (float)valInField.Max, CurrentSkin.textField, GUILayout.MaxWidth( 64 ) );
+        }
         EditorGUILayout.EndHorizontal();
+
+        if ( valInField.Min > valInField.Max )
+          valInField.Min = valInField.Max;
+
         value = valInField;
       }
       else if ( type == typeof( string ) && wrapper.CanRead() ) {
@@ -385,12 +279,12 @@ namespace AgXUnityEditor
       if ( array == null )
         return;
 
-      if ( array.GetType().GetElementType() == typeof( ConstraintRowData ) ) {
-        foreach ( ConstraintRowData crd in array ) {
+      if ( array.GetType().GetElementType() == typeof( AgXUnity.Deprecated.ConstraintRowData ) ) {
+        foreach ( AgXUnity.Deprecated.ConstraintRowData crd in array ) {
           if ( Utils.GUI.Prefs.SetBool( crd, EditorGUILayout.Foldout( Utils.GUI.Prefs.GetOrCreateBool( crd ), crd.DefinitionString ) ) ) {
             bool changed = DrawMembersGUI( crd, target, CurrentSkin );
             if ( changed )
-              ( target as ElementaryConstraint ).OnRowDataChanged();
+              ( target as AgXUnity.Deprecated.ElementaryConstraint ).OnRowDataChanged();
           }
         }
       }
@@ -431,9 +325,13 @@ namespace AgXUnityEditor
       }
     }
 
-    private static GUIContent MakeLabel( MemberInfo field )
+    public static bool IgnoreMakeLabelCalls = false;
+    public static GUIContent MakeLabel( MemberInfo field )
     {
       GUIContent guiContent = new GUIContent();
+      if ( IgnoreMakeLabelCalls )
+        return guiContent;
+
       guiContent.text = field.Name.SplitCamelCase();
       object[] descriptions = field.GetCustomAttributes( typeof( DescriptionAttribute ), true );
       if ( descriptions.Length > 0 )

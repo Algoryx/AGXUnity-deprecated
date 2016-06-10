@@ -63,7 +63,7 @@ namespace AgXUnity
     }
 
     [SerializeField]
-    private RangeReal m_brakeForceRange = new RangeReal() { Min = 0.0, Max = 0.0 };
+    private RangeReal m_brakeForceRange = new RangeReal() { Min = 0f, Max = 0f };
     public RangeReal BrakeForceRange
     {
       get { return m_brakeForceRange; }

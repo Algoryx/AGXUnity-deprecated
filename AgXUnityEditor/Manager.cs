@@ -57,6 +57,11 @@ namespace AgXUnityEditor
     public static bool IsCameraControl { get; private set; }
     
     /// <summary>
+    /// Editor data object containing tools/editor specific, session persistent, data.
+    /// </summary>
+    public static EditorData EditorData { get { return VisualsParent.GetOrCreateComponent<EditorData>(); } }
+
+    /// <summary>
     /// Constructor called when the Unity editor is initialized.
     /// </summary>
     static Manager()
@@ -66,10 +71,8 @@ namespace AgXUnityEditor
       SceneView.onSceneGUIDelegate             += OnSceneView;
       EditorApplication.hierarchyWindowChanged += OnHierarchyWindowChanged;
 
-      m_visualsParent = GameObject.Find( m_visualParentName );
-
-      while ( m_visualsParent != null && m_visualsParent.transform.childCount > 0 )
-        GameObject.DestroyImmediate( m_visualsParent.transform.GetChild( 0 ).gameObject );
+      while ( VisualsParent != null && VisualsParent.transform.childCount > 0 )
+        GameObject.DestroyImmediate( VisualsParent.transform.GetChild( 0 ).gameObject );
 
       MouseOverObjectIncludingHidden = null;
       MouseOverObject                = null;
@@ -147,13 +150,8 @@ namespace AgXUnityEditor
       if ( primitive == null || primitive.Node == null )
         return;
 
-      if ( m_visualsParent == null ) {
-        m_visualsParent = new GameObject( m_visualParentName );
-        m_visualsParent.hideFlags = HideFlags.HideAndDontSave;
-      }
-
-      if ( primitive.Node.transform.parent != m_visualsParent )
-        m_visualsParent.AddChild( primitive.Node );
+      if ( primitive.Node.transform.parent != VisualsParent )
+        VisualsParent.AddChild( primitive.Node );
 
       m_visualPrimitives.Add( primitive );
     }
@@ -176,6 +174,19 @@ namespace AgXUnityEditor
     private static string m_visualParentName = "Manager".To32BitFnv1aHash().ToString();
     private static GameObject m_visualsParent = null;
     private static HashSet<Utils.VisualPrimitive> m_visualPrimitives = new HashSet<Utils.VisualPrimitive>();
+
+    private static GameObject VisualsParent
+    {
+      get
+      {
+        if ( m_visualsParent == null ) {
+          m_visualsParent = GameObject.Find( m_visualParentName ) ?? new GameObject( m_visualParentName );
+          m_visualsParent.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector | HideFlags.DontSaveInBuild;
+        }
+
+        return m_visualsParent;
+      }
+    }
 
     private static void OnSceneView( SceneView sceneView )
     {
@@ -271,6 +282,9 @@ namespace AgXUnityEditor
       if ( scene != null && scene.name != m_currentSceneName ) {
         m_currentSceneName = scene.name;
 
+        if ( !EditorApplication.isPlaying && VisualsParent.GetComponent<EditorData>() != null )
+          Component.DestroyImmediate( VisualsParent.GetComponent<EditorData>() );
+
         // There shouldn't be any MassProperties components since we've
         // changed them to be ScriptAssets.
         AgXUnity.RigidBody[] bodies = UnityEngine.Object.FindObjectsOfType<AgXUnity.RigidBody>();
@@ -278,7 +292,7 @@ namespace AgXUnityEditor
           Component[] components = rb.GetComponents<Component>();
           foreach ( var component in components ) {
             if ( component.GetType() == typeof( AgXUnity.MassProperties ) ) {
-              Debug.Log( "Updating RigidBody by removing MassProperties component - copying the values to the new MassProperties instance." );
+              Debug.Log( "Updating RigidBody by removing MassProperties component - copying the values to the new MassProperties instance.", rb.gameObject );
               AgXUnity.MassProperties currentMassProperties = rb.MassProperties;
               FieldInfo[] fields = component.GetType().GetFields( BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly );
               foreach ( var f in fields ) {
@@ -292,6 +306,36 @@ namespace AgXUnityEditor
           // 'm_rb' in MassProperties has been overwritten during the update. Update reference.
           if ( rb.MassProperties.RigidBody == null )
             rb.MassProperties.RigidBody = rb;
+        }
+
+        AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
+        foreach ( var constraint in constraints ) {
+          bool isOldVersion = ( from component in constraint.GetComponents<Component>() where component == null select component ).ToArray().Length > 0 &&
+                              constraint.ElementaryConstraints.Length == 0;
+          if ( !isOldVersion )
+            continue;
+
+          if ( EditorUtility.DisplayDialog( "Update \"" + constraint.name + "\" (type: " + constraint.Type + ") to the new version?",
+                                            "The game object will be deleted and a new will be created with the same Reference/Connected setup. All data such as compliance, damping, motor speed etc. will be lost.",
+                                            "Update", "Ignore" ) ) {
+            AgXUnity.Constraint newConstraint = AgXUnity.Constraint.Create( constraint.Type );
+
+            newConstraint.AttachmentPair.ReferenceObject              = constraint.AttachmentPair.ReferenceObject;
+            newConstraint.AttachmentPair.ReferenceFrame.LocalPosition = constraint.AttachmentPair.ReferenceFrame.LocalPosition;
+            newConstraint.AttachmentPair.ReferenceFrame.LocalRotation = constraint.AttachmentPair.ReferenceFrame.LocalRotation;
+
+            newConstraint.AttachmentPair.Synchronized                 = constraint.AttachmentPair.Synchronized;
+
+            newConstraint.AttachmentPair.ConnectedObject              = constraint.AttachmentPair.ConnectedObject;
+            newConstraint.AttachmentPair.ConnectedFrame.LocalPosition = constraint.AttachmentPair.ConnectedFrame.LocalPosition;
+            newConstraint.AttachmentPair.ConnectedFrame.LocalRotation = constraint.AttachmentPair.ConnectedFrame.LocalRotation;
+
+            newConstraint.name = constraint.name;
+
+            GameObject.DestroyImmediate( constraint.gameObject );
+
+            Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
+          }
         }
       }
     }
