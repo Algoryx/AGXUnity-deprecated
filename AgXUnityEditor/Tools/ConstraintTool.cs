@@ -131,7 +131,6 @@ namespace AgXUnityEditor.Tools
       {
         m_guiWasEnabled = UnityEngine.GUI.enabled;
 
-        wrapper.Object = row != null ? row.RowData : null;
         if ( row != null )
           Undo.RecordObject( row.ElementaryConstraint, "RowUpdate" );
 
@@ -182,11 +181,12 @@ namespace AgXUnityEditor.Tools
     {
       RowLabel( rowIndex, skin );
 
+      var rowData = row != null ? row.RowData : null;
       object value = null;
       if ( wrapper.IsType<float>() )
-        value = EditorGUILayout.FloatField( wrapper.Get<float>() );
+        value = EditorGUILayout.FloatField( wrapper.Get<float>( rowData ) );
       else if ( wrapper.IsType<RangeReal>() ) {
-        RangeReal currValue = wrapper.Get<RangeReal>();
+        RangeReal currValue = wrapper.Get<RangeReal>( rowData );
         if ( value == null )
           currValue = new RangeReal();
 
@@ -201,7 +201,7 @@ namespace AgXUnityEditor.Tools
       else {
       }
 
-      if ( wrapper.ConditionalSet( value ) )
+      if ( wrapper.ConditionalSet( rowData, value ) )
         EditorUtility.SetDirty( Constraint );
     }
 
