@@ -171,7 +171,6 @@ namespace AgXUnity
 
     protected override void Construct()
     {
-      Debug.Log( FrictionCoefficients, this );
     }
 
     protected override bool Initialize()

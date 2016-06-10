@@ -292,7 +292,7 @@ namespace AgXUnityEditor
           Component[] components = rb.GetComponents<Component>();
           foreach ( var component in components ) {
             if ( component.GetType() == typeof( AgXUnity.MassProperties ) ) {
-              Debug.Log( "Updating RigidBody by removing MassProperties component - copying the values to the new MassProperties instance." );
+              Debug.Log( "Updating RigidBody by removing MassProperties component - copying the values to the new MassProperties instance.", rb.gameObject );
               AgXUnity.MassProperties currentMassProperties = rb.MassProperties;
               FieldInfo[] fields = component.GetType().GetFields( BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly );
               foreach ( var f in fields ) {
@@ -334,7 +334,7 @@ namespace AgXUnityEditor
 
             GameObject.DestroyImmediate( constraint.gameObject );
 
-            Debug.Log( "Constraint: " + newConstraint.name + " updated." );
+            Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
           }
         }
       }
