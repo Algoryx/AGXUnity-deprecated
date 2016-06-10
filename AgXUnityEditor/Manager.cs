@@ -300,6 +300,8 @@ namespace AgXUnityEditor
                   f.SetValue( currentMassProperties, f.GetValue( component ) );
               }
               Component.DestroyImmediate( component );
+
+              UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
             }
           }
 
@@ -335,6 +337,8 @@ namespace AgXUnityEditor
             GameObject.DestroyImmediate( constraint.gameObject );
 
             Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
       }
