@@ -75,7 +75,7 @@ namespace AgXUnityEditor.Tools
           {
             Frame.SetParent( data.Target );
             Frame.Position = data.Triangle.Point;
-            Frame.Rotation = FindRotationGivenParentTool( data.Triangle.ClosestEdge.Direction, data.Triangle.Normal );
+            Frame.Rotation = data.Rotation;
 
             OnLocalToolDone( pointTool );
           };
@@ -100,8 +100,8 @@ namespace AgXUnityEditor.Tools
           edgeTool.OnEdgeFound += data =>
           {
             Frame.SetParent( data.Target );
-            Frame.Position = 0.5f * ( data.EdgeData.Edge.Start + data.EdgeData.Edge.End );
-            Frame.Rotation = FindRotationGivenParentTool( data.EdgeData.Edge.Direction, data.EdgeData.Edge.Normal );
+            Frame.Position = data.Position;
+            Frame.Rotation = data.Rotation;
 
             OnLocalToolDone( edgeTool );
           };
@@ -212,15 +212,15 @@ namespace AgXUnityEditor.Tools
         GUI.ToolsLabel( skin );
 
         using ( GUI.ToolButtonData.ColorBlock ) {
-          toggleSelectParent = GUILayout.Button( GUI.MakeLabel( selectInSceneViewSymbol.ToString(), false, "Select parent object in scene view" ),
+          toggleSelectParent = GUILayout.Button( GUI.MakeLabel( selectInSceneViewSymbol.ToString(), false, "Select parent object by selecting object in scene view" ),
                                                  GUI.ConditionalCreateSelectedStyle( SelectParent, GUI.ToolButtonData.Style( skin ) ),
                                                  new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
           UnityEngine.GUI.enabled = guiWasEnabled;
 
-          toggleFindGivenPoint = GUILayout.Button( GUI.MakeLabel( selectPointSymbol.ToString(), false, "Find position and direction given surface" ),
+          toggleFindGivenPoint = GUILayout.Button( GUI.MakeLabel( selectPointSymbol.ToString(), false, "Find position and rotation given point and direction on an objects surface" ),
                                                    GUI.ConditionalCreateSelectedStyle( FindTransformGivenPointOnSurface, GUI.ToolButtonData.Style( skin ) ),
                                                    new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
-          toggleSelectEdge = GUILayout.Button( GUI.MakeLabel( selectEdgeSymbol.ToString(), false, "Find position and direction given edge" ),
+          toggleSelectEdge = GUILayout.Button( GUI.MakeLabel( selectEdgeSymbol.ToString(), false, "Find position and rotation given a triangle or principal edge" ),
                                                GUI.ConditionalCreateSelectedStyle( FindTransformGivenEdge, GUI.ToolButtonData.Style( skin ) ),
                                                 new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
           togglePositionHandle = GUILayout.Button( GUI.MakeLabel( positionHandleSymbol.ToString(), false, "Position/rotation handle" ),
@@ -262,21 +262,6 @@ namespace AgXUnityEditor.Tools
     {
       if ( OnChangeDirtyTarget != null )
         EditorUtility.SetDirty( OnChangeDirtyTarget );
-    }
-
-    /// <summary>
-    /// Wire tools normally desires forward to be the normal. Constraint tools normally
-    /// desires forward to be the edge.
-    /// </summary>
-    /// <param name="edgeDirection">Direction of the closest edge.</param>
-    /// <param name="normal">Normal to surface/edge.</param>
-    /// <returns>Rotation with either normal as forward (wires) or edge (constraints).</returns>
-    private Quaternion FindRotationGivenParentTool( Vector3 edgeDirection, Vector3 normal )
-    {
-      if ( GetActiveTool<WireTool>() != null )
-        return Quaternion.LookRotation( normal, edgeDirection );
-      else
-        return Quaternion.LookRotation( edgeDirection, normal );
     }
   }
 }

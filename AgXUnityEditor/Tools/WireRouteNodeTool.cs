@@ -63,7 +63,7 @@ namespace AgXUnityEditor.Tools
       Visual.SetTransform( Node.Frame.Position, Node.Frame.Rotation, radius, true, 2f * Node.Wire.Radius, Mathf.Max( 1.5f * Node.Wire.Radius, 0.25f ) );
     }
 
-    private void OnClick( Utils.VisualPrimitive primitive )
+    private void OnClick( AgXUnity.Utils.Raycast.Hit hit, Utils.VisualPrimitive primitive )
     {
       Selected = true;
     }

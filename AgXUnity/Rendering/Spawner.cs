@@ -10,7 +10,8 @@ namespace AgXUnity.Rendering
       Capsule,
       Cylinder,
       Plane,
-      Sphere
+      Sphere,
+      Constraint
     }
 
     public static GameObject Create( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
@@ -28,8 +29,10 @@ namespace AgXUnity.Rendering
       if ( gameObject == null )
         return;
 
-      if ( gameObject.GetComponent<MeshRenderer>() != null )
-        GameObject.DestroyImmediate( gameObject.GetComponent<MeshRenderer>().sharedMaterial );
+      MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+      foreach ( var renderer in renderers )
+        GameObject.DestroyImmediate( renderer.sharedMaterial );
+
       GameObject.DestroyImmediate( gameObject );
     }
 
@@ -46,9 +49,12 @@ namespace AgXUnity.Rendering
       if ( shader == null )
         throw new AgXUnity.Exception( "Enable to load shader: " + shaderName );
 
-      gameObject.GetComponent<MeshRenderer>().sharedMaterial = new Material( shader );
-      gameObject.GetComponent<MeshRenderer>().sharedMaterial.color = Color.yellow;
-
+      MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+      foreach ( var renderer in renderers ) {
+        renderer.sharedMaterial = new Material( shader );
+        renderer.sharedMaterial.color = Color.yellow;
+      }
+      
       return gameObject;
     }
 

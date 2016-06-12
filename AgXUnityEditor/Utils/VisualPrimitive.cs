@@ -69,6 +69,9 @@ namespace AgXUnityEditor.Utils
       get { return m_mouseOverNode; }
       set
       {
+        if ( m_mouseOverNode == value )
+          return;
+
         m_mouseOverNode = value;
         UpdateColor();
       }
@@ -88,11 +91,7 @@ namespace AgXUnityEditor.Utils
 
     public MoveToAction CurrentMoveToAction { get; set; }
 
-    public delegate void OnMouseClickDelegate( VisualPrimitive primitive );
-
-    public event OnMouseClickDelegate OnMouseClick = delegate {};
-
-    public void FireOnMouseClick() { OnMouseClick( this ); }
+    public System.Action<AgXUnity.Utils.Raycast.Hit, VisualPrimitive> OnMouseClick = delegate {};
 
     public void Destruct()
     {
@@ -129,6 +128,13 @@ namespace AgXUnityEditor.Utils
                size;
     }
 
+    protected Vector3 ConditionalConstantScreenSize( bool constantScreenSize, Vector3 size, Vector3 position )
+    {
+      return constantScreenSize ?
+               Vector3.Scale( size, HandleUtility.GetHandleSize( position ) * Vector3.one ) :
+               size;
+    }
+
     private GameObject CreateNode()
     {
       string name = ( GetType().Namespace != null ? GetType().Namespace : "" ) + "." + GetType().Name;
@@ -140,11 +146,9 @@ namespace AgXUnityEditor.Utils
       if ( Node == null )
         return;
 
-      Renderer renderer = Node.GetComponent<Renderer>();
-      if ( m_mouseOverNode )
-        renderer.sharedMaterial.color = MouseOverColor;
-      else
-        renderer.sharedMaterial.color = Color;
+      var renderers = Node.GetComponentsInChildren<MeshRenderer>();
+      foreach ( var renderer in renderers )
+        renderer.sharedMaterial.color = m_mouseOverNode ? MouseOverColor : Color;
     }
   }
 
@@ -217,6 +221,24 @@ namespace AgXUnityEditor.Utils
 
     public VisualPrimitivePlane( string shader = "Unlit/Color" )
       : base( AgXUnity.Rendering.Spawner.Primitive.Plane, shader )
+    {
+    }
+  }
+
+  public class VisualPrimitiveArrow : VisualPrimitive
+  {
+    public void SetTransform( Vector3 position, Quaternion rotation, Vector3 scale, bool constantScreenSize = true )
+    {
+      if ( Node == null )
+        return;
+
+      Node.transform.localScale = ConditionalConstantScreenSize( constantScreenSize, scale, position );
+      Node.transform.position   = position;
+      Node.transform.rotation   = rotation;
+    }
+
+    public VisualPrimitiveArrow( string shader = "Unlit/Color" )
+      : base( AgXUnity.Rendering.Spawner.Primitive.Constraint, shader )
     {
     }
   }
