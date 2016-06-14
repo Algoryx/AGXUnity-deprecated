@@ -14,7 +14,7 @@ namespace AgXUnity.Rendering
   public class ShapeDebugRenderData : DebugRenderData
   {
     /// <summary>
-    /// Typename is shape type - prefabs in Resources folder has been
+    /// Type name is shape type - prefabs in Resources folder has been
     /// named to fit these names.
     /// </summary>
     /// <returns></returns>
@@ -74,7 +74,7 @@ namespace AgXUnity.Rendering
     /// create the render node).
     /// </summary>
     /// <param name="shape">Shape this component belongs to.</param>
-    public void SynchronizeScale( Collide.Shape shape )
+    public void SynchronizeScale( Shape shape )
     {
       if ( Node == null )
         return;
@@ -87,16 +87,16 @@ namespace AgXUnity.Rendering
           m_storedLossyScale = transform.lossyScale;
         }
       }
-      else if ( shape is Collide.Capsule ) {
+      else if ( shape is Capsule ) {
         if ( Node.transform.childCount != 3 )
           throw new Exception( "Capsule debug rendering node doesn't contain three children." );
 
-        Collide.Capsule capsule   = shape as Capsule;
-        Transform cylinder        = Node.transform.GetChild( 0 );
-        Transform sphereUpper     = Node.transform.GetChild( 1 );
+        Capsule capsule           = shape as Capsule;
+        Transform sphereUpper     = Node.transform.GetChild( 0 );
+        Transform cylinder        = Node.transform.GetChild( 1 );
         Transform sphereLower     = Node.transform.GetChild( 2 );
 
-        cylinder.localScale       = new Vector3( 2.0f * capsule.Radius, 0.5f * capsule.Height, 2.0f * capsule.Radius );
+        cylinder.localScale       = new Vector3( 2.0f * capsule.Radius, capsule.Height, 2.0f * capsule.Radius );
 
         sphereUpper.localScale    = 2.0f * capsule.Radius * Vector3.one;
         sphereUpper.localPosition = 0.5f * capsule.Height * Vector3.up;
@@ -106,24 +106,58 @@ namespace AgXUnity.Rendering
       }
     }
 
+    public static Color FindSelectedShapeColor( Shape shape )
+    {
+      GameObject topSelected = DebugRenderManager.EditorActiveGameObject ?? shape.gameObject;
+      if ( topSelected.GetComponentInChildren<RigidBody>() != null )
+        return new Color( 0.05f, 0.05f, 0.45f, 0.25f );
+      return new Color( 0.25f, 0.05f, 0.05f, 0.25f );
+    }
+
+    public void OnDrawGizmosSelected( Shape shape )
+    {
+      if ( Node == null )
+        return;
+      
+      Gizmos.color = FindSelectedShapeColor( shape );
+      if ( shape is Capsule ) {
+        MeshFilter[] filters = Node.GetComponentsInChildren<MeshFilter>();
+        CombineInstance[] combine = new CombineInstance[ filters.Length ];
+        for ( int i = 0; i < filters.Length; ++i ) {
+          combine[ i ].mesh = filters[ i ].sharedMesh;
+          combine[ i ].transform = filters[ i ].transform.localToWorldMatrix;
+        }
+
+        UnityEngine.Mesh tmpMesh = new UnityEngine.Mesh();
+        tmpMesh.CombineMeshes( combine );
+
+        Gizmos.DrawWireMesh( tmpMesh, Vector3.zero, Quaternion.identity );
+      }
+      else {
+        MeshFilter[] meshes = Node.GetComponentsInChildren<MeshFilter>();
+        foreach ( var mesh in meshes )
+          Gizmos.DrawWireMesh( mesh.sharedMesh, transform.position, transform.rotation, shape.GetScale() );
+      }
+    }
+
     /// <summary>
     /// If no "Node" instance, this method tries to create one
     /// given the Collide.Shape component in this game object.
     /// </summary>
     /// <returns>True if the node was created - otherwise false.</returns>
-    private bool TryInitialize( Collide.Shape shape )
+    private bool TryInitialize( Shape shape )
     {
       if ( Node != null )
         return false;
 
-      Collide.Mesh mesh               = shape as Collide.Mesh;
-      Collide.HeightField heightField = shape as Collide.HeightField;
+      Collide.Mesh mesh       = shape as Collide.Mesh;
+      HeightField heightField = shape as HeightField;
       if ( mesh != null )
         Node = InitializeMesh( mesh );
       else if ( heightField != null )
         Node = InitializeHeightField( heightField );
       else {
-        Node = PrefabLoader.Instantiate( PrefabName );
+        Node = PrefabLoader.Instantiate<GameObject>( PrefabName );
         Node.transform.localScale = GetShape().GetScale();
       }
 
@@ -132,7 +166,7 @@ namespace AgXUnity.Rendering
 
     /// <summary>
     /// Initializes and returns a game object if the Collide.Shape type
-    /// is of type mesh. Fails the the shape type is different from mesh.
+    /// is of type mesh. Fails if the shape type is different from mesh.
     /// </summary>
     /// <returns>Game object with mesh renderer.</returns>
     private GameObject InitializeMesh( Collide.Mesh mesh )
@@ -192,7 +226,7 @@ namespace AgXUnity.Rendering
       Vector3[] sourceVertices = mesh.SourceObject.vertices;
 
       // Transforms each vertex from local to world given scales, then
-      // transfroms each vertex back to local again - unscaled.
+      // transforms each vertex back to local again - unscaled.
       for ( int i = 0; i < vertices.Length; ++i ) {
         Vector3 worldVertex = scaledToWorld * sourceVertices[ i ];
         vertices[ i ]       = mesh.transform.InverseTransformDirection( worldVertex );

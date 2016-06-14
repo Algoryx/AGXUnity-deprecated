@@ -28,6 +28,11 @@ namespace AgXUnity.Utils
       public Vector3 Start;
 
       /// <summary>
+      /// Center point.
+      /// </summary>
+      public Vector3 Center { get { return 0.5f * ( Start + End ); } }
+
+      /// <summary>
       /// End point.
       /// </summary>
       public Vector3 End;

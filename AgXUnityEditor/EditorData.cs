@@ -8,6 +8,8 @@ using AgXUnity.Utils;
 
 namespace AgXUnityEditor
 {
+  // TODO: Fix so that this object is stored with m_visualsParent in the Manager.
+  // It's possible to get some errors using HideFlags.HideInHierarchy | HideFlags.HideInInspector | HideFlags.DontSaveInBuild.
   public class EditorData : ScriptComponent
   {
     [Serializable]

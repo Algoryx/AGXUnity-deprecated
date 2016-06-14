@@ -16,19 +16,9 @@ namespace AgXUnityEditor
   public static class Manager
   {
     /// <summary>
-    /// The game object mouse is currently over in scene view.
-    /// </summary>
-    /// <remarks>
-    /// This object could be a VisualPrimitive which in general isn't detectable
-    /// by picking.
-    /// </remarks>
-    public static GameObject MouseOverObjectIncludingHidden { get; private set; }
-
-    /// <summary>
     /// The game object mouse is currently over in scene view. Hidden objects,
     /// e.g., VisualPrimitive isn't included in this.
     /// </summary>
-    /// <seealso cref="MouseOverObjectIncludingHidden"/>
     public static GameObject MouseOverObject { get; private set; }
 
     /// <summary>
@@ -74,8 +64,7 @@ namespace AgXUnityEditor
       while ( VisualsParent != null && VisualsParent.transform.childCount > 0 )
         GameObject.DestroyImmediate( VisualsParent.transform.GetChild( 0 ).gameObject );
 
-      MouseOverObjectIncludingHidden = null;
-      MouseOverObject                = null;
+      MouseOverObject = null;
     }
 
     /// <summary>
@@ -150,6 +139,8 @@ namespace AgXUnityEditor
       if ( primitive == null || primitive.Node == null )
         return;
 
+      // TODO: Fix so that "MouseOver" works for newly created primitives.
+
       if ( primitive.Node.transform.parent != VisualsParent )
         VisualsParent.AddChild( primitive.Node );
 
@@ -181,7 +172,7 @@ namespace AgXUnityEditor
       {
         if ( m_visualsParent == null ) {
           m_visualsParent = GameObject.Find( m_visualParentName ) ?? new GameObject( m_visualParentName );
-          m_visualsParent.hideFlags = HideFlags.HideInHierarchy | HideFlags.HideInInspector | HideFlags.DontSaveInBuild;
+          m_visualsParent.hideFlags = HideFlags.HideAndDontSave;
         }
 
         return m_visualsParent;
@@ -216,6 +207,8 @@ namespace AgXUnityEditor
       if ( Selection.activeGameObject != null )
         Selection.activeGameObject = RouteGameObject( Selection.activeGameObject );
 
+      AgXUnity.Rendering.DebugRenderManager.EditorActiveGameObject = Selection.activeGameObject;
+
       Tools.Tool.HandleOnSceneViewGUI( sceneView );
  
       HandleWindowsGUI( sceneView );
@@ -235,35 +228,35 @@ namespace AgXUnityEditor
       MouseOverObject = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, false ) );
 
       // Early exit if we haven't any active visual primitives.
-      if ( m_visualPrimitives.Count == 0 ) {
-        MouseOverObjectIncludingHidden = MouseOverObject;
+      if ( m_visualPrimitives.Count == 0 )
         return;
-      }
 
-      var objHideFlags = new[] { new { hideFlag = HideFlags.None, obj = (Utils.VisualPrimitive)null } }.ToList();
-      objHideFlags.Clear();
+      var primitiveHitList = new[] { new { Primitive = (Utils.VisualPrimitive)null, RaycastResult = Raycast.Hit.Invalid } }.ToList();
+      primitiveHitList.Clear();
 
-      // Set hideFlags to none so that picking detects our objects.
+      Ray mouseRay = HandleUtility.GUIPointToWorldRay( current.mousePosition );
       foreach ( var primitive in m_visualPrimitives ) {
-        if ( primitive.Node == null || !primitive.Pickable )
+        primitive.MouseOver = false;
+
+        if ( !primitive.Pickable )
           continue;
 
-        objHideFlags.Add( new { hideFlag = primitive.Node.hideFlags, obj = primitive } );
-        primitive.Node.hideFlags = HideFlags.None;
+        Raycast.Hit hit = Raycast.Test( primitive.Node, mouseRay, 500f, true );
+        if ( hit.Triangle.Valid )
+          primitiveHitList.Add( new { Primitive = primitive, RaycastResult = hit } );
       }
 
-      MouseOverObjectIncludingHidden = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, false ) );
+      if ( primitiveHitList.Count == 0 )
+        return;
 
-      // Restore hideFlags and update "mouse over" flag. Trigger on select if desired
-      // and mouse is over the object.
-      objHideFlags.ForEach(
-        entry =>
-        {
-          entry.obj.MouseOver      = MouseOverObjectIncludingHidden == entry.obj.Node;
-          entry.obj.Node.hideFlags = entry.hideFlag;
-          if ( entry.obj.MouseOver && HijackLeftMouseClick() )
-            entry.obj.FireOnMouseClick();
-        } );
+      var bestResult = primitiveHitList[ 0 ];
+      for ( int i = 1; i < primitiveHitList.Count; ++i )
+        if ( primitiveHitList[ i ].RaycastResult.Triangle.Distance < bestResult.RaycastResult.Triangle.Distance )
+          bestResult = primitiveHitList[ i ];
+
+      bestResult.Primitive.MouseOver = true;
+      if ( HijackLeftMouseClick() )
+        bestResult.Primitive.OnMouseClick( bestResult.RaycastResult, bestResult.Primitive );
     }
 
     /// <summary>

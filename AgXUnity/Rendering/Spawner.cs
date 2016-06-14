@@ -10,17 +10,18 @@ namespace AgXUnity.Rendering
       Capsule,
       Cylinder,
       Plane,
-      Sphere
+      Sphere,
+      Constraint
     }
 
     public static GameObject Create( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
     {
-      return Create( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return Create( name, @"Debug/" + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
     public static GameObject CreateUnique( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
     {
-      return CreateUnique( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return CreateUnique( name, @"Debug/" + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
     public static void Destroy( GameObject gameObject )
@@ -28,14 +29,16 @@ namespace AgXUnity.Rendering
       if ( gameObject == null )
         return;
 
-      if ( gameObject.GetComponent<MeshRenderer>() != null )
-        GameObject.DestroyImmediate( gameObject.GetComponent<MeshRenderer>().sharedMaterial );
+      MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+      foreach ( var renderer in renderers )
+        GameObject.DestroyImmediate( renderer.sharedMaterial );
+
       GameObject.DestroyImmediate( gameObject );
     }
 
     private static GameObject Create( string name, string objPath, HideFlags hideFlags = HideFlags.HideInHierarchy, string shaderName = "Diffuse" )
     {
-      GameObject gameObject = PrefabLoader.Instantiate( objPath );
+      GameObject gameObject = PrefabLoader.Instantiate<GameObject>( objPath );
       if ( gameObject == null )
         throw new AgXUnity.Exception( "Unable to load renderer: " + objPath );
 
@@ -46,9 +49,12 @@ namespace AgXUnity.Rendering
       if ( shader == null )
         throw new AgXUnity.Exception( "Enable to load shader: " + shaderName );
 
-      gameObject.GetComponent<MeshRenderer>().sharedMaterial = new Material( shader );
-      gameObject.GetComponent<MeshRenderer>().sharedMaterial.color = Color.yellow;
-
+      MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+      foreach ( var renderer in renderers ) {
+        renderer.sharedMaterial = new Material( shader );
+        renderer.sharedMaterial.color = Color.yellow;
+      }
+      
       return gameObject;
     }
 

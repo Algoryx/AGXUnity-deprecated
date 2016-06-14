@@ -109,7 +109,7 @@ namespace AgXUnity.Utils
     /// <param name="segmentStart">Segment start.</param>
     /// <param name="segmentEnd">Segment end.</param>
     /// <returns>Shortest distance between the given point and the line segment.</returns>
-    public static float ShortestDistancePointLine( Vector3 point, Vector3 segmentStart, Vector3 segmentEnd )
+    public static float ShortestDistancePointSegment( Vector3 point, Vector3 segmentStart, Vector3 segmentEnd )
     {
       Vector3 segmentDir = segmentEnd - segmentStart;
       float divisor = segmentDir.sqrMagnitude;
@@ -289,12 +289,18 @@ namespace AgXUnity.Utils
       return m_unitFaces[ System.Convert.ToInt32( direction ) ];
     }
 
-    public PrincipalAxis ToPrincipal( Direction dir )
+    public static PrincipalAxis ToPrincipal( Direction dir )
     {
       return (PrincipalAxis)( System.Convert.ToInt32( dir ) / 2 );
     }
 
-    public float GetSign( Direction dir )
+    public static Direction[] ToDirection( PrincipalAxis axis )
+    {
+      int iAxis = 2 * System.Convert.ToInt32( axis );
+      return new Direction[] { (Direction)iAxis, (Direction)( iAxis + 1 ) };
+    }
+
+    public static float GetSign( Direction dir )
     {
       return 1.0f - 2.0f * ( System.Convert.ToInt32( dir ) % 2 );
     }
@@ -307,6 +313,23 @@ namespace AgXUnity.Utils
     public Vector3 GetWorldFaceDirection( Direction direction )
     {
       return m_shape.transform.TransformDirection( GetLocalFaceDirection( direction ) );
+    }
+
+    public Direction FindDirectionGivenWorldEdge( MeshUtils.Edge worldEdge )
+    {
+      float bestResult      = float.NegativeInfinity;
+      Vector3 edgeDirection = worldEdge.Direction;
+      Direction result      = Direction.Negative_X;
+      foreach ( Direction direction in System.Enum.GetValues( typeof( Direction ) ) ) {
+        Vector3 worldDir = GetWorldFaceDirection( direction );
+        float dotProduct = Vector3.Dot( worldDir, edgeDirection );
+        if ( dotProduct > bestResult ) {
+          bestResult = dotProduct;
+          result = direction;
+        }
+      }
+
+      return result;
     }
 
     public MeshUtils.Edge[] GetPrincipalEdgesWorld( float principalEdgeExtension )

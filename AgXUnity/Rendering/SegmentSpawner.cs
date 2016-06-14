@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using UnityEngine;
 using AgXUnity.Utils;
 
@@ -14,11 +15,18 @@ namespace AgXUnity.Rendering
     [SerializeField]
     private int m_counter = 0;
     [SerializeField]
-    private string m_prefabObjectPath = "";
+    private string m_prefabObjectPath = string.Empty;
 
-    public SegmentSpawner( string prefabObjectPath )
+    [SerializeField]
+    private string m_separateFirstObjectPrefabPath = string.Empty;
+    [SerializeField]
+    private GameObject m_firstSegmentInstance = null;
+
+    public SegmentSpawner( string prefabObjectPath, string separateFirstObjectPath = "" )
     {
       m_prefabObjectPath = prefabObjectPath;
+      if ( separateFirstObjectPath != "" )
+        m_separateFirstObjectPrefabPath = separateFirstObjectPath;
     }
 
     public void Initialize( GameObject parent )
@@ -50,7 +58,7 @@ namespace AgXUnity.Rendering
 
     public GameObject CreateSegment( Vector3 start, Vector3 end, float radius )
     {
-      return CreateSegment( start, end, radius, radius );
+      return CreateSegment( start, end, 2f * radius, 2f * radius );
     }
 
     public GameObject CreateSegment( Vector3 start, Vector3 end, float width, float height )
@@ -63,12 +71,25 @@ namespace AgXUnity.Rendering
 
       GameObject instance = GetInstance();
 
-      Transform main = instance.transform.GetChild( 0 );
-      Transform top = instance.transform.GetChild( 1 );
+      if ( instance == m_firstSegmentInstance ) {
+        Transform top    = instance.transform.GetChild( 0 );
+        Transform main   = instance.transform.GetChild( 1 );
+        Transform bottom = instance.transform.GetChild( 2 );
 
-      main.localScale = new Vector3( width, 0.5f * length, height );
-      top.localScale = new Vector3( width, width, height );
-      top.transform.localPosition = new Vector3( 0, 0.5f * length, 0 );
+        main.localScale                    = new Vector3( width, length, height );
+        top.localScale = bottom.localScale = new Vector3( width, width, height );
+        top.transform.localPosition        =  0.5f * length * Vector3.up;
+        bottom.transform.localPosition     = -0.5f * length * Vector3.up;
+      }
+      else {
+        Transform main = instance.transform.GetChild( 0 );
+        Transform top  = instance.transform.GetChild( 1 );
+
+        main.localScale             = new Vector3( width, length, height );
+        top.localScale              = new Vector3( width, width, height );
+        top.transform.localPosition = new Vector3( 0, 0.5f * length, 0 );
+      }
+
       instance.transform.rotation = Quaternion.FromToRotation( new Vector3( 0, 1, 0 ), startToEnd );
       instance.transform.position = start + 0.5f * length * startToEnd;
 
@@ -80,18 +101,35 @@ namespace AgXUnity.Rendering
       DestroyFrom( m_counter );
     }
 
+    private GameObject GetInstance()
+    {
+      if ( m_separateFirstObjectPrefabPath != string.Empty && m_firstSegmentInstance == null ) {
+        m_firstSegmentInstance = PrefabLoader.Instantiate<GameObject>( m_separateFirstObjectPrefabPath );
+        AddSelectionProxy( m_firstSegmentInstance );
+        Add( m_firstSegmentInstance );
+      }
+      else if ( m_segmentInstance == null ) {
+        m_segmentInstance = PrefabLoader.Instantiate<GameObject>( m_prefabObjectPath );
+        AddSelectionProxy( m_segmentInstance );
+        Add( m_segmentInstance );
+      }
+
+      // Push back new segment if there aren't enough segments already created.
+      int currentChildCount = m_segments.transform.childCount;
+      if ( m_counter == currentChildCount )
+        Add( GameObject.Instantiate( m_segmentInstance ) );
+      else if ( m_counter > currentChildCount )
+        throw new Exception( "Internal counter is not in sync. Counter = " + m_counter + ", #children = " + currentChildCount );
+
+      return m_segments.transform.GetChild( m_counter++ ).gameObject;
+    }
+
     private void DestroyFrom( int index )
     {
-      if ( index < 0 )
-        index = 0;
+      index = Mathf.Max( 0, index );
 
-      if ( m_segments.transform.childCount > index ) {
-        Transform[] children = new Transform[ m_segments.transform.childCount - index ];
-        for ( int i = index; i < m_segments.transform.childCount; ++i )
-          children[ i - index ] = m_segments.transform.GetChild( i );
-        foreach ( Transform child in children )
-          GameObject.DestroyImmediate( child.gameObject );
-      }
+      while ( m_segments.transform.childCount > index )
+        GameObject.DestroyImmediate( m_segments.transform.GetChild( m_segments.transform.childCount - 1 ).gameObject );
     }
 
     private void Add( GameObject child )
@@ -99,20 +137,11 @@ namespace AgXUnity.Rendering
       child.transform.parent = m_segments.transform;
     }
 
-    private GameObject GetInstance()
+    private void AddSelectionProxy( GameObject instance )
     {
-      if ( m_segmentInstance == null ) {
-        m_segmentInstance = PrefabLoader.Instantiate( m_prefabObjectPath );
-        m_segmentInstance.AddComponent<OnSelectionProxy>().Target = m_segments.transform.parent.gameObject;
-        foreach ( Transform child in m_segmentInstance.transform )
-          child.gameObject.AddComponent<OnSelectionProxy>().Target = m_segments.transform.parent.gameObject;
-        Add( m_segmentInstance );
-      }
-
-      while ( m_counter >= m_segments.transform.childCount )
-        Add( GameObject.Instantiate( m_segmentInstance ) as GameObject );
-
-      return m_segments.transform.GetChild( m_counter++ ).gameObject;
+      instance.AddComponent<OnSelectionProxy>().Target = m_segments.transform.parent.gameObject;
+      foreach ( Transform child in instance.transform )
+        child.gameObject.AddComponent<OnSelectionProxy>().Target = m_segments.transform.parent.gameObject;
     }
   }
 }

@@ -8,10 +8,21 @@ namespace AgXUnity
   /// </summary>
   public class PrefabLoader
   {
-    public static GameObject Instantiate( string prefabName )
+    public static T Instantiate<T>( string prefabName ) where T : Object
     {
-      GameObject gameObject = (GameObject)GameObject.Instantiate( Resources.Load<GameObject>( prefabName.Replace( '.', '/' ) ), Vector3.zero, Quaternion.identity );
-      return gameObject;
+      T resource = Resources.Load<T>( prefabName );
+      if ( resource == null )
+        throw new Exception( "Unable to load resource: " + prefabName + " with type: " + typeof( T ).ToString() );
+
+      T obj = Object.Instantiate<T>( resource );
+
+      if ( typeof( T ) == typeof( GameObject ) ) {
+        GameObject go = obj as GameObject;
+        go.transform.position = Vector3.zero;
+        go.transform.rotation = Quaternion.identity;
+      }
+
+      return obj;
     }
   }
 }

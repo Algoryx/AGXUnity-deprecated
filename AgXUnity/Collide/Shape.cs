@@ -242,5 +242,14 @@ namespace AgXUnity.Collide
         transform.rotation = t.getRotate().ToHandedQuaternion();
       }
     }
+
+    private void OnDrawGizmosSelected()
+    {
+      Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
+      if ( data == null )
+        return;
+
+      data.OnDrawGizmosSelected( this );
+    }
   }
 }
