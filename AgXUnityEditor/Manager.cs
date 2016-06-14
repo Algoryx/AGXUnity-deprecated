@@ -56,7 +56,10 @@ namespace AgXUnityEditor
     /// </summary>
     static Manager()
     {
-      // TODO: Check if custom editors are present and up to date?
+      if ( !System.IO.Directory.Exists( Utils.CustomEditorGenerator.Path ) )
+        Debug.LogError( @"Unable to find directory with custom editors: """ + Utils.CustomEditorGenerator.Path + @""". Make sure to import the latest version of PluginStructure.unitypackage." );
+      else
+        Utils.CustomEditorGenerator.GenerateMissingEditors();
 
       SceneView.onSceneGUIDelegate             += OnSceneView;
       EditorApplication.hierarchyWindowChanged += OnHierarchyWindowChanged;

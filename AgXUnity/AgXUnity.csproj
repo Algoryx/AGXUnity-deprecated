@@ -120,6 +120,7 @@
     <Compile Include="Utils\Find.cs" />
     <Compile Include="Utils\Math.cs" />
     <Compile Include="Utils\PropertySynchronizer.cs" />
+    <Compile Include="Utils\TimerBlock.cs" />
     <Compile Include="WindAndWaterManager.cs" />
     <Compile Include="Wire.cs" />
     <Compile Include="WireRoute.cs" />
