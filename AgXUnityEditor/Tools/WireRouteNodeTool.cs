@@ -37,6 +37,7 @@ namespace AgXUnityEditor.Tools
 
         m_selected = value;
 
+        // TODO: Not possible to pick if Visual is larger than the position/rotation handle.
         if ( m_selected )
           AddChild( new FrameTool( Node.Frame ) { OnChangeDirtyTarget = Node.Wire } );
       }
@@ -60,7 +61,7 @@ namespace AgXUnityEditor.Tools
 
       float radius = 3f * Node.Wire.Radius;
       Visual.Visible = !EditorApplication.isPlaying;
-      Visual.SetTransform( Node.Frame.Position, Node.Frame.Rotation, radius, true, 2f * Node.Wire.Radius, Mathf.Max( 1.5f * Node.Wire.Radius, 0.25f ) );
+      Visual.SetTransform( Node.Frame.Position, Node.Frame.Rotation, radius, true, 1.2f * Node.Wire.Radius, Mathf.Max( 1.5f * Node.Wire.Radius, 0.25f ) );
     }
 
     private void OnClick( AgXUnity.Utils.Raycast.Hit hit, Utils.VisualPrimitive primitive )

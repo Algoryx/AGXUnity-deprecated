@@ -86,7 +86,7 @@ namespace AgXUnity.Utils
         else if ( shape is Collide.HeightField )
           hit.Triangle = TriangleHit.Invalid;
         else {
-          GameObject tmp = PrefabLoader.Instantiate( Rendering.DebugRenderData.GetPrefabName( shape.GetType().Name ) );
+          GameObject tmp = PrefabLoader.Instantiate<GameObject>( Rendering.DebugRenderData.GetPrefabName( shape.GetType().Name ) );
 
           if ( tmp != null ) {
             tmp.hideFlags            = HideFlags.HideAndDontSave;

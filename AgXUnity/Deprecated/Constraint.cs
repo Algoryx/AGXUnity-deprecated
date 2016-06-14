@@ -184,7 +184,7 @@ namespace AgXUnity.Deprecated
       if ( m_gizmosMesh != null )
         return m_gizmosMesh;
 
-      GameObject tmp = PrefabLoader.Instantiate( "Debug.ConstraintRenderer" );
+      GameObject tmp = PrefabLoader.Instantiate<GameObject>( @"Debug/ConstraintRenderer" );
       MeshFilter[] filters = tmp.GetComponentsInChildren<MeshFilter>();
       CombineInstance[] combine = new CombineInstance[ filters.Length ];
 

@@ -64,7 +64,7 @@ namespace AgXUnityEditor
       while ( VisualsParent != null && VisualsParent.transform.childCount > 0 )
         GameObject.DestroyImmediate( VisualsParent.transform.GetChild( 0 ).gameObject );
 
-      MouseOverObject                = null;
+      MouseOverObject = null;
     }
 
     /// <summary>
@@ -207,6 +207,8 @@ namespace AgXUnityEditor
       if ( Selection.activeGameObject != null )
         Selection.activeGameObject = RouteGameObject( Selection.activeGameObject );
 
+      AgXUnity.Rendering.DebugRenderManager.EditorActiveGameObject = Selection.activeGameObject;
+
       Tools.Tool.HandleOnSceneViewGUI( sceneView );
  
       HandleWindowsGUI( sceneView );
@@ -291,6 +293,8 @@ namespace AgXUnityEditor
                   f.SetValue( currentMassProperties, f.GetValue( component ) );
               }
               Component.DestroyImmediate( component );
+
+              UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
             }
           }
 
@@ -326,6 +330,8 @@ namespace AgXUnityEditor
             GameObject.DestroyImmediate( constraint.gameObject );
 
             Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
       }

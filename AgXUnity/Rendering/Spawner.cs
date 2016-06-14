@@ -16,12 +16,12 @@ namespace AgXUnity.Rendering
 
     public static GameObject Create( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
     {
-      return Create( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return Create( name, @"Debug/" + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
     public static GameObject CreateUnique( Primitive type, string name = "", HideFlags hideFlags = HideFlags.HideAndDontSave, string shaderName = "Diffuse" )
     {
-      return CreateUnique( name, "Debug." + type.ToString() + "Renderer", hideFlags, shaderName );
+      return CreateUnique( name, @"Debug/" + type.ToString() + "Renderer", hideFlags, shaderName );
     }
 
     public static void Destroy( GameObject gameObject )
@@ -38,7 +38,7 @@ namespace AgXUnity.Rendering
 
     private static GameObject Create( string name, string objPath, HideFlags hideFlags = HideFlags.HideInHierarchy, string shaderName = "Diffuse" )
     {
-      GameObject gameObject = PrefabLoader.Instantiate( objPath );
+      GameObject gameObject = PrefabLoader.Instantiate<GameObject>( objPath );
       if ( gameObject == null )
         throw new AgXUnity.Exception( "Unable to load renderer: " + objPath );
 

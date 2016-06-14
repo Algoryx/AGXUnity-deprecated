@@ -45,7 +45,7 @@ namespace AgXUnity.Rendering
     /// <returns>Name and path to the prefab.</returns>
     public static string GetPrefabName( string typeName )
     {
-      return "Debug." + typeName + "Renderer";
+      return @"Debug/" + typeName + "Renderer";
     }
   }
 }

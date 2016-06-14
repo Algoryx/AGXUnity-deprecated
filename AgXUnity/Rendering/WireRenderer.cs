@@ -70,7 +70,7 @@ namespace AgXUnity.Rendering
         m_segmentSpawner = null;
       }
 
-      m_segmentSpawner = new SegmentSpawner( "Wire.WireSegment" );
+      m_segmentSpawner = new SegmentSpawner( @"Wire/WireSegment", @"Wire/WireSegmentBegin" );
       m_segmentSpawner.Initialize( gameObject );
     }
 
