@@ -106,13 +106,23 @@ namespace AgXUnity
       if ( m_groups.Count == 0 )
         return base.Initialize();
 
-      RigidBody rb = GetComponent<RigidBody>();
-      if ( rb != null && rb.GetInitialized<RigidBody>() != null )
-        AddGroups( rb.Native );
+      Collide.Shape[] shapes = GetComponentsInChildren<Collide.Shape>();
+      foreach ( var shape in shapes ) {
+        if ( shape.GetInitialized<Collide.Shape>() != null )
+          AddGroups( shape.NativeGeometry );
+      }
 
-      Wire wire = GetComponent<Wire>();
-      if ( wire != null && wire.GetInitialized<Wire>() != null )
-        AddGroups( wire.Native );
+      RigidBody[] bodies = GetComponentsInChildren<RigidBody>();
+      foreach ( var rb in bodies ) {
+        if ( rb.GetInitialized<RigidBody>() != null )
+          AddGroups( rb.Native );
+      }
+
+      Wire[] wires = GetComponentsInChildren<Wire>();
+      foreach ( var wire in wires ) {
+        if ( wire.GetInitialized<Wire>() != null )
+          AddGroups( wire.Native );
+      }
 
       //Cable cable = GetComponent<Cable>();
       //if ( cable != null && cable.GetInitialized<Cable>() != null )
