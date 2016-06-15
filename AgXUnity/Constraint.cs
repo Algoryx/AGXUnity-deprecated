@@ -111,6 +111,43 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Collision state when the simulation is running.
+    /// </summary>
+    public enum ECollisionsState
+    {
+      /// <summary>
+      /// Do nothing - preserves the current external state.
+      /// </summary>
+      KeepExternalState,
+      /// <summary>
+      /// Disables selected Reference object against selected Connected.
+      /// </summary>
+      DisableReferenceVsConnected,
+      /// <summary>
+      /// Disables the rigid bodies. If the second object hasn't got a
+      /// rigid body - all child shapes in Connected will be disabled
+      /// against the first rigid body.
+      /// </summary>
+      DisableRigidBody1VsRigidBody2
+    }
+
+    /// <summary>
+    /// Collisions state when the simulation is running.
+    /// </summary>
+    [SerializeField]
+    private ECollisionsState m_collisionsState = ECollisionsState.KeepExternalState;
+
+    /// <summary>
+    /// Collisions state when the simulation is running.
+    /// </summary>
+    [HideInInspector]
+    public ECollisionsState CollisionsState
+    {
+      get { return m_collisionsState; }
+      set { m_collisionsState = value; }
+    }
+
+    /// <summary>
     /// Type of the native instance constructed from agxDotNet.dll and current ConstraintType.
     /// </summary>
     public Type NativeType { get { return System.Type.GetType( "agx." + m_type + ", agxDotNet" ); } }
@@ -202,6 +239,22 @@ namespace AgXUnity
             throw new Exception( "Unable to initialize elementary constraint: " + ec.NativeName + " (not present in native constraint)." );
 
         bool added = GetSimulation().add( Native );
+
+        // Not possible to handle collisions if connected frame parent is null/world.
+        if ( CollisionsState != ECollisionsState.KeepExternalState && m_attachmentPair.ConnectedObject != null ) {
+          string groupName = gameObject.name + gameObject.GetInstanceID().ToString();
+          if ( CollisionsState == ECollisionsState.DisableReferenceVsConnected ) {
+            m_attachmentPair.ReferenceObject.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, false );
+            m_attachmentPair.ConnectedObject.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, false );
+            CollisionGroupsManager.Instance.SetEnablePair( groupName, groupName, false );
+          }
+          else if ( CollisionsState == ECollisionsState.DisableRigidBody1VsRigidBody2 ) {
+            rb1.gameObject.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, true );
+            GameObject other = rb2 != null ? rb2.gameObject : m_attachmentPair.ConnectedObject;
+            other.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, true );
+            CollisionGroupsManager.Instance.SetEnablePair( groupName, groupName, false );
+          }
+        }
 
         return added && Native.getValid();
       }

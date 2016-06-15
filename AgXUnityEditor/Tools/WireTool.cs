@@ -79,7 +79,7 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    private static GUI.ColorBlock NodeListButtonColor { get { return new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }
+    public static GUI.ColorBlock NodeListButtonColor { get { return new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }
 
     private void RouteGUI( GUISkin skin )
     {

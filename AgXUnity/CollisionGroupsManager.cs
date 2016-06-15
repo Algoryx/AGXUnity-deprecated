@@ -27,15 +27,11 @@ namespace AgXUnity
     [SerializeField]
     private List<CollisionGroupEntryPair> m_disabledPairs = new List<CollisionGroupEntryPair>();
     /// <summary>
-    /// Get or set the list of disabled pairs.
+    /// Get the list of disabled pairs.
     /// </summary>
     public List<CollisionGroupEntryPair> DisabledPairs
     {
       get { return m_disabledPairs; }
-      set
-      {
-        m_disabledPairs = value;
-      }
     }
 
     /// <summary>
@@ -66,9 +62,8 @@ namespace AgXUnity
     protected override bool Initialize()
     {
       agxCollide.Space space = GetSimulation().getSpace();
-
       foreach ( CollisionGroupEntryPair pair in m_disabledPairs )
-        space.setEnablePair( pair.First.Tag.To32BitFnv1aHash(), pair.Second.Tag.To32BitFnv1aHash(), false );
+        SetEnablePair( pair, false, space );
 
       return base.Initialize();
     }
@@ -84,6 +79,9 @@ namespace AgXUnity
         First = new CollisionGroupEntry() { Tag = group1 },
         Second = new CollisionGroupEntry() { Tag = group2 }
       } );
+
+      if ( State == States.INITIALIZED )
+        SetEnablePair( m_disabledPairs.Last(), false, GetSimulation().getSpace() );
     }
 
     private void RemoveFromDisabled( string group1, string group2 )
@@ -92,6 +90,9 @@ namespace AgXUnity
       if ( index < 0 )
         return;
 
+      if ( State == States.INITIALIZED )
+        SetEnablePair( m_disabledPairs[ index ], true, GetSimulation().getSpace() );
+
       m_disabledPairs.RemoveAt( index );
     }
 
@@ -99,6 +100,11 @@ namespace AgXUnity
     {
       return ( entryPair.First.Tag == group1 && entryPair.Second.Tag == group2 ) ||
              ( entryPair.First.Tag == group2 && entryPair.Second.Tag == group1 );
+    }
+
+    private void SetEnablePair( CollisionGroupEntryPair pair, bool enable, agxCollide.Space space )
+    {
+      space.setEnablePair( pair.First.Tag.To32BitFnv1aHash(), pair.Second.Tag.To32BitFnv1aHash(), enable );
     }
   }
 }
