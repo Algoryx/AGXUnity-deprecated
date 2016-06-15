@@ -158,7 +158,8 @@ namespace AgXUnityEditor
       }
       else if ( type == typeof( bool ) && wrapper.CanRead() ) {
         bool valInField = wrapper.Get<bool>();
-        value = EditorGUILayout.Toggle( MakeLabel( wrapper.Member ), valInField, CurrentSkin.toggle );
+        value = Utils.GUI.Toggle( MakeLabel( wrapper.Member ), valInField, CurrentSkin.button, CurrentSkin.label );
+                                   
       }
       else if ( type == typeof( Color ) && wrapper.CanRead() ) {
         Color valInField = wrapper.Get<Color>();
@@ -183,10 +184,6 @@ namespace AgXUnityEditor
             valInField.Value = newValue;
           value = valInField;
         }
-      }
-      else if ( type == typeof( CollisionGroupEntry ) && wrapper.CanRead() ) {
-        CollisionGroupEntry valInField = wrapper.Get<CollisionGroupEntry>();
-        valInField.Tag = EditorGUILayout.TextField( MakeLabel( wrapper.Member ), valInField.Tag, CurrentSkin.textField );
       }
       else if ( type == typeof( RangeReal ) ) {
         RangeReal valInField = wrapper.Get<RangeReal>();
@@ -215,7 +212,6 @@ namespace AgXUnityEditor
         value = EditorGUILayout.EnumPopup( MakeLabel( wrapper.Member ), valInField, CurrentSkin.button );
       }
       else if ( type.IsArray && wrapper.CanRead() ) {
-        HandleArray( wrapper.Get<Array>(), target );
       }
       else if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof( List<> ) && wrapper.CanRead() ) {
         HandleList( wrapper, target );
@@ -257,8 +253,8 @@ namespace AgXUnityEditor
         return false;
 
       EditorGUILayout.BeginHorizontal();
-      collisionGroupPair.First.Tag = EditorGUILayout.TextField( "", collisionGroupPair.First.Tag, CurrentSkin.textField, GUILayout.MaxWidth( 110 ) );
-      collisionGroupPair.Second.Tag = EditorGUILayout.TextField( "", collisionGroupPair.Second.Tag, CurrentSkin.textField, GUILayout.MaxWidth( 110 ) );
+      collisionGroupPair.First.Tag = EditorGUILayout.TextField( "", collisionGroupPair.First.Tag, CurrentSkin.textField );
+      collisionGroupPair.Second.Tag = EditorGUILayout.TextField( "", collisionGroupPair.Second.Tag, CurrentSkin.textField );
       EditorGUILayout.EndHorizontal();
 
       return true;
@@ -274,27 +270,7 @@ namespace AgXUnityEditor
       return true;
     }
 
-    public static void HandleArray( Array array, T target )
-    {
-      if ( array == null )
-        return;
-
-      if ( array.GetType().GetElementType() == typeof( AgXUnity.Deprecated.ConstraintRowData ) ) {
-        foreach ( AgXUnity.Deprecated.ConstraintRowData crd in array ) {
-          if ( Utils.GUI.Prefs.SetBool( crd, EditorGUILayout.Foldout( Utils.GUI.Prefs.GetOrCreateBool( crd ), crd.DefinitionString ) ) ) {
-            bool changed = DrawMembersGUI( crd, target, CurrentSkin );
-            if ( changed )
-              ( target as AgXUnity.Deprecated.ElementaryConstraint ).OnRowDataChanged();
-          }
-        }
-      }
-      else {
-        foreach ( object obj in array )
-          DrawMembersGUI( obj, target, CurrentSkin );
-      }
-    }
-
-    private static void HandleList( InvokeWrapper wrapper, T target )
+    public static void HandleList( InvokeWrapper wrapper, T target )
     {
       System.Collections.IList list = wrapper.Get<System.Collections.IList>();
       HandleList( list, MakeLabel( wrapper.Member ), target );
@@ -302,26 +278,67 @@ namespace AgXUnityEditor
 
     public static void HandleList( System.Collections.IList list, GUIContent label, T target )
     {
-      if ( Utils.GUI.Prefs.SetBool( list, EditorGUILayout.Foldout( Utils.GUI.Prefs.GetOrCreateBool( list ), label ) ) ) {
-        List<object> objectsToRemove = new List<object>();
-        foreach ( object obj in list ) {
-          EditorGUILayout.BeginHorizontal();
-          EditorGUILayout.BeginVertical();
-          DrawMembersGUI( obj, target, CurrentSkin );
-          EditorGUILayout.EndVertical();
-          if ( GUILayout.Button( "Del", GUILayout.MaxWidth( 32 ) ) )
-            objectsToRemove.Add( obj );
-          EditorGUILayout.EndHorizontal();
+      if ( Utils.GUI.Foldout( Manager.EditorData.Selected( target as UnityEngine.Object, label.text ), label, CurrentSkin ) ) {
+        object insertElementBefore = null;
+        object insertElementAfter = null;
+        object eraseElement = null;
+        using ( new Utils.GUI.Indent( 12 ) ) {
+          foreach ( var obj in list ) {
+            Utils.GUI.Separator();
+            using ( new Utils.GUI.Indent( 12 ) ) {
+              EditorGUILayout.BeginHorizontal();
+              {
+                EditorGUILayout.BeginVertical();
+                {
+                  DrawMembersGUI( obj, target, CurrentSkin );
+                }
+                EditorGUILayout.EndHorizontal();
+
+                using ( Tools.WireTool.NodeListButtonColor ) {
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( '\u21B0'.ToString(), false, "Insert new element before this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                    insertElementBefore = obj;
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( '\u21B2'.ToString(), false, "Insert new element after this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                    insertElementAfter = obj;
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( 'x'.ToString(), false, "Erase this element" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                    eraseElement = obj;
+                }
+              }
+              EditorGUILayout.EndHorizontal();
+            }
+          }
+
+          if ( list.Count == 0 )
+            GUILayout.Label( Utils.GUI.MakeLabel( "Empty", true ) );
+          else
+            Utils.GUI.Separator();
         }
 
+        bool addElementToList = false;
         EditorGUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
-        if ( GUILayout.Button( "Add", GUILayout.ExpandWidth( false ) ) )
-          list.Add( Activator.CreateInstance( list.GetType().GetGenericArguments()[ 0 ], new object[] { } ) );
+        {
+          GUILayout.FlexibleSpace();
+          using ( Tools.WireTool.NodeListButtonColor )
+            addElementToList = GUILayout.Button( Utils.GUI.MakeLabel( '\u21B2'.ToString(), false, "Add new element to list" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
+        }
         EditorGUILayout.EndHorizontal();
 
-        foreach ( object obj in objectsToRemove )
-          list.Remove( obj );
+        object newObject = null;
+        if ( addElementToList || insertElementBefore != null || insertElementAfter != null )
+          newObject = Activator.CreateInstance( list.GetType().GetGenericArguments()[ 0 ], new object[] { } );
+
+        if ( eraseElement != null )
+          list.Remove( eraseElement );
+        else if ( newObject != null ) {
+          if ( addElementToList || ( list.Count > 0 && insertElementAfter != null && insertElementAfter == list[ list.Count - 1 ] ) )
+            list.Add( newObject );
+          else if ( insertElementAfter != null )
+            list.Insert( list.IndexOf( insertElementAfter ) + 1, newObject );
+          else if ( insertElementBefore != null )
+            list.Insert( list.IndexOf( insertElementBefore ), newObject );
+        }
+
+        if ( eraseElement != null || newObject != null )
+          EditorUtility.SetDirty( target as UnityEngine.Object );
       }
     }
 

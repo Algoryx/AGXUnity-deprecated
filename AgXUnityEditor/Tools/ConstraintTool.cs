@@ -69,6 +69,34 @@ namespace AgXUnityEditor.Tools
 
       GUI.Separator();
 
+      using ( new GUI.Indent( 12 ) ) {
+        EditorGUILayout.BeginHorizontal();
+        {
+          const char arrowChar = '\u2194';
+
+          GUILayout.Label( GUI.MakeLabel( "Disable collisions: ", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 140 ), GUILayout.Height( 25 ) } );
+
+          UnityEngine.GUI.enabled = !EditorApplication.isPlaying;
+          if ( GUILayout.Button( GUI.MakeLabel( "Rb " + arrowChar.ToString() + " Rb", false, "Disable all shapes in rigid body 1 against all shapes in rigid body 2." ),
+                                 GUI.ConditionalCreateSelectedStyle( Constraint.CollisionsState == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2, skin.button ),
+                                 new GUILayoutOption[] { GUILayout.Width( 76 ), GUILayout.Height( 25 ) } ) )
+            Constraint.CollisionsState = Constraint.CollisionsState == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2 ?
+                                           Constraint.ECollisionsState.KeepExternalState :
+                                           Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2;
+
+          if ( GUILayout.Button( GUI.MakeLabel( "Ref " + arrowChar.ToString() + " Con", false, "Disable Reference object vs. Connected object." ),
+                                 GUI.ConditionalCreateSelectedStyle( Constraint.CollisionsState == Constraint.ECollisionsState.DisableReferenceVsConnected, skin.button ),
+                                 new GUILayoutOption[] { GUILayout.Width( 76 ), GUILayout.Height( 25 ) } ) )
+            Constraint.CollisionsState = Constraint.CollisionsState == Constraint.ECollisionsState.DisableReferenceVsConnected ?
+                                           Constraint.ECollisionsState.KeepExternalState :
+                                           Constraint.ECollisionsState.DisableReferenceVsConnected;
+          UnityEngine.GUI.enabled = guiWasEnabled;
+        }
+        EditorGUILayout.EndHorizontal();
+      }
+
+      GUI.Separator();
+
       try {
         ConstraintUtils.ConstraintRowParser constraintRowParser = ConstraintUtils.ConstraintRowParser.Create( Constraint );
         if ( constraintRowParser.Empty )
@@ -209,8 +237,9 @@ namespace AgXUnityEditor.Tools
     {
       if ( GUI.Foldout( Selected( SelectedFoldout.Controller, ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( ConstraintUtils.FindName( controller ), true ), skin ) ) {
         using ( new GUI.Indent( 12 ) ) {
-          controller.Enable = GUILayout.Toggle( controller.Enable, GUI.MakeLabel( "Enable", controller.Enable ), skin.toggle );
-          using ( new GUI.Indent( 18 ) )
+          //GUILayout.Toggle( controller.Enable, GUI.MakeLabel( "Enable", controller.Enable ), skin.toggle );
+          controller.Enable = GUI.Toggle( GUI.MakeLabel( "Enable", controller.Enable ), controller.Enable, skin.button, skin.label );
+          //using ( new GUI.Indent( 20 ) )
             BaseEditor<ElementaryConstraint>.Update( controller, skin );
         }
       }

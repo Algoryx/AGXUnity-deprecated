@@ -170,6 +170,28 @@ namespace AgXUnityEditor.Utils
       return value;
     }
 
+    public static GUILayoutOption[] DefaultToggleButtonOptions { get { return new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) }; } }
+    public static GUILayoutOption[] DefaultToggleLabelOptions { get { return new GUILayoutOption[] { }; } }
+
+    public static bool Toggle( GUIContent content, bool value, GUIStyle buttonStyle, GUIStyle labelStyle, GUILayoutOption[] buttonOptions = null, GUILayoutOption[] labelOptions = null )
+    {
+      if ( buttonOptions == null )
+        buttonOptions = DefaultToggleButtonOptions;
+      if ( labelOptions == null )
+        labelOptions = DefaultToggleLabelOptions;
+
+      bool buttonDown = false;
+      EditorGUILayout.BeginHorizontal();
+      {
+        string buttonText = value ? '\u2714'.ToString() : " ";
+        buttonDown = GUILayout.Button( MakeLabel( buttonText, false, content.tooltip ), ConditionalCreateSelectedStyle( value, buttonStyle ), buttonOptions );
+        GUILayout.Label( content, labelStyle, labelOptions );
+      }
+      EditorGUILayout.EndHorizontal();
+      
+      return buttonDown ? !value : value;
+    }
+
     public static ValueT HandleDefaultAndUserValue<ValueT>( string name, DefaultAndUserValue<ValueT> valInField, GUISkin skin ) where ValueT : struct
     {
       bool guiWasEnabled       = UnityEngine.GUI.enabled;
@@ -188,8 +210,13 @@ namespace AgXUnityEditor.Utils
       bool updateDefaultValue = false;
       EditorGUILayout.BeginHorizontal();
       {
-        useDefaultToggled = GUILayout.Button( MakeLabel( '\u2714'.ToString(), false, "If checked - value will be default. Uncheck to manually enter value." ), ConditionalCreateSelectedStyle( valInField.UseDefault, skin.button ), GUILayout.Width( 22 ) );
-        GUILayout.Label( MakeLabel( name.SplitCamelCase() ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.MaxWidth( 120 ) } );
+        // Note that we're checking if the value has changed!
+        useDefaultToggled = Toggle( MakeLabel( name.SplitCamelCase(), false, "If checked - value will be default. Uncheck to manually enter value." ),
+                                    valInField.UseDefault,
+                                    skin.button,
+                                    Align( skin.label, TextAnchor.MiddleLeft ),
+                                    new GUILayoutOption[] { GUILayout.Width( 22 ) },
+                                    new GUILayoutOption[] { GUILayout.MaxWidth( 120 ) } ) != valInField.UseDefault;
         UnityEngine.GUI.enabled = !valInField.UseDefault;
         GUILayout.FlexibleSpace();
         newValue = (ValueT)method.Invoke( null, new object[] { "", valInField.Value, new GUILayoutOption[] { } } );
@@ -230,7 +257,7 @@ namespace AgXUnityEditor.Utils
 
     public static void ToolsLabel( GUISkin skin )
     {
-      GUILayout.Label( GUI.MakeLabel( "Tools:", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
+      GUILayout.Label( GUI.MakeLabel( "Tools:", true ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
     }
 
     public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )

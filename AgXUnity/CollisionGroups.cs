@@ -14,6 +14,37 @@ namespace AgXUnity
   [System.Serializable]
   public class CollisionGroupEntry
   {
+    /// <summary>
+    /// Flag if this component should affect all children. E.g., add this
+    /// component to a game object which contains several rigid bodies as
+    /// children - all shapes and bodies will inherit the collision groups.
+    /// 
+    /// If false, this component will check for compatible components to
+    /// affect on the same level as this.
+    /// </summary>
+    /// <remarks>
+    /// It's not possible to change this property during runtime.
+    /// </remarks>
+    [SerializeField]
+    private bool m_propagateToChildren = false;
+
+    /// <summary>
+    /// Flag if this component should affect all children. E.g., add this
+    /// component to a game object which contains several rigid bodies as
+    /// children - all shapes and bodies will inherit the collision groups.
+    /// 
+    /// If false, this component will check for compatible components to
+    /// affect on the same level as this.
+    /// </summary>
+    /// <remarks>
+    /// It's not possible to change this property during runtime.
+    /// </remarks>
+    public bool PropagateToChildren
+    {
+      get { return m_propagateToChildren; }
+      set { m_propagateToChildren = value; }
+    }
+
     [SerializeField]
     private string m_tag = "";
     public string Tag
@@ -29,12 +60,22 @@ namespace AgXUnity
     /// <param name="obj">Object to execute addGroup on.</param>
     public void AddTo( object obj )
     {
+      InvokeIdMethod( "addGroup", obj );
+    }
+
+    public void RemoveFrom( object obj )
+    {
+      InvokeIdMethod( "removeGroup", obj );
+    }
+
+    private void InvokeIdMethod( string method, object obj )
+    {
       if ( obj == null )
         return;
 
       MethodInfo[] methodInfos = obj.GetType().GetMethods( BindingFlags.Public | BindingFlags.Instance );
       foreach ( MethodInfo methodInfo in methodInfos ) {
-        if ( methodInfo.Name == "addGroup" && methodInfo.GetParameters().Length > 0 && methodInfo.GetParameters()[ 0 ].ParameterType == typeof( System.UInt32 ) )
+        if ( methodInfo.Name == method && methodInfo.GetParameters().Length > 0 && methodInfo.GetParameters()[ 0 ].ParameterType == typeof( System.UInt32 ) )
           methodInfo.Invoke( obj, new object[] { Tag.To32BitFnv1aHash() } );
       }
     }
@@ -71,13 +112,17 @@ namespace AgXUnity
     /// Add new group.
     /// </summary>
     /// <param name="tag">New group tag.</param>
+    /// <param name="propagateToChildren">True if this tag should be propagated to all supported children.</param>
     /// <returns>True if the group was added - otherwise false (e.g., already exists).</returns>
-    public bool AddGroup( string tag )
+    public bool AddGroup( string tag, bool propagateToChildren )
     {
       if ( HasGroup( tag ) )
         return false;
 
       m_groups.Add( new CollisionGroupEntry() { Tag = tag } );
+
+      if ( State == States.INITIALIZED )
+        AddGroup( m_groups.Last(), CollectData( propagateToChildren ) );
 
       return true;
     }
@@ -93,6 +138,8 @@ namespace AgXUnity
       if ( index < 0 )
         return false;
 
+      RemoveGroup( m_groups[ index ], CollectData( m_groups[ index ].PropagateToChildren ) );
+
       m_groups.RemoveAt( index );
 
       return true;
@@ -106,46 +153,75 @@ namespace AgXUnity
       if ( m_groups.Count == 0 )
         return base.Initialize();
 
-      RigidBody rb = GetComponent<RigidBody>();
-      if ( rb != null && rb.GetInitialized<RigidBody>() != null )
-        AddGroups( rb.Native );
-
-      Wire wire = GetComponent<Wire>();
-      if ( wire != null && wire.GetInitialized<Wire>() != null )
-        AddGroups( wire.Native );
-
-      //Cable cable = GetComponent<Cable>();
-      //if ( cable != null && cable.GetInitialized<Cable>() != null )
-      //  AddGroups( cable.Native );
+      Data[] data = new Data[] { CollectData( false ), CollectData( true ) };
+      foreach ( var entry in m_groups )
+        AddGroup( entry, data[ Convert.ToInt32( entry.PropagateToChildren ) ] );
 
       return base.Initialize();
     }
 
-    private void AddGroups( agx.RigidBody rb )
+    private class Data
     {
-      if ( rb == null || rb.getGeometries().Count == 0 )
-        return;
-
-      foreach ( agxCollide.GeometryRef geometry in rb.getGeometries() )
-        AddGroups( (object)geometry.get() );
+      public Collide.Shape[] Shapes = new Collide.Shape[] { };
+      public Wire[] Wires = new Wire[] { };
     }
 
-    private void AddGroups( agxModel.Deformable1D d1d )
+    private Data CollectData( bool propagateToChildren )
     {
-      if ( d1d == null || !d1d.initialized() )
-        return;
+      Data data = new Data(); 
 
-      agxModel.Deformable1DIterator it = d1d.getBeginIterator();
-      while ( !it.isEnd() ) {
-        AddGroups( it.get().getRigidBody() );
-        it.inc();
+      RigidBody rb        =                                      GetComponent<RigidBody>();
+      Collide.Shape shape = rb != null                  ? null : GetComponent<Collide.Shape>();
+      Wire wire           = rb != null || shape != null ? null : GetComponent<Wire>();
+
+      bool allPredefinedAreNull = rb == null && shape == null && wire == null;
+
+      if ( allPredefinedAreNull && propagateToChildren ) {
+        data.Shapes = GetComponentsInChildren<Collide.Shape>();
+        data.Wires  = GetComponentsInChildren<Wire>();
       }
+      // A wire is by definition independent of PropagateToChildren, since
+      // it's not defined to add children to a wire game object.
+      else if ( wire != null ) {
+        data.Wires = new Wire[] { wire };
+      }
+      // Bodies have shapes so if 'rb' != null we should collect all shape children
+      // independent of 'propagate' flag.
+      // If 'shape' != null and propagate is true we have the same condition as for bodies.
+      else if ( rb != null || shape != null || ( rb == null && shape == null && propagateToChildren ) ) {
+        data.Shapes = shape != null && !propagateToChildren ? GetComponents<Collide.Shape>() :
+                      shape != null || rb != null           ? GetComponentsInChildren<Collide.Shape>() :
+                                                              // Both shape and rb == null and PropagateToChildren == true.
+                                                              GetComponentsInChildren<Collide.Shape>();
+      }
+      else {
+        // These groups has no effect.
+        Debug.LogWarning( "Collision groups has no effect. Are you missing a PropagateToChildren = true?", this );
+      }
+
+      return data;
     }
 
-    private void AddGroups( object obj )
+    private void AddGroup( CollisionGroupEntry entry, Data data )
     {
-      foreach ( CollisionGroupEntry group in m_groups )
-        group.AddTo( obj );
+      foreach ( Collide.Shape shape in data.Shapes )
+        if ( shape.GetInitialized<Collide.Shape>() != null )
+          entry.AddTo( shape.NativeGeometry );
+
+      foreach ( Wire wire in data.Wires )
+        if ( wire.GetInitialized<Wire>() != null )
+          entry.AddTo( wire.Native );
+    }
+
+    private void RemoveGroup( CollisionGroupEntry entry, Data data )
+    {
+      foreach ( Collide.Shape shape in data.Shapes )
+        if ( shape.GetInitialized<Collide.Shape>() != null )
+          entry.RemoveFrom( shape.NativeGeometry );
+
+      foreach ( Wire wire in data.Wires )
+        if ( wire.GetInitialized<Wire>() != null )
+          entry.RemoveFrom( wire.Native );
     }
   }
 }

@@ -147,7 +147,6 @@ namespace AgXUnity.Utils
     {
       if ( obj == null )
         return new FieldWrapper[] { };
-
       return FindFields( obj, obj.GetType(), bindFlags );
     }
 
