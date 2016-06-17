@@ -212,6 +212,22 @@ namespace AgXUnityEditor
         value = EditorGUILayout.EnumPopup( MakeLabel( wrapper.Member ), valInField, CurrentSkin.button );
       }
       else if ( type.IsArray && wrapper.CanRead() ) {
+        Array array = wrapper.Get<Array>();
+        if ( array.Length == 0 ) {
+          EditorGUILayout.BeginHorizontal();
+          {
+            GUILayout.Label( MakeLabel( wrapper.Member ), CurrentSkin.label );
+            GUILayout.Label( Utils.GUI.MakeLabel( "Empty array", true ) );
+          }
+          EditorGUILayout.EndHorizontal();
+        }
+        else {
+          Utils.GUI.Separator();
+          using ( new Utils.GUI.Indent( 12 ) )
+            foreach ( object obj in wrapper.Get<Array>() )
+              DrawMembersGUI( obj, target, CurrentSkin );
+          Utils.GUI.Separator();
+        }
       }
       else if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof( List<> ) && wrapper.CanRead() ) {
         HandleList( wrapper, target );
