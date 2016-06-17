@@ -242,18 +242,25 @@ namespace AgXUnity
 
         // Not possible to handle collisions if connected frame parent is null/world.
         if ( CollisionsState != ECollisionsState.KeepExternalState && m_attachmentPair.ConnectedObject != null ) {
-          string groupName = gameObject.name + gameObject.GetInstanceID().ToString();
+          string groupName          = gameObject.name + gameObject.GetInstanceID().ToString();
+          GameObject go1            = null;
+          GameObject go2            = null;
+          bool propagateToChildren1 = false;
+          bool propagateToChildren2 = false;
           if ( CollisionsState == ECollisionsState.DisableReferenceVsConnected ) {
-            m_attachmentPair.ReferenceObject.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, false );
-            m_attachmentPair.ConnectedObject.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, false );
-            CollisionGroupsManager.Instance.SetEnablePair( groupName, groupName, false );
+            go1 = m_attachmentPair.ReferenceObject;
+            go2 = m_attachmentPair.ConnectedObject;
           }
-          else if ( CollisionsState == ECollisionsState.DisableRigidBody1VsRigidBody2 ) {
-            rb1.gameObject.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, true );
-            GameObject other = rb2 != null ? rb2.gameObject : m_attachmentPair.ConnectedObject;
-            other.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, true );
-            CollisionGroupsManager.Instance.SetEnablePair( groupName, groupName, false );
+          else {
+            go1                  = rb1.gameObject;
+            propagateToChildren1 = true;
+            go2                  = rb2 != null ? rb2.gameObject : m_attachmentPair.ConnectedObject;
+            propagateToChildren2 = true;
           }
+
+          go1.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, propagateToChildren1 );
+          go2.GetOrCreateComponent<CollisionGroups>().GetInitialized<CollisionGroups>().AddGroup( groupName, propagateToChildren2 );
+          CollisionGroupsManager.Instance.GetInitialized<CollisionGroupsManager>().SetEnablePair( groupName, groupName, false );
         }
 
         return added && Native.getValid();
