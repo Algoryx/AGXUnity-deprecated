@@ -165,6 +165,9 @@ namespace AgXUnityEditor.Tools
     /// <returns>Type of tool.</returns>
     public static Type FindToolType( object obj )
     {
+      if ( obj == null )
+        return null;
+
       AgXUnity.CustomTool customToolAttribute = obj.GetType().GetCustomAttributes( typeof( AgXUnity.CustomTool ), true ).FirstOrDefault() as AgXUnity.CustomTool;
       if ( customToolAttribute == null )
         return null;

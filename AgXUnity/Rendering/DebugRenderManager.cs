@@ -137,6 +137,19 @@ namespace AgXUnity.Rendering
       UnityEngine.Object.FindObjectsOfType<Constraint>().ToList().ForEach(
         constraint => constraint.AttachmentPair.Update()
       );
+
+      List<GameObject> gameObjectsToDestroy = new List<GameObject>();
+      foreach ( Transform child in gameObject.transform ) {
+        GameObject node = child.gameObject;
+        OnSelectionProxy proxy = node.GetComponent<OnSelectionProxy>();
+        if ( proxy != null && proxy.Target == null )
+          gameObjectsToDestroy.Add( node );
+      }
+
+      while ( gameObjectsToDestroy.Count > 0 ) {
+        GameObject.DestroyImmediate( gameObjectsToDestroy.Last() );
+        gameObjectsToDestroy.RemoveAt( gameObjectsToDestroy.Count - 1 );
+      }
     }
 
     private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy && Instance.isActiveAndEnabled; } }

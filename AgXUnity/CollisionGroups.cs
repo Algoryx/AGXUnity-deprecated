@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using AgXUnity.Utils;
 
@@ -73,11 +71,10 @@ namespace AgXUnity
       if ( obj == null )
         return;
 
-      MethodInfo[] methodInfos = obj.GetType().GetMethods( BindingFlags.Public | BindingFlags.Instance );
-      foreach ( MethodInfo methodInfo in methodInfos ) {
-        if ( methodInfo.Name == method && methodInfo.GetParameters().Length > 0 && methodInfo.GetParameters()[ 0 ].ParameterType == typeof( System.UInt32 ) )
-          methodInfo.Invoke( obj, new object[] { Tag.To32BitFnv1aHash() } );
-      }
+      var m = obj.GetType().GetMethod( method, new Type[] { typeof( UInt32 ) } );
+      if ( m == null )
+        throw new Exception( "Method " + method + " not found in type: " + obj.GetType().FullName );
+      m.Invoke( obj, new object[] { Tag.To32BitFnv1aHash() } );
     }
   }
 

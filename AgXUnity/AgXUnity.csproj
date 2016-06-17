@@ -90,7 +90,6 @@
     <Compile Include="Constraint.cs" />
     <Compile Include="ContactMaterial.cs" />
     <Compile Include="ContactMaterialManager.cs" />
-    <Compile Include="FPSCamera.cs" />
     <Compile Include="Rendering\DebugRenderData.cs" />
     <Compile Include="Rendering\DebugRenderManager.cs" />
     <Compile Include="DefaultAndUserValue.cs" />
