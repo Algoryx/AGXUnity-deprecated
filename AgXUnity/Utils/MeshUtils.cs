@@ -72,7 +72,7 @@ namespace AgXUnity.Utils
     /// <returns>True if the ray intersects the triangle.</returns>
     public static bool IntersectRayTriangle( Ray ray, float rayLength, Vector3 v1, Vector3 v2, Vector3 v3, Vector3 normal, ref Vector3 result, ref float t )
     {
-      float epsilon    = 1.0E-6f;
+      float epsilon    = 1.0E-12f;
       Vector3 lineP1   = ray.GetPoint( 0 );
       Vector3 lineP2   = ray.GetPoint( rayLength );
       Vector3 lineP1P2 = lineP2 - lineP1;
