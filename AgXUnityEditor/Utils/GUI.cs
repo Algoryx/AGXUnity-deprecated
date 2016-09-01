@@ -35,6 +35,30 @@ namespace AgXUnityEditor.Utils
       }
     }
 
+    public class AlignBlock : IDisposable
+    {
+      public enum Alignment { Center, Right };
+
+      private Alignment m_alignment = Alignment.Center;
+
+      public AlignBlock( Alignment alignment )
+      {
+        m_alignment = alignment;
+
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+        GUILayout.BeginVertical();
+      }
+
+      public void Dispose()
+      {
+        GUILayout.EndVertical();
+        if ( m_alignment == Alignment.Center )
+          GUILayout.FlexibleSpace();
+        GUILayout.EndHorizontal();
+      }
+    }
+
     public class ColorBlock : IDisposable
     {
       private Color m_prevColor = default( Color );
@@ -244,8 +268,8 @@ namespace AgXUnityEditor.Utils
 
     public class ToolButtonData
     {
-      public static float Width  = 25f;
-      public static float Height = 25f;
+      public static GUILayoutOption Width { get { return GUILayout.Width( 25f ); } }
+      public static GUILayoutOption Height { get { return GUILayout.Height( 25f ); } }
       public static GUIStyle Style( GUISkin skin, int fontSize = 18 )
       {
         GUIStyle style = new GUIStyle( skin.button );

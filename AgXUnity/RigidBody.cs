@@ -276,7 +276,7 @@ namespace AgXUnity
           shape.GetInitialized<Shape>().SetRigidBody( this );
         }
         catch ( System.Exception e ) {
-          Debug.LogWarning( "Shape with name: " + shape.name + " failed to initialize. Ignored." );
+          Debug.LogWarning( "Shape with name: " + shape.name + " failed to initialize. Ignored.", this );
           Debug.LogException( e, shape );
         }
       }

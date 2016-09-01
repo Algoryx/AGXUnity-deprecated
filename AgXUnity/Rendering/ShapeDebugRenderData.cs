@@ -118,6 +118,11 @@ namespace AgXUnity.Rendering
     {
       if ( Node == null )
         return;
+
+      // Assembly tool (AgXUnityEditor.Tools.AssemblyTool) has its
+      // own gizmos rendering.
+      if ( DebugRenderManager.EditorActiveGameObject != null && DebugRenderManager.EditorActiveGameObject.GetComponent<Assembly>() != null )
+        return;
       
       Gizmos.color = FindSelectedShapeColor( shape );
       if ( shape is Capsule ) {

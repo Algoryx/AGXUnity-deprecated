@@ -94,30 +94,7 @@ namespace AgXUnity.Utils
 
       result = lineP1 + lineP1P2 * t;
 
-      Vector3 a = v1 - result;
-      Vector3 b = v2 - result;
-      Vector3 c = v3 - result;
-
-      float ab = Vector3.Dot( a, b );
-      float ac = Vector3.Dot( a, c );
-      float bc = Vector3.Dot( b, c );
-
-      float cc = Vector3.Dot( c, c );
-      float lagId0 = bc * ac - cc * ab;
-      if ( lagId0 < -epsilon )
-        return false;
-
-      float bb = Vector3.Dot( b, b );
-      float lagId1 = ab * bc - ac * bb;
-      if ( lagId1 < -epsilon )
-        return false;
-
-      float aa = Vector3.Dot( a, a );
-      float lagId2 = ac * ab - aa * bc;
-      if ( lagId2 < -epsilon )
-        return false;
-
-      return true;
+      return ShapeUtils.IsPointInTriangle( result, v1, v2, v3, epsilon );
     }
 
     public class TriangleTestResult

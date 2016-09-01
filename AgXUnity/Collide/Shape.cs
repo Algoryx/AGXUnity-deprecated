@@ -161,6 +161,10 @@ namespace AgXUnity.Collide
     /// <returns></returns>
     protected override bool Initialize()
     {
+      RigidBody rb = GetComponentInParent<RigidBody>();
+      if ( rb != null && !rb.enabled )
+        return false;
+
       m_shape = CreateNative();
 
       if ( m_shape == null )

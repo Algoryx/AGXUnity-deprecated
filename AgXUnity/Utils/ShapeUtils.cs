@@ -247,6 +247,21 @@ namespace AgXUnity.Utils
       return result;
     }
 
+    public static bool IsPointInTriangle( Vector3 point, Vector3 v1, Vector3 v2, Vector3 v3, float epsilon )
+    {
+      Vector3 u = v2 - v1;
+      Vector3 v = v3 - v1;
+      Vector3 n = Vector3.Cross( u, v );
+      Vector3 w = point - v1;
+
+      float alpha = Vector3.Dot( Vector3.Cross( u, w ), n ) / n.sqrMagnitude;
+      float beta  = Vector3.Dot( Vector3.Cross( w, v ), n ) / n.sqrMagnitude;
+      float gamma = 1 - alpha - beta;
+      return alpha >= -epsilon && alpha <= 1.0f + epsilon &&
+             beta  >= -epsilon && beta  <= 1.0f + epsilon &&
+             gamma >= -epsilon && gamma <= 1.0f + epsilon;
+    }
+
     public static ShapeUtils Create( Shape shape )
     {
       if ( shape is Box )

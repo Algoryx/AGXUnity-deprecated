@@ -281,6 +281,24 @@ namespace AgXUnity
       base.OnDestroy();
     }
 
+    public static float GetGizmoSize( Vector3 position )
+    {
+      Camera current = Camera.current;
+      position = Gizmos.matrix.MultiplyPoint( position );
+
+      if ( current ) {
+        Transform transform = current.transform;
+        Vector3 position2 = transform.position;
+        float z = Vector3.Dot( position - position2, transform.TransformDirection( new Vector3( 0f, 0f, 1f ) ) );
+        Vector3 a = current.WorldToScreenPoint( position2 + transform.TransformDirection( new Vector3( 0f, 0f, z ) ) );
+        Vector3 b = current.WorldToScreenPoint( position2 + transform.TransformDirection( new Vector3( 1f, 0f, z ) ) );
+        float magnitude = ( a - b ).magnitude;
+        return 80f / Mathf.Max( magnitude, 0.0001f );
+      }
+
+      return 20f;
+    }
+
     private static Mesh m_gizmosMesh = null;
     private static Mesh GetOrCreateGizmosMesh()
     {
@@ -307,7 +325,7 @@ namespace AgXUnity
     private static void DrawGizmos( Color color, ConstraintAttachmentPair attachmentPair )
     {
       Gizmos.color = color;
-      Gizmos.DrawMesh( GetOrCreateGizmosMesh(), attachmentPair.ReferenceFrame.Position, attachmentPair.ReferenceFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ), 0.3f * Vector3.one );
+      Gizmos.DrawMesh( GetOrCreateGizmosMesh(), attachmentPair.ReferenceFrame.Position, attachmentPair.ReferenceFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ), 0.3f * GetGizmoSize( attachmentPair.ReferenceFrame.Position ) * Vector3.one );
 
       if ( !attachmentPair.Synchronized ) {
         Gizmos.color = Color.red;

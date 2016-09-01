@@ -351,6 +351,13 @@ namespace AgXUnityEditor.Tools
 
     public virtual void OnRemove() { }
 
+    /// <summary>
+    /// Callback when to draw gizmos for given component.
+    /// </summary>
+    /// <remarks>Enable this callback by registering the tool to DrawGizmoCallbackHandler (DrawGizmoCallbackHandler.Register( this )).</remarks>
+    /// <param name="component"></param>
+    public virtual void OnDrawGizmosSelected( AgXUnity.ScriptComponent component ) { }
+
     public Tool GetParent()
     {
       return m_parent;
@@ -522,6 +529,9 @@ namespace AgXUnityEditor.Tools
 
       // Remove all windows that hasn't been closed.
       SceneViewWindow.CloseAllWindows( this );
+
+      // Remove all gizmo callbacks that hasn't been removed.
+      Utils.DrawGizmoCallbackHandler.Unregister( this );
 
       // Remove all key handlers that hasn't been removed.
       string[] keyHandlerNames = m_keyHandlers.Keys.ToArray();
