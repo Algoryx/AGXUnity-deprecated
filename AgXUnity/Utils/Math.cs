@@ -24,5 +24,12 @@ namespace AgXUnity.Utils
     {
       return Mathf.Max( value, minimum );
     }
+
+    public static bool IsUniform( Vector3 v, float eps = 1.0E-6f )
+    {
+      return ( v.x - v.y ) <= eps &&
+             ( v.x - v.z ) <= eps &&
+             ( v.y - v.z ) <= eps;
+    }
   }
 }

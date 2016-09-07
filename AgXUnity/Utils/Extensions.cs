@@ -302,22 +302,41 @@ namespace AgXUnity.Utils
       return scale;
     }
 
-    public static float MaxValue( this Vector3 v )
+    public static int[] SortedPermutation( this Vector3 v )
     {
-      float maxVal = float.NegativeInfinity;
-      for ( int i = 0; i < 3; ++i )
-        if ( v[ i ] > maxVal )
-          maxVal = v[ i ];
-      return maxVal;
+      int[] ret = new int[] { 0, 1, 2 };
+      Array.Sort( ret, ( i1, i2 ) => { return v[ i1 ].CompareTo( v[ i2 ] ); } );
+      return ret;
+    }
+
+    public static int MinIndex( this Vector3 v )
+    {
+      return v.SortedPermutation()[ 0 ];
+    }
+
+    public static int MiddleIndex( this Vector3 v )
+    {
+      return v.SortedPermutation()[ 1 ];
+    }
+
+    public static int MaxIndex( this Vector3 v )
+    {
+      return v.SortedPermutation()[ 2 ];
     }
 
     public static float MinValue( this Vector3 v )
     {
-      float minVal = float.PositiveInfinity;
-      for ( int i = 0; i < 3; ++i )
-        if ( v[ i ] < minVal )
-          minVal = v[ i ];
-      return minVal;
+      return v[ v.MinIndex() ];
+    }
+
+    public static float MiddleValue( this Vector3 v )
+    {
+      return v[ v.MiddleIndex() ];
+    }
+
+    public static float MaxValue( this Vector3 v )
+    {
+      return v[ v.MaxIndex() ];
     }
 
     public static Vector3 ClampedElementsAbove( this Vector3 v, float minValue )
