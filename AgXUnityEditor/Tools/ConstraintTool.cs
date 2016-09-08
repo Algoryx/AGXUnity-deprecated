@@ -41,6 +41,12 @@ namespace AgXUnityEditor.Tools
 
     public override void OnInspectorGUI( GUISkin skin )
     {
+      // Possible undo performed that deleted the constraint. Remove us.
+      if ( Constraint == null ) {
+        PerformRemoveFromParent();
+        return;
+      }
+
       bool guiWasEnabled = UnityEngine.GUI.enabled;
 
       GUILayout.Label( GUI.MakeLabel( Constraint.Type.ToString(), 24, true ), GUI.Align( skin.label, TextAnchor.MiddleCenter ) );

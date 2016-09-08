@@ -110,6 +110,12 @@ namespace AgXUnityEditor.Tools
       if ( m_mode != Mode.None )
         ColorPulse.Update( 0.0045f );
 
+      // TODO: This is not responsive.
+      if ( Manager.KeyEscapeDown ) {
+        ChangeMode( Mode.None );
+        EditorUtility.SetDirty( Assembly );
+      }
+
       if ( m_mode == Mode.RigidBody ) {
         if ( Manager.HijackLeftMouseClick() ) {
           Predicate<GameObject> filter = m_subMode == SubMode.None            ? new Predicate<GameObject>( obj => { return obj != null && obj.GetComponent<AgXUnity.Collide.Shape>() == null && obj.GetComponentInParent<RigidBody>() == null; } ) :
@@ -160,10 +166,45 @@ namespace AgXUnityEditor.Tools
           EditorUtility.SetDirty( Assembly );
         }
       }
+      else if ( m_mode == Mode.Constraint ) {
+        if ( Manager.HijackLeftMouseClick() ) {
+          // m_selection[ 0 ] should contain a rigid body.
+          Predicate<GameObject> filter = GetChild<ConstraintTool>() != null ? new Predicate<GameObject>( obj => { return false; } ) :
+                                         m_selection.Count == 0             ? new Predicate<GameObject>( obj => { return obj.GetComponent<AgXUnity.Collide.Shape>() == null && obj.GetComponentInParent<RigidBody>() != null; } ) :
+                                                                              new Predicate<GameObject>( obj => { return obj.GetComponent<AgXUnity.Collide.Shape>() == null && 
+                                                                                                                         obj != m_selection[ 0 ].Object &&
+                                                                                                                         m_selection[ 0 ].Object.GetComponentInParent<RigidBody>() != obj.GetComponentInParent<RigidBody>(); } );
+
+          var hitResults = RaycastAll( filter );
+          if ( hitResults.Count > 0 ) {
+            GameObject selected = hitResults[ 0 ].Triangle.Target;
+            if ( m_selection.Count == 0 )
+              m_selection.Add( new SelectionEntry( selected ) );
+            else {
+              if ( m_selection.Count == 1 )
+                m_selection.Add( new SelectionEntry( selected ) );
+              else if ( m_selection[ 1 ].Object != selected )
+                m_selection[ 1 ] = new SelectionEntry( selected );
+            }
+          }
+
+          EditorUtility.SetDirty( Assembly );
+        }
+      }
     }
 
     public override void OnInspectorGUI( GUISkin skin )
     {
+      // TODO:
+      //   - "Copy-paste" shape.
+      //       1. Select object with primitive shape(s)
+      //       2. Select object to copy the shape(s) to
+      //   - Move from-to existing bodies or create a new body.
+      //   - Mesh object operations.
+      //       * Simplify assembly
+      //       * Multi-select to create meshes
+      //   - Inspect element (hold 'i').
+
       if ( !AgXUnity.Utils.Math.IsUniform( Assembly.transform.lossyScale, 1.0E-3f ) )
         Debug.LogWarning( "Scale of AgXUnity.Assembly transform isn't uniform. If a child rigid body is moving under this transform the (visual) behavior is undefined.", Assembly );
 
@@ -341,8 +382,64 @@ namespace AgXUnityEditor.Tools
       GUI.Separator3D();
     }
 
+    private ConstraintType m_constraintType = ConstraintType.Hinge;
     private void HandleModeConstraintGUI( GUISkin skin )
     {
+      // TODO: Choose name + done/cancel button.
+
+      ConstraintTool constraintTool = GetChild<ConstraintTool>();
+
+      GUI.Separator3D();
+
+      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
+        if ( m_selection.Count == 0 )
+          GUILayout.Label( GUI.MakeLabel( "Select first object (must be part of a rigid body) in scene view.", true ), skin.label );
+        else if ( m_selection.Count == 1 )
+          GUILayout.Label( GUI.MakeLabel( "Select second object in scene view.", true ), skin.label );
+        else if ( constraintTool == null )
+          GUILayout.Label( GUI.MakeLabel( "Select constraint type and click 'Create' to generate the constraint.", true ), skin.label );
+        else
+          GUILayout.Label( GUI.MakeLabel( "Use constraint model tools to find constraint axis and set initial values.", true ), skin.label );
+      }
+
+      GUI.Separator();
+
+      bool createConstraintPressed = false;
+      if ( m_selection.Count == 2 || constraintTool != null ) {
+        UnityEngine.GUI.enabled = constraintTool == null;
+
+        using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+          m_constraintType = (ConstraintType)EditorGUILayout.EnumPopup( m_constraintType, skin.button, GUILayout.Width( 132 ), GUILayout.Height( 22 ) );
+        using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+          createConstraintPressed = GUILayout.Button( GUI.MakeLabel( "Create", true, "Creates constraint given type and selection" ), skin.button, GUILayout.Width( 66 ), GUILayout.Height( 22 ) );
+
+        UnityEngine.GUI.enabled = true;
+
+        GUI.Separator();
+      }
+
+      if ( constraintTool != null ) {
+        constraintTool.OnInspectorGUI( skin );
+        GUI.Separator();
+      }
+
+      if ( createConstraintPressed ) {
+        GameObject constraintGameObject = Factory.Create( m_constraintType );
+        constraintGameObject.transform.SetParent( Assembly.transform );
+
+        Constraint constraint                     = constraintGameObject.GetComponent<Constraint>();
+        constraint.AttachmentPair.ReferenceObject = m_selection[ 0 ].Object;
+        constraint.AttachmentPair.ConnectedObject = m_selection[ 1 ].Object;
+
+        Undo.RegisterCreatedObjectUndo( constraintGameObject, "New assembly constraint" );
+
+        constraintTool = new ConstraintTool( constraint );
+        AddChild( constraintTool );
+
+        constraintTool.ReferenceFrameTool.FindTransformGivenEdge = true;
+
+        m_selection.Clear();
+      }
     }
 
     private void CreateOrMoveToRigidBodyFromSelectionEntries( List<SelectionEntry> selectionEntries, GameObject rbGameObject = null )
@@ -452,6 +549,7 @@ namespace AgXUnityEditor.Tools
         mode = Mode.None;
 
       m_selection.Clear();
+      RemoveAllChildren();
 
       m_mode = mode;
       m_subMode = SubMode.None;

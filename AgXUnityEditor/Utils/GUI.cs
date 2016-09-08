@@ -37,7 +37,7 @@ namespace AgXUnityEditor.Utils
 
     public class AlignBlock : IDisposable
     {
-      public enum Alignment { Center, Right };
+      public enum Alignment { Left, Center, Right };
 
       private Alignment m_alignment = Alignment.Center;
 
@@ -46,7 +46,8 @@ namespace AgXUnityEditor.Utils
         m_alignment = alignment;
 
         GUILayout.BeginHorizontal();
-        GUILayout.FlexibleSpace();
+        if ( m_alignment != Alignment.Left )
+          GUILayout.FlexibleSpace();
         GUILayout.BeginVertical();
       }
 
