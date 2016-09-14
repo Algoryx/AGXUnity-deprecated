@@ -29,14 +29,17 @@ namespace AgXUnity
     /// Create a new constraint component given constraint type.
     /// </summary>
     /// <param name="type">Type of constraint.</param>
+    /// <param name="givenAttachmentPair">Optional initial attachment pair. If null, a new one will be created.</param>
     /// <returns>Constraint component, added to a new game object - null if unsuccessful.</returns>
-    public static Constraint Create( ConstraintType type )
+    public static Constraint Create( ConstraintType type, ConstraintAttachmentPair givenAttachmentPair = null )
     {
       GameObject constraintGameObject = new GameObject( Factory.CreateName( "AgXUnity." + type ) );
       try {
         Constraint constraint = constraintGameObject.AddComponent<Constraint>();
         constraint.Type       = type;
-        var attachmentPair    = constraint.AttachmentPair; // This will instantiate the attachment pair.
+
+        // Property AttachmentPair will create a new one if it doesn't exist.
+        constraint.m_attachmentPair = givenAttachmentPair ?? constraint.AttachmentPair;
 
         // Creating a temporary native instance of the constraint, including a rigid body and frames.
         // Given this native instance we copy the default configuration.

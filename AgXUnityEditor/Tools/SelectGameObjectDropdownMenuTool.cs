@@ -25,6 +25,15 @@ namespace AgXUnityEditor.Tools
       return Utils.GUI.MakeLabel( name + " " + nullTag + rigidBodyTag + shapeTag + visualTag );
     }
 
+    public class ObjectData
+    {
+      public GameObject GameObject = null;
+      public bool MouseOver = false;
+    }
+
+    private List<ObjectData> m_gameObjectList = new List<ObjectData>();
+    public ObjectData[] DropdownList { get { return m_gameObjectList.ToArray(); } }
+
     public string Title = "Select game object";
 
     private GameObject m_target = null;
@@ -35,8 +44,6 @@ namespace AgXUnityEditor.Tools
     }
 
     public bool WindowIsActive { get { return SceneViewWindow.GetWindowData( OnWindowGUI ) != null; } }
-
-    public GameObject[] GameObjects { get { return m_gameObjectList.ToArray(); } }
 
     public Action<GameObject> OnSelect = delegate { };
 
@@ -85,7 +92,6 @@ namespace AgXUnityEditor.Tools
 
     private GUIContent WindowTitle { get { return Utils.GUI.MakeLabel( Title ); } }
 
-    private List<GameObject> m_gameObjectList = new List<GameObject>();
     private float m_windowWidth = 0f;
 
     private class SelectedObject { public GameObject Object = null; }
@@ -102,28 +108,34 @@ namespace AgXUnityEditor.Tools
 
       if ( Target != null ) {
         if ( pred( Target ) )
-          m_gameObjectList.Add( Target );
+          m_gameObjectList.Add( new ObjectData() { GameObject = Target, MouseOver = false } );
 
         Transform parent = Target.transform.parent;
         while ( parent != null ) {
           m_windowWidth = Mathf.Max( m_windowWidth, Utils.GUI.Skin.button.CalcSize( GetGUIContent( parent.gameObject ) ).x );
 
           if ( pred( parent.gameObject ) )
-            m_gameObjectList.Add( parent.gameObject );
+            m_gameObjectList.Add( new ObjectData() { GameObject = parent.gameObject, MouseOver = false } );
           parent = parent.parent;
         }
       }
 
       // Always adding world at end of list. If Target == null this will be the only entry.
       if ( pred( null ) )
-        m_gameObjectList.Add( null );
+        m_gameObjectList.Add( new ObjectData() { GameObject = null, MouseOver = false } );
     }
 
     private void OnWindowGUI( EventType eventType )
     {
-      foreach ( GameObject gameObject in m_gameObjectList ) {
-        if ( GUILayout.Button( GetGUIContent( gameObject ), Utils.GUI.Skin.button ) )
-          m_selected = new SelectedObject() { Object = gameObject };
+      foreach ( var data in m_gameObjectList ) {
+        if ( eventType == EventType.Repaint )
+          data.MouseOver = false;
+
+        if ( GUILayout.Button( GetGUIContent( data.GameObject ), Utils.GUI.Skin.button ) )
+          m_selected = new SelectedObject() { Object = data.GameObject };
+
+        if ( eventType == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) )
+          data.MouseOver = true;
       }
     }
   }

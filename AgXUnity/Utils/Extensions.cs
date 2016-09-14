@@ -63,6 +63,26 @@ namespace AgXUnity.Utils
     }
 
     /// <summary>
+    /// Visits all children to this game object.
+    /// </summary>
+    /// <param name="visitor">Game object visitor.</param>
+    public static void TraverseChildren( this GameObject gameObject, Action<GameObject> visitor )
+    {
+      if ( visitor == null )
+        return;
+
+      foreach ( Transform child in gameObject.transform )
+        Traverse( child, visitor );
+    }
+
+    private static void Traverse( Transform transform, Action<GameObject> visitor )
+    {
+      visitor( transform.gameObject );
+      foreach ( Transform child in transform )
+        Traverse( child, visitor );
+    }
+
+    /// <summary>
     /// Returns an initialized component - if present.
     /// </summary>
     /// <typeparam name="T">Component type.</typeparam>

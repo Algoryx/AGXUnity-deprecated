@@ -63,6 +63,32 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    private class CreateConstraintData
+    {
+      public ConstraintType ConstraintType              = ConstraintType.Hinge;
+      public string Name                                = string.Empty;
+      public ConstraintAttachmentPair AttachmentPair    = null;
+      public Constraint.ECollisionsState CollisionState = Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2;
+
+      public void CreateInitialState( string name )
+      {
+        if ( AttachmentPair != null ) {
+          Debug.LogError( "Attachment pair already created. Make sure to clean any previous state before initializing a new one.", AttachmentPair );
+          return;
+        }
+
+        AttachmentPair = ConstraintAttachmentPair.Create<ConstraintAttachmentPair>();
+        Name           = Factory.CreateName( name + "_constraint" );
+      }
+
+      public void Reset( bool deleteAttachmentPair )
+      {
+        if ( AttachmentPair != null && deleteAttachmentPair )
+          ScriptComponent.DestroyImmediate( AttachmentPair );
+        AttachmentPair = null;
+      }
+    }
+
     private enum Mode
     {
       None,
@@ -77,16 +103,18 @@ namespace AgXUnityEditor.Tools
       SelectRigidBody
     }
 
-    private Mode m_mode = Mode.None;
+    private Mode m_mode       = Mode.None;
     private SubMode m_subMode = SubMode.None;
+
+    private CreateConstraintData m_createConstraintData = new CreateConstraintData();
 
     private List<SelectionEntry> m_selection = new List<SelectionEntry>();
     private RigidBodySelection m_rbSelection = null;
 
-    private Color m_selectedColor            = new Color( 0.15f, 0.9f, 0.25f, 0.15f );
-    private Color m_selectedMaxColor         = new Color( 0.8f, 1.0f, 0.95f, 0.25f );
-    private Color m_mouseOverColor           = new Color( 0.55f, 0.65f, 0.95f, 0.15f );
-    private Color m_mouseOverMaxColor        = new Color( 0.15f, 0.25f, 0.25f, 0.15f );
+    private Color m_selectedColor     = new Color( 0.15f, 0.9f, 0.25f, 0.15f );
+    private Color m_selectedMaxColor  = new Color( 0.8f, 1.0f, 0.95f, 0.25f );
+    private Color m_mouseOverColor    = new Color( 0.55f, 0.65f, 0.95f, 0.15f );
+    private Color m_mouseOverMaxColor = new Color( 0.15f, 0.25f, 0.25f, 0.15f );
 
     public Assembly Assembly { get; private set; }
 
@@ -98,10 +126,19 @@ namespace AgXUnityEditor.Tools
 
     public override void OnAdd()
     {
+      Renderer[] renderers = Assembly.GetComponentsInChildren<Renderer>();
+      for ( int i = 0; i < renderers.Length; ++i )
+        EditorUtility.SetSelectedWireframeHidden( renderers[ i ], true );
     }
 
     public override void OnRemove()
     {
+      if ( Assembly != null ) {
+        Renderer[] renderers = Assembly.GetComponentsInChildren<Renderer>();
+        for ( int i = 0; i < renderers.Length; ++i )
+          EditorUtility.SetSelectedWireframeHidden( renderers[ i ], false );
+      }
+
       ChangeMode( Mode.None );
     }
 
@@ -124,7 +161,7 @@ namespace AgXUnityEditor.Tools
 
           Debug.Assert( filter != null );
 
-          var hitResults = RaycastAll( filter );
+          var hitResults = Raycast.TestChildren( Assembly.gameObject, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ), 500f, filter );
           if ( hitResults.Count > 0 ) {
             // TODO: If count > 1 - the user should be able to chose which object to select.
             GameObject selected = hitResults[ 0 ].Triangle.Target;
@@ -150,7 +187,7 @@ namespace AgXUnityEditor.Tools
       }
       else if ( m_mode == Mode.Shape ) {
         if ( Manager.HijackLeftMouseClick() ) {
-          var hitResults = RaycastAll();
+          var hitResults = Raycast.TestChildren( Assembly.gameObject, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) );
 
           // Find target. Ignoring shapes.
           GameObject selected = null;
@@ -167,35 +204,16 @@ namespace AgXUnityEditor.Tools
         }
       }
       else if ( m_mode == Mode.Constraint ) {
-        if ( Manager.HijackLeftMouseClick() ) {
-          // m_selection[ 0 ] should contain a rigid body.
-          Predicate<GameObject> filter = GetChild<ConstraintTool>() != null ? new Predicate<GameObject>( obj => { return false; } ) :
-                                         m_selection.Count == 0             ? new Predicate<GameObject>( obj => { return obj.GetComponent<AgXUnity.Collide.Shape>() == null && obj.GetComponentInParent<RigidBody>() != null; } ) :
-                                                                              new Predicate<GameObject>( obj => { return obj.GetComponent<AgXUnity.Collide.Shape>() == null && 
-                                                                                                                         obj != m_selection[ 0 ].Object &&
-                                                                                                                         m_selection[ 0 ].Object.GetComponentInParent<RigidBody>() != obj.GetComponentInParent<RigidBody>(); } );
-
-          var hitResults = RaycastAll( filter );
-          if ( hitResults.Count > 0 ) {
-            GameObject selected = hitResults[ 0 ].Triangle.Target;
-            if ( m_selection.Count == 0 )
-              m_selection.Add( new SelectionEntry( selected ) );
-            else {
-              if ( m_selection.Count == 1 )
-                m_selection.Add( new SelectionEntry( selected ) );
-              else if ( m_selection[ 1 ].Object != selected )
-                m_selection[ 1 ] = new SelectionEntry( selected );
-            }
-          }
-
-          EditorUtility.SetDirty( Assembly );
+        if ( m_createConstraintData.AttachmentPair == null ) {
+          m_createConstraintData.CreateInitialState( Assembly.name );
+          AddChild( new ConstraintAttachmentFrameTool( m_createConstraintData.AttachmentPair, Assembly ) );
         }
       }
     }
 
     public override void OnInspectorGUI( GUISkin skin )
     {
-      // TODO:
+      // TODO: Improvements.
       //   - "Copy-paste" shape.
       //       1. Select object with primitive shape(s)
       //       2. Select object to copy the shape(s) to
@@ -382,64 +400,74 @@ namespace AgXUnityEditor.Tools
       GUI.Separator3D();
     }
 
-    private ConstraintType m_constraintType = ConstraintType.Hinge;
     private void HandleModeConstraintGUI( GUISkin skin )
     {
-      // TODO: Choose name + done/cancel button.
-
-      ConstraintTool constraintTool = GetChild<ConstraintTool>();
+      ConstraintAttachmentFrameTool attachmentPairTool = GetChild<ConstraintAttachmentFrameTool>();
+      if ( attachmentPairTool == null || m_createConstraintData.AttachmentPair == null )
+        return;
 
       GUI.Separator3D();
 
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
-        if ( m_selection.Count == 0 )
-          GUILayout.Label( GUI.MakeLabel( "Select first object (must be part of a rigid body) in scene view.", true ), skin.label );
-        else if ( m_selection.Count == 1 )
-          GUILayout.Label( GUI.MakeLabel( "Select second object in scene view.", true ), skin.label );
-        else if ( constraintTool == null )
-          GUILayout.Label( GUI.MakeLabel( "Select constraint type and click 'Create' to generate the constraint.", true ), skin.label );
-        else
-          GUILayout.Label( GUI.MakeLabel( "Use constraint model tools to find constraint axis and set initial values.", true ), skin.label );
+      using ( new GUI.Indent( 16 ) ) {
+        GUILayout.BeginHorizontal();
+        {
+          GUILayout.Label( GUI.MakeLabel( "Name", true ), skin.label, GUILayout.Width( 64 ) );
+          m_createConstraintData.Name = GUILayout.TextField( m_createConstraintData.Name, skin.textField, GUILayout.ExpandWidth( true ) );
+        }
+        GUILayout.EndHorizontal();
+
+        GUILayout.BeginHorizontal();
+        {
+          GUILayout.Label( GUI.MakeLabel( "Type", true ), skin.label, GUILayout.Width( 64 ) );
+          using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.yellow, 0.1f ) ) )
+            m_createConstraintData.ConstraintType = (ConstraintType)EditorGUILayout.EnumPopup( m_createConstraintData.ConstraintType, skin.button, GUILayout.ExpandWidth( true ), GUILayout.Height( 18 ) );
+        }
+        GUILayout.EndHorizontal();
       }
 
-      GUI.Separator();
+      GUI.Separator3D();
+
+      attachmentPairTool.OnInspectorGUI( skin );
+
+      m_createConstraintData.CollisionState = ConstraintTool.ConstraintCollisionsStateGUI( m_createConstraintData.CollisionState, skin );
+
+      GUI.Separator3D();
 
       bool createConstraintPressed = false;
-      if ( m_selection.Count == 2 || constraintTool != null ) {
-        UnityEngine.GUI.enabled = constraintTool == null;
+      bool cancelPressed = false;
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Space( 12 );
 
-        using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
-          m_constraintType = (ConstraintType)EditorGUILayout.EnumPopup( m_constraintType, skin.button, GUILayout.Width( 132 ), GUILayout.Height( 22 ) );
-        using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
-          createConstraintPressed = GUILayout.Button( GUI.MakeLabel( "Create", true, "Creates constraint given type and selection" ), skin.button, GUILayout.Width( 66 ), GUILayout.Height( 22 ) );
+        using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
+          createConstraintPressed = GUILayout.Button( GUI.MakeLabel( "Create", true, "Create the constraint" ), skin.button, GUILayout.Width( 120 ), GUILayout.Height( 26 ) );
 
-        UnityEngine.GUI.enabled = true;
-
-        GUI.Separator();
+        GUILayout.BeginVertical();
+        {
+          GUILayout.Space( 13 );
+          using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.red, 0.1f ) ) )
+            cancelPressed = GUILayout.Button( GUI.MakeLabel( "Cancel", false ), skin.button, GUILayout.Width( 96 ), GUILayout.Height( 16 ) );
+          GUILayout.EndVertical();
+        }
       }
+      GUILayout.EndHorizontal();
 
-      if ( constraintTool != null ) {
-        constraintTool.OnInspectorGUI( skin );
-        GUI.Separator();
-      }
+      GUI.Separator3D();
 
       if ( createConstraintPressed ) {
-        GameObject constraintGameObject = Factory.Create( m_constraintType );
+        GameObject constraintGameObject                                 = Factory.Create( m_createConstraintData.ConstraintType, m_createConstraintData.AttachmentPair );
+        constraintGameObject.name                                       = m_createConstraintData.Name;
+        constraintGameObject.GetComponent<Constraint>().CollisionsState = m_createConstraintData.CollisionState;
+
         constraintGameObject.transform.SetParent( Assembly.transform );
 
-        Constraint constraint                     = constraintGameObject.GetComponent<Constraint>();
-        constraint.AttachmentPair.ReferenceObject = m_selection[ 0 ].Object;
-        constraint.AttachmentPair.ConnectedObject = m_selection[ 1 ].Object;
+        Undo.RegisterCreatedObjectUndo( constraintGameObject, "New assembly constraint '" + constraintGameObject.name + "' created" );
 
-        Undo.RegisterCreatedObjectUndo( constraintGameObject, "New assembly constraint" );
-
-        constraintTool = new ConstraintTool( constraint );
-        AddChild( constraintTool );
-
-        constraintTool.ReferenceFrameTool.FindTransformGivenEdge = true;
-
-        m_selection.Clear();
+        m_createConstraintData.Reset( false );
       }
+
+      if ( cancelPressed || createConstraintPressed )
+        ChangeMode( Mode.None );
     }
 
     private void CreateOrMoveToRigidBodyFromSelectionEntries( List<SelectionEntry> selectionEntries, GameObject rbGameObject = null )
@@ -544,12 +572,16 @@ namespace AgXUnityEditor.Tools
 
     private void ChangeMode( Mode mode )
     {
+      // Assembly reference may be lost here when called from OnRemove.
+
       // Toggle mode.
       if ( mode == m_mode )
         mode = Mode.None;
 
       m_selection.Clear();
       RemoveAllChildren();
+
+      m_createConstraintData.Reset( true );
 
       m_mode = mode;
       m_subMode = SubMode.None;
@@ -565,58 +597,34 @@ namespace AgXUnityEditor.Tools
       m_subMode = subMode;
     }
 
-    private List<AgXUnity.Utils.Raycast.Hit> RaycastAll( Predicate<GameObject> pred = null, float rayLength = 500.0f )
-    {
-      List<AgXUnity.Utils.Raycast.Hit> result = new List<AgXUnity.Utils.Raycast.Hit>();
-      Ray ray = HandleUtility.GUIPointToWorldRay( Event.current.mousePosition );
-
-      Traverse( obj =>
-      {
-        if ( pred == null || pred( obj ) ) {
-          AgXUnity.Utils.Raycast.Hit hit = AgXUnity.Utils.Raycast.Test( obj, ray, rayLength );
-          if ( hit.Triangle.Valid )
-            result.Add( hit );
-        }
-      } );
-
-      result.Sort( ( hit1, hit2 ) => { return hit1.Triangle.Distance < hit2.Triangle.Distance ? -1 : 1; } );
-
-      return result;
-    }
-
-    private void Traverse( Action<GameObject> gameObjectVisitor )
-    {
-      if ( gameObjectVisitor == null )
-        return;
-
-      Traverse( Assembly.transform, gameObjectVisitor );
-    }
-
-    private void Traverse( Transform transform, Action<GameObject> gameObjectVisitor )
-    {
-      if ( transform == null )
-        return;
-
-      gameObjectVisitor( transform.gameObject );
-
-      foreach ( Transform child in transform )
-        Traverse( child, gameObjectVisitor );
-    }
-
     public override void OnDrawGizmosSelected( ScriptComponent component )
     {
+      if ( Assembly == null )
+        return;
+
       Dictionary<MeshFilter, Color> meshColors = new Dictionary<MeshFilter, Color>();
+
+      // Constraint edge/point tools.
+      GameObject detectionMouseOverObject = null;
+      SelectGameObjectDropdownMenuTool dropdownMenuTool = Tool.FindActive<SelectGameObjectDropdownMenuTool>( t => { return true; } );
+      if ( dropdownMenuTool != null ) {
+        foreach ( var data in dropdownMenuTool.DropdownList )
+          if ( data.MouseOver )
+            detectionMouseOverObject = data.GameObject;
+      }
 
       RigidBody[] bodies = Assembly.GetComponentsInChildren<RigidBody>();
       int orgSeed = UnityEngine.Random.seed;
       {
         foreach ( var rb in bodies ) {
           Color rbColor = UnityEngine.Random.ColorHSV();
+          rbColor.a     = m_selectedColor.a;
 
           MeshFilter[] rbMeshFilters = rb.GetComponentsInChildren<MeshFilter>();
           foreach ( var rbMeshFilter in rbMeshFilters ) {
             bool inSelected = ( m_rbSelection != null && m_rbSelection.RigidBody == rb ) ||
-                              m_selection.FindIndex( selectedEntry => { return selectedEntry.Object.GetComponent<MeshFilter>() == rbMeshFilter; } ) >= 0;
+                              ( m_selection.FindIndex( selectedEntry => { return selectedEntry.Object.GetComponent<MeshFilter>() == rbMeshFilter; } ) >= 0 ) ||
+                              ( detectionMouseOverObject != null && ( detectionMouseOverObject == rbMeshFilter.gameObject || rbMeshFilter.transform.IsChildOf( detectionMouseOverObject.transform ) ) );
             if ( inSelected )
               meshColors.Add( rbMeshFilter, ColorPulse.Lerp( rbColor, m_selectedColor ) );
             else
@@ -633,18 +641,30 @@ namespace AgXUnityEditor.Tools
           meshColors.Add( selectedFilter, ColorPulse.Lerp( m_selectedColor, m_selectedMaxColor ) );
       }
 
+      if ( detectionMouseOverObject != null ) {
+        MeshFilter[] detectionFilters = detectionMouseOverObject.GetComponentsInChildren<MeshFilter>();
+        foreach ( var filter in detectionFilters ) {
+          Color color;
+          if ( !meshColors.TryGetValue( filter, out color ) )
+            meshColors.Add( filter, ColorPulse.Lerp( m_selectedColor, m_selectedMaxColor ) );
+        }
+
+        AgXUnity.Collide.Shape[] shapes = detectionMouseOverObject.GetComponentsInChildren<AgXUnity.Collide.Shape>();
+        foreach ( var shape in shapes ) {
+          AgXUnity.Rendering.ShapeDebugRenderData debugRenderData = shape.GetComponent<AgXUnity.Rendering.ShapeDebugRenderData>();
+          if ( debugRenderData != null && debugRenderData.Node != null ) {
+            MeshFilter[] filters = debugRenderData.Node.GetComponentsInChildren<MeshFilter>();
+            foreach ( var filter in filters ) {
+              Color color;
+              if ( !meshColors.TryGetValue( filter, out color ) )
+                meshColors.Add( filter, ColorPulse.Lerp( m_selectedColor, m_selectedMaxColor ) );
+            }
+          }
+        }
+      }
+
       foreach ( var filterAndColor in meshColors )
         DrawGizmoMesh( filterAndColor.Key, filterAndColor.Value );
-
-      //bool renderMouseOverMesh = m_mode != Mode.None &&
-      //                           Manager.MouseOverObject != null &&
-      //                           Manager.MouseOverObject.transform.IsChildOf( Assembly.transform ) &&
-      //                           m_selection.FindIndex( obj => { return obj.Object == Manager.MouseOverObject; } ) < 0;
-      //if ( renderMouseOverMesh )
-      //  DrawGizmoMesh( Manager.MouseOverObject.GetComponent<MeshFilter>(), ColorPulse.Lerp( m_mouseOverColor, m_mouseOverMaxColor ) );
-
-      //foreach ( var selected in m_selection )
-      //  DrawGizmoMesh( selected.Object.GetComponent<MeshFilter>(), ColorPulse.Lerp( m_selectedColor, m_selectedMaxColor ) );
     }
 
     private void DrawGizmoMesh( MeshFilter filter, Color color )
@@ -655,342 +675,6 @@ namespace AgXUnityEditor.Tools
       Gizmos.color = color;
       Gizmos.matrix = filter.transform.localToWorldMatrix;
       Gizmos.DrawWireMesh( filter.sharedMesh );
-    }
-  }
-
-  public class AssemblyToolOld : Tool
-  {
-    public enum CreateModes
-    {
-      None,
-      RigidBody,
-      Shape,
-      Constraint
-    }
-
-    public Assembly Assembly { get; private set; }
-
-    private CreateModes m_createMode = CreateModes.None;
-    public CreateModes CreateMode
-    {
-      get { return m_createMode; }
-      set
-      {
-        if ( m_createMode == value )
-          return;
-
-        m_createMode = value;
-        m_selected.Clear();
-      }
-    }
-
-    private bool m_toolsActive = false;
-    public bool ToolsActive
-    {
-      get { return m_toolsActive; }
-      set
-      {
-        if ( m_toolsActive == value )
-          return;
-
-        m_toolsActive = value;
-        CreateMode = CreateModes.None;
-      }
-    }
-
-    private List<GameObject> m_selected = new List<GameObject>();
-    public GameObject[] Selected { get { return m_selected.ToArray(); } }
-
-    public AssemblyToolOld( Assembly assembly )
-    {
-      Assembly = assembly;
-    }
-
-    public override void OnSceneViewGUI( SceneView sceneView )
-    {
-      if ( ToolsActive ) {
-        // When the tools are active we're hijacking all mouse clicks.
-        bool hijackedMouseClick = Manager.HijackLeftMouseClick();
-        // Mouse hovers an object part of this assembly.
-        bool mouseHoverAssemblyObject = Manager.MouseOverObject != null &&
-                                        Manager.MouseOverObject.transform.IsChildOf( Assembly.transform );
-
-        if ( hijackedMouseClick &&
-             mouseHoverAssemblyObject &&
-             Manager.MouseOverObject.GetComponentInParent<RigidBody>() == null ) {
-          if ( m_selected.Contains( Manager.MouseOverObject ) )
-            m_selected.Remove( Manager.MouseOverObject );
-          else
-            m_selected.Add( Manager.MouseOverObject );
-
-          EditorUtility.SetDirty( Assembly );
-        }
-      }
-
-      //if ( SelectObjects ) {
-      //  if ( Manager.HijackLeftMouseClick() &&
-      //       Manager.MouseOverObject != null &&
-      //       Manager.MouseOverObject.transform.IsChildOf( Assembly.transform ) ) {
-      //    if ( m_selected.Contains( Manager.MouseOverObject ) )
-      //      m_selected.Remove( Manager.MouseOverObject );
-      //    else
-      //      m_selected.Add( Manager.MouseOverObject );
-
-      //    EditorUtility.SetDirty( Assembly );
-      //  }
-      //}
-
-      //if ( Manager.KeyEscapeDown ) {
-      //  m_selected.Clear();
-      //}
-
-      //if ( Manager.HijackLeftMouseClick() &&
-      //     Manager.MouseOverObject != null &&
-      //     Manager.MouseOverObject.GetComponentInParent<RigidBody>() == null &&
-      //     Manager.MouseOverObject.transform.IsChildOf( Assembly.transform ) ) {
-      //  if ( m_selected.Contains( Manager.MouseOverObject ) )
-      //    m_selected.Remove( Manager.MouseOverObject );
-      //  else
-      //    m_selected.Add( Manager.MouseOverObject );
-
-      //  EditorUtility.SetDirty( Assembly );
-      //}
-    }
-
-    public override void OnInspectorGUI( GUISkin skin )
-    {
-      bool createPressed = false;
-
-      GUI.Separator3D();
-      {
-        ToolsActive = GUI.Toggle( GUI.MakeLabel( ToolsActive ? "Deactivate tools" : "Activate tools" ), ToolsActive, skin.button, skin.label );
-        UnityEngine.GUI.enabled = ToolsActive;
-        GUILayout.BeginHorizontal();
-        {
-          GUILayout.Space( 12 );
-          GUI.ToolsLabel( skin );
-          using ( GUI.ToolButtonData.ColorBlock ) {
-            foreach ( CreateModes createMode in Enum.GetValues( typeof( CreateModes ) ) ) {
-              if ( createMode == CreateModes.None )
-                continue;
-
-              ToggleCreateMode( createMode,
-                                GUILayout.Button( MakeLabel( createMode ), GUI.ConditionalCreateSelectedStyle( CreateMode == createMode, skin.button ), GUI.ToolButtonData.Width, GUI.ToolButtonData.Height ) );
-            }
-          }
-        }
-        GUILayout.EndHorizontal();
-        UnityEngine.GUI.enabled = true;
-
-        if ( CreateMode != CreateModes.None ) {
-          GUI.Separator();
-          using ( new GUI.Indent( 12 ) ) {
-            using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
-              GUILayout.Label( GUI.MakeLabel( "Select/pick object(s) in scene view", true ) );
-              GUI.Separator();
-            }
-
-            using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
-              UnityEngine.GUI.enabled = m_selected.Count > 0;
-              createPressed = GUILayout.Button( GUI.MakeLabel( "Create" ), skin.button, GUILayout.Width( 92 ) );
-              UnityEngine.GUI.enabled = true;
-            }
-          }
-        }
-      }
-      GUI.Separator3D();
-
-      if ( createPressed ) {
-        GameObject rb = null;
-        if ( CreateMode == CreateModes.RigidBody ) {
-          rb                    = Factory.Create<RigidBody>();
-          rb.transform.position = Assembly.transform.position;
-          rb.transform.rotation = Assembly.transform.rotation;
-          rb.transform.parent   = Assembly.transform;
-
-          Undo.RegisterCreatedObjectUndo( rb, "New assembly rigid body." );
-        }
-
-        // Entering this mode if CreateMode == RigidBody as well.
-        if ( CreateMode == CreateModes.Shape || rb != null ) {
-          foreach ( GameObject go in m_selected ) {
-            // Collecting selected objects, non selected children, to be moved to
-            // a new parent.
-            List<Transform> orphans = new List<Transform>();
-            foreach ( Transform child in go.transform ) {
-              if ( !m_selected.Contains( child.gameObject ) )
-                orphans.Add( child );
-            }
-
-            // Moving selected parents (NON-selected) children to a new parent.
-            Transform parent = go.transform.parent;
-            foreach ( var orphan in orphans )
-              Undo.SetTransformParent( orphan, parent, "Moving non-selected child to selected parent." );
-
-            // DebugRenderManager may not create ShapeDebugRenderData component on
-            // next update since it'll screw up undo. We have to create it here.
-            if ( go.GetComponent<AgXUnity.Collide.Shape>() == null && go.GetComponent<MeshFilter>() != null ) {
-              var mesh = Undo.AddComponent<AgXUnity.Collide.Mesh>( go );
-              if ( AgXUnity.Rendering.DebugRenderManager.HasInstance )
-                Undo.AddComponent<AgXUnity.Rendering.ShapeDebugRenderData>( go );
-              mesh.SourceObject = go.GetComponent<MeshFilter>().sharedMesh;
-            }
-
-            if ( rb != null )
-              Undo.SetTransformParent( go.transform, rb.transform, "Parent of mesh is rigid body." );
-          }
-        }
-
-        CreateMode = CreateModes.None;
-      }
-
-      //bool toggleSelectObjects = false;
-
-      //GUI.Separator3D();
-      //using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
-      //  using ( GUI.ToolButtonData.ColorBlock )
-      //    toggleSelectObjects = GUILayout.Button( GUI.MakeLabel( "Select in scene view" ), GUI.ConditionalCreateSelectedStyle( SelectObjects, skin.button ), GUILayout.Width( 128 ) );
-      //GUI.Separator3D();
-
-      //if ( toggleSelectObjects )
-      //  SelectObjects = !SelectObjects;
-
-      //UnityEngine.GUI.enabled  = m_selected.Count > 0;
-      //bool createBody          = GUILayout.Button( GUI.MakeLabel( "Create body" ), skin.button, GUILayout.Width( 200 ) );
-      //bool createShapes        = GUILayout.Button( GUI.MakeLabel( "Create shapes" ), skin.button, GUILayout.Width( 200 ) );
-      //UnityEngine.GUI.enabled  = true;
-      //bool createLastOfTheRest = GUILayout.Button( GUI.MakeLabel( "Create last of the rest" ), skin.button, GUILayout.Width( 200 ) );
-
-      //if ( createLastOfTheRest ) {
-      //  m_selected.Clear();
-
-      //  Transform[] allTransforms = Assembly.GetComponentsInChildren<Transform>();
-      //  foreach ( var t in allTransforms ) {
-      //    if ( t.gameObject == Assembly.gameObject )
-      //      continue;
-
-      //    if ( t.GetComponentInParent<RigidBody>() == null )
-      //      m_selected.Add( t.gameObject );
-      //  }
-
-      //  createBody = true;
-      //}
-
-      //GameObject rb = null;
-      //if ( createBody ) {
-      //  rb                    = Factory.Create<RigidBody>();
-      //  rb.transform.position = Assembly.transform.position;
-      //  rb.transform.rotation = Assembly.transform.rotation;
-      //  rb.transform.parent   = Assembly.transform;
-      //  Undo.RegisterCreatedObjectUndo( rb, "New assembly rigid body." );
-
-      //  createShapes = true;
-      //}
-
-      //if ( createShapes ) {
-      //  foreach ( GameObject go in m_selected ) {
-      //    List<Transform> orphans = new List<Transform>();
-      //    foreach ( Transform child in go.transform ) {
-      //      if ( !m_selected.Contains( child.gameObject ) )
-      //        orphans.Add( child );
-      //    }
-
-      //    Transform parent = go.transform.parent;
-      //    foreach ( var orphan in orphans )
-      //      Undo.SetTransformParent( orphan, parent, "Moving non-selected child to selected parent." );
-
-      //    if ( go.GetComponent<AgXUnity.Collide.Shape>() == null && go.GetComponent<MeshFilter>() != null ) {
-      //      var mesh = Undo.AddComponent<AgXUnity.Collide.Mesh>( go );
-      //      if ( AgXUnity.Rendering.DebugRenderManager.HasInstance )
-      //        Undo.AddComponent<AgXUnity.Rendering.ShapeDebugRenderData>( go );
-      //      mesh.SourceObject = go.GetComponent<MeshFilter>().sharedMesh;
-      //    }
-
-      //    if ( rb != null )
-      //      Undo.SetTransformParent( go.transform, rb.transform, "Parent of mesh is rigid body." );
-      //  }
-
-      //  m_selected.Clear();
-      //}
-    }
-
-    private GUIContent MakeLabel( CreateModes createMode )
-    {
-      return GUI.MakeLabel( createMode.ToString().ToLower()[ 0 ].ToString(), true );
-    }
-
-    private void ToggleCreateMode( CreateModes createMode, bool toggled )
-    {
-      if ( !toggled )
-        return;
-
-      if ( createMode == CreateMode )
-        CreateMode = CreateModes.None;
-      else
-        CreateMode = createMode;
-    }
-  }
-
-  public class RenderSelectedGizmoDrawerOld
-  {
-    private static float m_t   = 0f;
-    private static float m_dir = 1.0f;
-
-    [DrawGizmo( GizmoType.Active | GizmoType.Selected )]
-    public static void DrawSelectedList( Assembly assembly, GizmoType gizmoType )
-    {
-      AssemblyToolOld tool = Tool.GetActiveTool<AssemblyToolOld>();
-      if ( tool == null )
-        return;
-
-      Dictionary<Transform, Color> colors = new Dictionary<Transform, Color>();
-
-      GameObject[] selected = tool.Selected;
-      Color selectedColor   = Color.Lerp( Color.green, Color.white, m_t );
-      foreach ( var go in selected ) {
-        MeshFilter filter = go.GetComponent<MeshFilter>();
-        if ( filter == null )
-          continue;
-
-        colors.Add( go.transform, selectedColor );
-      }
-
-      RigidBody[] bodies      = tool.Assembly.GetComponentsInChildren<RigidBody>();
-      UnityEngine.Random.seed = 513;
-      foreach ( var rb in bodies ) {
-        Color rbColor = UnityEngine.Random.ColorHSV();
-        Transform[] transforms = rb.GetComponentsInChildren<Transform>();
-        foreach ( Transform transform in transforms )
-          if ( !colors.ContainsKey( transform ) && transform.GetComponent<MeshFilter>() != null )
-            colors.Add( transform, rbColor );
-      }
-
-      Transform[] allTransforms = tool.Assembly.GetComponentsInChildren<Transform>();
-      foreach ( Transform transform in allTransforms ) {
-        MeshFilter filter = transform.GetComponent<MeshFilter>();
-        if ( filter == null )
-          continue;
-
-        Color color;
-        if ( !colors.TryGetValue( transform, out color ) ) {
-          color = Color.white;
-          color.a = 0.1f;
-        }
-
-        Gizmos.color = color;
-        Gizmos.matrix = transform.localToWorldMatrix;
-        Gizmos.DrawWireMesh( filter.sharedMesh );
-      }
-
-      m_t += m_dir * 0.015f;
-      if ( m_t > 1f ) {
-        m_t   = 1f;
-        m_dir = -1f;
-      }
-      else if ( m_t < 0f ) {
-        m_t   = 0f;
-        m_dir = 1f;
-      }
     }
   }
 }
