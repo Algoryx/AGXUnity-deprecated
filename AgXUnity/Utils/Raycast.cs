@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -155,6 +156,26 @@ namespace AgXUnity.Utils
       }
 
       return bestHit;
+    }
+
+    public static List<Hit> TestChildren( GameObject parent, Ray ray, float rayLength = 500.0f, Predicate<GameObject> objectPredicate = null )
+    {
+      List<Hit> result = new List<Hit>();
+      if ( parent == null )
+        return result;
+
+      parent.TraverseChildren( obj =>
+      {
+        if ( objectPredicate == null || objectPredicate( obj ) ) {
+          Hit hit = Test( obj, ray, rayLength );
+          if ( hit.Triangle.Valid )
+            result.Add( hit );
+        }
+      } );
+
+      result.Sort( ( hit1, hit2 ) => { return hit1.Triangle.Distance < hit2.Triangle.Distance ? -1 : 1; } );
+
+      return result;
     }
 
     private MeshUtils.Edge[] FindPrincipalEdges( Collide.Shape shape, float principalEdgeExtension )

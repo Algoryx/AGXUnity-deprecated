@@ -118,25 +118,16 @@ namespace AgXUnity.Rendering
     {
       if ( Node == null )
         return;
+
+      // Assembly tool (AgXUnityEditor.Tools.AssemblyTool) has its own gizmos rendering.
+      if ( DebugRenderManager.EditorActiveGameObject != null && DebugRenderManager.EditorActiveGameObject.GetComponent<Assembly>() != null )
+        return;
       
       Gizmos.color = FindSelectedShapeColor( shape );
-      if ( shape is Capsule ) {
-        MeshFilter[] filters = Node.GetComponentsInChildren<MeshFilter>();
-        CombineInstance[] combine = new CombineInstance[ filters.Length ];
-        for ( int i = 0; i < filters.Length; ++i ) {
-          combine[ i ].mesh = filters[ i ].sharedMesh;
-          combine[ i ].transform = filters[ i ].transform.localToWorldMatrix;
-        }
-
-        UnityEngine.Mesh tmpMesh = new UnityEngine.Mesh();
-        tmpMesh.CombineMeshes( combine );
-
-        Gizmos.DrawWireMesh( tmpMesh, Vector3.zero, Quaternion.identity );
-      }
-      else {
-        MeshFilter[] meshes = Node.GetComponentsInChildren<MeshFilter>();
-        foreach ( var mesh in meshes )
-          Gizmos.DrawWireMesh( mesh.sharedMesh, transform.position, transform.rotation, shape.GetScale() );
+      MeshFilter[] filters = Node.GetComponentsInChildren<MeshFilter>();
+      foreach ( var filter in filters ) {
+        Gizmos.matrix = filter.transform.localToWorldMatrix;
+        Gizmos.DrawWireMesh( filter.sharedMesh );
       }
     }
 

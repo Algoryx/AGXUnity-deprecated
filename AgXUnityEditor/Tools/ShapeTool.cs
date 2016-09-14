@@ -53,7 +53,7 @@ namespace AgXUnityEditor.Tools
           UnityEngine.GUI.enabled = Tools.ShapeResizeTool.SupportsShape( Shape );
           toggleShapeResizeTool = GUILayout.Button( GUI.MakeLabel( shapeResizeToolSymbol.ToString(), false, "Shape resize tool" ),
                                                     GUI.ConditionalCreateSelectedStyle( ShapeResizeTool, GUI.ToolButtonData.Style( skin, 24 ) ),
-                                                    new GUILayoutOption[] { GUILayout.Width( GUI.ToolButtonData.Width ), GUILayout.Height( GUI.ToolButtonData.Height ) } );
+                                                    GUI.ToolButtonData.Width, GUI.ToolButtonData.Height );
           UnityEngine.GUI.enabled = guiWasEnabled;
         }
       }

@@ -48,6 +48,8 @@
     <Compile Include="Menus\AssetsMenu.cs" />
     <Compile Include="Menus\TopMenu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Tools\AssemblyTool.cs" />
+    <Compile Include="Tools\ConstraintAttachmentFrameTool.cs" />
     <Compile Include="Tools\ConstraintTool.cs" />
     <Compile Include="Tools\DirectionTool.cs" />
     <Compile Include="Tools\EdgeDetectionTool.cs" />
@@ -63,6 +65,7 @@
     <Compile Include="Tools\WireTool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />
     <Compile Include="Utils\CustomEditorGenerator.cs" />
+    <Compile Include="Utils\DrawGizmoCallbackHandler.cs" />
     <Compile Include="Utils\GUI.cs" />
     <Compile Include="Utils\KeyHandler.cs" />
     <Compile Include="Utils\VisualPrimitive.cs" />

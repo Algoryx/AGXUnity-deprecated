@@ -7,67 +7,52 @@ using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
 {
-  public class ConstraintTool : Tool
+  public class ConstraintTool : ConstraintAttachmentFrameTool
   {
     public Constraint Constraint { get; private set; }
 
-    public FrameTool ReferenceFrameTool { get; private set; }
-    
-    public FrameTool ConnectedFrameTool { get; private set; }
-
     public ConstraintTool( Constraint constraint )
+      : base( constraint.AttachmentPair, constraint )
     {
       Constraint = constraint;
     }
 
     public override void OnAdd()
     {
-      HideDefaultHandlesEnableWhenRemoved();
-
-      ReferenceFrameTool = new FrameTool( Constraint.AttachmentPair.ReferenceFrame ) { OnChangeDirtyTarget = Constraint };
-      ConnectedFrameTool = new FrameTool( Constraint.AttachmentPair.ConnectedFrame ) { OnChangeDirtyTarget = Constraint, TransformHandleActive = !Constraint.AttachmentPair.Synchronized };
-
-      AddChild( ReferenceFrameTool );
-      AddChild( ConnectedFrameTool );
+      base.OnAdd();
     }
 
     public override void OnRemove()
     {
-      RemoveChild( ReferenceFrameTool );
-      RemoveChild( ConnectedFrameTool );
-
-      ReferenceFrameTool = ConnectedFrameTool = null;
+      base.OnRemove();
     }
 
     public override void OnInspectorGUI( GUISkin skin )
     {
-      bool guiWasEnabled = UnityEngine.GUI.enabled;
+      // Possible undo performed that deleted the constraint. Remove us.
+      if ( Constraint == null ) {
+        PerformRemoveFromParent();
+        return;
+      }
 
       GUILayout.Label( GUI.MakeLabel( Constraint.Type.ToString(), 24, true ), GUI.Align( skin.label, TextAnchor.MiddleCenter ) );
       GUI.Separator();
 
-      using ( new GUI.Indent( 12 ) ) {
-        GUILayout.Label( GUI.MakeLabel( "Reference frame", true ) );
-        GUI.HandleFrame( Constraint.AttachmentPair.ReferenceFrame, skin, 4 + 12 );
-        EditorGUILayout.BeginHorizontal();
-        GUILayout.Space( 12 );
-        if ( GUILayout.Button( GUI.MakeLabel( "\u2194", false, "Synchronized with reference frame" ),
-                               GUI.ConditionalCreateSelectedStyle( Constraint.AttachmentPair.Synchronized, skin.button ),
-                               new GUILayoutOption[] { GUILayout.Width( 24 ), GUILayout.Height( 14 ) } ) ) {
-          Undo.RecordObject( Constraint.AttachmentPair, "ConstraintTool" );
-
-          Constraint.AttachmentPair.Synchronized = !Constraint.AttachmentPair.Synchronized;
-          if ( Constraint.AttachmentPair.Synchronized )
-            ConnectedFrameTool.TransformHandleActive = false;
-        }
-        GUILayout.Label( GUI.MakeLabel( "Connected frame", true ) );
-        EditorGUILayout.EndHorizontal();
-        UnityEngine.GUI.enabled = !Constraint.AttachmentPair.Synchronized;
-        GUI.HandleFrame( Constraint.AttachmentPair.ConnectedFrame, skin, 4 + 12 );
-        UnityEngine.GUI.enabled = guiWasEnabled;
-      }
+      // Render ConstraintAttachmentPair GUI.
+      base.OnInspectorGUI( skin );
 
       GUI.Separator();
+
+      Constraint.CollisionsState = ConstraintCollisionsStateGUI( Constraint.CollisionsState, skin );
+
+      GUI.Separator();
+
+      ConstraintRowsGUI( skin );
+    }
+
+    public static Constraint.ECollisionsState ConstraintCollisionsStateGUI( Constraint.ECollisionsState state, GUISkin skin )
+    {
+      bool guiWasEnabled = UnityEngine.GUI.enabled;
 
       using ( new GUI.Indent( 12 ) ) {
         EditorGUILayout.BeginHorizontal();
@@ -78,25 +63,28 @@ namespace AgXUnityEditor.Tools
 
           UnityEngine.GUI.enabled = !EditorApplication.isPlaying;
           if ( GUILayout.Button( GUI.MakeLabel( "Rb " + arrowChar.ToString() + " Rb", false, "Disable all shapes in rigid body 1 against all shapes in rigid body 2." ),
-                                 GUI.ConditionalCreateSelectedStyle( Constraint.CollisionsState == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2, skin.button ),
+                                 GUI.ConditionalCreateSelectedStyle( state == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2, skin.button ),
                                  new GUILayoutOption[] { GUILayout.Width( 76 ), GUILayout.Height( 25 ) } ) )
-            Constraint.CollisionsState = Constraint.CollisionsState == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2 ?
-                                           Constraint.ECollisionsState.KeepExternalState :
-                                           Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2;
+            state = state == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2 ?
+                      Constraint.ECollisionsState.KeepExternalState :
+                      Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2;
 
           if ( GUILayout.Button( GUI.MakeLabel( "Ref " + arrowChar.ToString() + " Con", false, "Disable Reference object vs. Connected object." ),
-                                 GUI.ConditionalCreateSelectedStyle( Constraint.CollisionsState == Constraint.ECollisionsState.DisableReferenceVsConnected, skin.button ),
+                                 GUI.ConditionalCreateSelectedStyle( state == Constraint.ECollisionsState.DisableReferenceVsConnected, skin.button ),
                                  new GUILayoutOption[] { GUILayout.Width( 76 ), GUILayout.Height( 25 ) } ) )
-            Constraint.CollisionsState = Constraint.CollisionsState == Constraint.ECollisionsState.DisableReferenceVsConnected ?
-                                           Constraint.ECollisionsState.KeepExternalState :
-                                           Constraint.ECollisionsState.DisableReferenceVsConnected;
+            state = state == Constraint.ECollisionsState.DisableReferenceVsConnected ?
+                      Constraint.ECollisionsState.KeepExternalState :
+                      Constraint.ECollisionsState.DisableReferenceVsConnected;
           UnityEngine.GUI.enabled = guiWasEnabled;
         }
         EditorGUILayout.EndHorizontal();
       }
 
-      GUI.Separator();
+      return state;
+    }
 
+    public void ConstraintRowsGUI( GUISkin skin )
+    {
       try {
         ConstraintUtils.ConstraintRowParser constraintRowParser = ConstraintUtils.ConstraintRowParser.Create( Constraint );
         if ( constraintRowParser.Empty )
@@ -121,7 +109,7 @@ namespace AgXUnityEditor.Tools
         if ( controllers.Length > 0 ) {
           GUI.Separator();
 
-          if ( GUI.Foldout( Selected( SelectedFoldout.Controllers ), GUI.MakeLabel( "Controllers", true ), skin ) )
+          if ( GUI.Foldout( Selected( SelectedFoldout.Controllers ), GUI.MakeLabel( "Controllers", true ), skin ) ) {
             using ( new GUI.Indent( 12 ) ) {
               GUI.Separator();
               foreach ( var controller in controllers ) {
@@ -130,6 +118,7 @@ namespace AgXUnityEditor.Tools
                 GUI.Separator();
               }
             }
+          }
         }
       }
       catch ( AgXUnity.Exception e ) {

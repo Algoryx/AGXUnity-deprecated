@@ -5,6 +5,7 @@ using System.IO;
 using UnityEngine;
 using UnityEditor;
 using AgXUnity;
+using Assembly = System.Reflection.Assembly;
 
 namespace AgXUnityEditor.Utils
 {

@@ -11,37 +11,55 @@ namespace AgXUnityEditor
     [MenuItem( "AgXUnity/Collide/Box" )]
     public static GameObject Box()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.Collide.Box>();
+      GameObject go = Factory.Create<AgXUnity.Collide.Box>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "shape" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Collide/Sphere" )]
     public static GameObject Sphere()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.Collide.Sphere>();
+      GameObject go = Factory.Create<AgXUnity.Collide.Sphere>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "shape" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Collide/Capsule" )]
     public static GameObject Capsule()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.Collide.Capsule>();
+      GameObject go = Factory.Create<AgXUnity.Collide.Capsule>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "shape" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Collide/Cylinder" )]
     public static GameObject Cylinder()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.Collide.Cylinder>();
+      GameObject go = Factory.Create<AgXUnity.Collide.Cylinder>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "shape" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Collide/Plane" )]
     public static GameObject Plane()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.Collide.Plane>();
+      GameObject go = Factory.Create<AgXUnity.Collide.Plane>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "shape" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Collide/Mesh" )]
     public static GameObject Mesh()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.Collide.Mesh>();
+      GameObject go = Factory.Create<AgXUnity.Collide.Mesh>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "shape" );
+      return Selection.activeGameObject = go;
     }
     #endregion
 
@@ -49,37 +67,55 @@ namespace AgXUnityEditor
     [MenuItem( "AgXUnity/Rigid body/Empty" )]
     public static GameObject RigidBodyEmpty()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.RigidBody>();
+      GameObject go = Factory.Create<AgXUnity.RigidBody>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "body" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Rigid body/Box" )]
     public static GameObject RigidBodyBox()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Box>() );
+      GameObject go = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Box>() );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "body" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Rigid body/Sphere" )]
     public static GameObject RigidBodySphere()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Sphere>() );
+      GameObject go = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Sphere>() );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "body" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Rigid body/Capsule" )]
     public static GameObject RigidBodyCapsule()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Capsule>() );
+      GameObject go = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Capsule>() );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "body" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Rigid body/Cylinder" )]
     public static GameObject RigidBodyCylinder()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Cylinder>() );
+      GameObject go = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Cylinder>() );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "body" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Rigid body/Mesh" )]
     public static GameObject RigidBodyMesh()
     {
-      return Selection.activeGameObject = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Mesh>() );
+      GameObject go = Factory.Create<AgXUnity.RigidBody>( Factory.Create<AgXUnity.Collide.Mesh>() );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "body" );
+      return Selection.activeGameObject = go;
     }
     #endregion
 
@@ -87,49 +123,73 @@ namespace AgXUnityEditor
     [MenuItem( "AgXUnity/Constraints/Hinge" )]
     public static GameObject ConstraintHinge()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.Hinge );
+      GameObject go = Factory.Create( ConstraintType.Hinge );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Constraints/Prismatic" )]
     public static GameObject ConstraintPrismatic()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.Prismatic );
+      GameObject go = Factory.Create( ConstraintType.Prismatic );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Constraints/Lock Joint" )]
     public static GameObject ConstraintLockJoint()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.LockJoint );
+      GameObject go = Factory.Create( ConstraintType.LockJoint );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Constraints/Cylindrical Joint" )]
     public static GameObject ConstraintCylindricalJoint()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.CylindricalJoint );
+      GameObject go = Factory.Create( ConstraintType.CylindricalJoint );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Constraints/Ball Joint" )]
     public static GameObject ConstraintBallJoint()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.BallJoint );
+      GameObject go = Factory.Create( ConstraintType.BallJoint );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Constraints/Distance Joint" )]
     public static GameObject ConstraintDistanceJoint()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.DistanceJoint );
+      GameObject go = Factory.Create( ConstraintType.DistanceJoint );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Constraints/Angular Lock Joint" )]
     public static GameObject ConstraintAngularLockJoint()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.AngularLockJoint );
+      GameObject go = Factory.Create( ConstraintType.AngularLockJoint );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
 
     [MenuItem( "AgXUnity/Constraints/Plane Joint" )]
     public static GameObject ConstraintPlaneJoint()
     {
-      return Selection.activeGameObject = Factory.Create( ConstraintType.PlaneJoint );
+      GameObject go = Factory.Create( ConstraintType.PlaneJoint );
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "constraint" );
+      return Selection.activeGameObject = go;
     }
     #endregion
 
@@ -137,7 +197,10 @@ namespace AgXUnityEditor
     [MenuItem( "AgXUnity/Wire/Empty" )]
     public static GameObject WireEmpty()
     {
-      return Selection.activeGameObject = Factory.Create<Wire>();
+      GameObject go = Factory.Create<Wire>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "wire" );
+      return Selection.activeGameObject = go;
     }
     #endregion
 

@@ -29,14 +29,17 @@ namespace AgXUnity
     /// Create a new constraint component given constraint type.
     /// </summary>
     /// <param name="type">Type of constraint.</param>
+    /// <param name="givenAttachmentPair">Optional initial attachment pair. If null, a new one will be created.</param>
     /// <returns>Constraint component, added to a new game object - null if unsuccessful.</returns>
-    public static Constraint Create( ConstraintType type )
+    public static Constraint Create( ConstraintType type, ConstraintAttachmentPair givenAttachmentPair = null )
     {
       GameObject constraintGameObject = new GameObject( Factory.CreateName( "AgXUnity." + type ) );
       try {
         Constraint constraint = constraintGameObject.AddComponent<Constraint>();
         constraint.Type       = type;
-        var attachmentPair    = constraint.AttachmentPair; // This will instantiate the attachment pair.
+
+        // Property AttachmentPair will create a new one if it doesn't exist.
+        constraint.m_attachmentPair = givenAttachmentPair ?? constraint.AttachmentPair;
 
         // Creating a temporary native instance of the constraint, including a rigid body and frames.
         // Given this native instance we copy the default configuration.
@@ -281,6 +284,24 @@ namespace AgXUnity
       base.OnDestroy();
     }
 
+    public static float GetGizmoSize( Vector3 position )
+    {
+      Camera current = Camera.current;
+      position = Gizmos.matrix.MultiplyPoint( position );
+
+      if ( current ) {
+        Transform transform = current.transform;
+        Vector3 position2 = transform.position;
+        float z = Vector3.Dot( position - position2, transform.TransformDirection( new Vector3( 0f, 0f, 1f ) ) );
+        Vector3 a = current.WorldToScreenPoint( position2 + transform.TransformDirection( new Vector3( 0f, 0f, z ) ) );
+        Vector3 b = current.WorldToScreenPoint( position2 + transform.TransformDirection( new Vector3( 1f, 0f, z ) ) );
+        float magnitude = ( a - b ).magnitude;
+        return 80f / Mathf.Max( magnitude, 0.0001f );
+      }
+
+      return 20f;
+    }
+
     private static Mesh m_gizmosMesh = null;
     private static Mesh GetOrCreateGizmosMesh()
     {
@@ -307,7 +328,7 @@ namespace AgXUnity
     private static void DrawGizmos( Color color, ConstraintAttachmentPair attachmentPair )
     {
       Gizmos.color = color;
-      Gizmos.DrawMesh( GetOrCreateGizmosMesh(), attachmentPair.ReferenceFrame.Position, attachmentPair.ReferenceFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ), 0.3f * Vector3.one );
+      Gizmos.DrawMesh( GetOrCreateGizmosMesh(), attachmentPair.ReferenceFrame.Position, attachmentPair.ReferenceFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ), 0.3f * GetGizmoSize( attachmentPair.ReferenceFrame.Position ) * Vector3.one );
 
       if ( !attachmentPair.Synchronized ) {
         Gizmos.color = Color.red;

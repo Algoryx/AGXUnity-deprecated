@@ -32,7 +32,19 @@ namespace AgXUnityEditor.Tools
       }
 
       if ( ( !MenuTool.WindowIsActive || MenuTool.Target != Manager.MouseOverObject ) && Manager.HijackLeftMouseClick() ) {
-        MenuTool.Target = Manager.MouseOverObject;
+        // We know that we're hovering 'mouse over object' but we should check if we have a
+        // good hit on some if it's children as well. Since:
+        //   - We're using unity's internal 'pick object' functionality and it's not always
+        //     (understandably) finding the leafs. We're interested in the leafs since we
+        //     present a list of all parents to MenuTool.Target.
+        GameObject target = Manager.MouseOverObject;
+        if ( target != null && target.transform.childCount > 0 ) {
+          var childHits = AgXUnity.Utils.Raycast.TestChildren( target, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ), 500f );
+          if ( childHits.Count > 0 && childHits[ 0 ].Triangle.Valid )
+            target = childHits[ 0 ].Triangle.Target;
+        }
+
+        MenuTool.Target = target;
         MenuTool.Show();
       }
     }
