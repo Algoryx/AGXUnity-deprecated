@@ -25,8 +25,7 @@ See the sub-directory **prebuilt-packages** for some sample packages:
 
 ![](Doc/prebuilt-package.png)
 
-Download here: 
-[prebuild-packages/AGXUnity-package_2016-09-23-AGX-2.16.0.3-64bitVS2015_Unity-5.4.1.unitypackage](tree/master/prebuild-packages/AGXUnity-package_2016-09-23-AGX-2.16.0.3-64bitVS2015_Unity-5.4.1.unitypackage)
+Download from the **prebuilt-packages** sub-directory in the repository browser. 
 
 If you use the exact same AGX Dynamics version as well as a matching Unity3D version you might just be able to drag-drop this package into the assets of your project. 
 
