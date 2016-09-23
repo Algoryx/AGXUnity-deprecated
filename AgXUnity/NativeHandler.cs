@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using UnityEngine;
+using UnityEditor;
+using Microsoft.Win32;
 
 namespace AgXUnity
 {
@@ -42,13 +44,33 @@ namespace AgXUnity
       return ".";
     }
 
+   private void InitPath()
+    {
+    }
+
+    private string GetRunimePathFromRegistry()
+    {
+      const string parent = "HKEY_LOCAL_MACHINE\\Software\\Wow6432Node\\Algoryx Simulation AB\\Algoryx\\AgX";
+      string path = (string)Registry.GetValue(parent, "runtime", "");
+      return path;
+    }
+
     private void ConfigureAgX()
     {
       String binaryPath = FindBinaryPath();
 
       // Check if agxDotNet.dll is in path.
       if ( !ExistInPath( "agxDotNet.dll" ) )
-        throw new AgXUnity.Exception( "Unable to find agxDotNet.dll - part of the AgX installation." );
+      {
+        // If it is not in path, lets look in the registry
+        binaryPath = GetRunimePathFromRegistry();
+
+        // If no luck, then we need to bail out
+        if (binaryPath.Length == 0)
+          throw new AgXUnity.Exception("Unable to find agxDotNet.dll - part of the AgX installation.");
+        else
+          AddToPath(binaryPath);
+      }
 
       String pluginPath = binaryPath + @"\plugins";
       String dataPath = binaryPath + @"\data";

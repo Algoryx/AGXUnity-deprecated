@@ -3,13 +3,11 @@
 ##Creating a box##
 You can enable the debug rendering so that you can see the AgX Dynamics representation of objects.
 
-**Note:** There is currently a bug which means that the debug rendering (red) of each object will be visible even if the debug rendering component is removed. You need to create a new AgX object to get rid of it.
-This will be fixed.
 
 ![](DebugRenderer.png)
 
 
-First create a Unity 3D box: to be:
+First create a Unity 3D cube which will be the *visual representation*:
 
 ![](CreateBox1.png)
 
@@ -24,7 +22,9 @@ To allow the visual/Unity representation of the box *move together with the AgX 
 
 Then you can specify the size of the box (half extents).
 
-**Note:** Do not scale any part of AgX objects. This will lead to invalid simulation results (wrong sizes). You need to specify the actual size of objects. This can certainly be improved in the future.
+**Note:** Do not scale any part of AgX objects. This will lead to invalid simulation results (wrong sizes). You need to specify the actual size of objects. You can also use the *shape tool* in the inspector window:
+
+![](shapetool.png)
 
 In this case we enter the size 5,0.05,5 to match the size of the Unity object of 10,0.1,10
 
@@ -35,9 +35,10 @@ We can make it static (a floor) by specifying the *motion control*:
 
 ![](MotionControl.png)
 
-Next we create yet another (smaller box) and add some image effects for the Camera:
+Next we create yet another (smaller box) and add some image effects for the Camera. 
+Notice that if you want the *visual representation* to follow the physical, the rigid body has to be the parent of the visual:
 
-![](SmallScene.png)
+![](hierarchy.png)
 
 You can also copy/paste the AgX rigid bodies and the visual (Unity) object will follow:
 
@@ -48,3 +49,5 @@ In Game view it will look like this:
 ![](GameView.png)
 
 **Note:** If a simulation is not created (available in the AgXUnity menu) it will be automatically added when you first start the simulation. You should add a Simulation explicitly if you want to control the time step and gravity.
+
+This concludes the first tutorial.

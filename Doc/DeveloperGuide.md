@@ -1,8 +1,8 @@
 #AGX Unity plugin#
 
-The AgX Unity plugin is a set of wrapper, utility and rendering aid classes using the C# API of the AgX Dynamics physics engine. The AgXUnity plugin is a compiled, class library dll.
+The AGX Unity plugin is a set of wrapper, utility and rendering aid classes using the C# API of the AGX Dynamics physics engine. The AGXUnity plugin is a compiled, class library dll.
 
-The AgXUnity plugin is preferably developed in Visual Studio with the latest version of Unity 3D (currently 5.3.3), 64-bit versions of AgX Dynamics and Unity 3D.
+The AGXUnity plugin is preferably developed in Visual Studio with the latest version of Unity 3D (currently 5.4.1), 64-bit versions of AGX Dynamics and Unity 3D.
 
 ##Getting started (Windows)##
 
@@ -11,53 +11,69 @@ The AgXUnity plugin is preferably developed in Visual Studio with the latest ver
 2. Download and install Visual Studio Tools for Unity: [https://visualstudiogallery.msdn.microsoft.com/8d26236e-4a64-4d64-8486-7df95156aba9](https://visualstudiogallery.msdn.microsoft.com/8d26236e-4a64-4d64-8486-7df95156aba9) 
 3. Follow the instructions how to enable debugging in Unity:
 [https://msdn.microsoft.com/en-us/library/dn940025.aspx](https://msdn.microsoft.com/en-us/library/dn940025.aspx)
-3. Checkout AgXUnity
-4.	Open AgXUnity.sln in Visual Studio
-5.	Verify all references in the AgXUnity project (Browse for the correct dll files usng the Reference Manager)
+3. Checkout AGXUnity
+4.	Open AGXUnity.sln in Visual Studio
+5.	Verify all references in the AgXUnity project (Browse for the correct dll files using the Reference Manager)
 	
 	a.	agxDotNet.dll: *[AgX install path]\bin\x64\agxDotNet.dll*
 
 	b.	UnityEngine.dll: *[Unity 3D install path]\Editor\Data\Managed\UnityEngine.dll*
 6.	Build!
-7.	The output is AgXUnity.dll.
-AgXUnity.dll, agxDotNet.dll (from the AgX Dynamics installation) and AgXUnity.pdb (to enable debugging of the plugin) must be copied to a folder named “Plugins” somewhere in the “Assets” folder hierarchy. For example:
+7.	The output is **AgXUnity.dll** and **AgXUnityEditor.dll** in the *output* sub-directory
 
-![](plugins.png)
 
-Unity and Visual Studio Tools for Unity automatically creates “.meta” and debugging mdb files (if the pdb file is present).
+*Required References in visual studio:*
+
+![](references_vs.png) ![](references_vs2.png)
+
+
 The next section describes how to install the folder hierarchy, resources and editor extensions using the pre-exported Unity packages.
 
-###Unity 3D project with AgXUnity###
-1.	Make sure AgX binaries and dependencies are in path when starting Unity, e.g.,
-a.	cmd -> setup_env.bat -> “<Unity 3D install path>\Editor\Unity.exe”
-2.	Open or create a new Unity project.
-3.	The project tab could look something like this:
+###Unity 3D project with AGXUnity###
+After a successfull build of AGXUnity you should have two new dll-files: AgXUnity.dll and AgXUnityEditor.dll in your output directory.
 
+
+1.	Make sure AGX binaries and dependencies are in path when starting Unity, e.g.,
+a.	cmd -> setup_env.bat -> “<Unity 3D install path>\Editor\Unity.exe” or start the AGX Dynamics Commandline from the start menu.
+2.	Open or create a new Unity project. Start Unity3D with for example: <pre>"c:\Program Files\Unity\Editor\Unity.exe"</pre>
+3.	The newly created project tab could look something like this:
 
 	![](unityproject.png)
 
-4.	From the AgXUnity checkout – drag-drop “Data/PluginStructure.unitypackage” into the Assets folder. Make sure everything is marked and press “Import”:
+4.	From the AgXUnity\data directory – drag-drop “Data/PluginStructure.unitypackage” into the Assets folder. Make sure everything is marked and press “Import”:
 	
 	![](import.png)
 
-5. Copy AgXUnity.dll, agxDotNet.dll and optionally AgXUnity.pdb to the Assets/AgXUnity/Plugins folder.
+5. Next copy AgXUnity.dll, agxDotNet.dll and optionally AgXUnity.pdb to the Assets/AgXUnity/Plugins folder.
+
 
 	**Note:** If the agxDotNet.dll is missing, you’ll get the following exceptions:
  	*System.Reflection.TargetInvocationException: Exception has been thrown by the target of an invocation.
  	Unhandled Exception: System.Reflection.ReflectionTypeLoadException: The classes in the module cannot be loaded.*
  
 	**It’s not enough to have the agxDotNet.dll file in path, it has to be in the Plugins folder as well.**
+	
+	![](plugins.png)
 
-6. AgXUnity is ready to use! Note that the functionality is limited to scripting only. See section Extending the Unity 3D editor to have all functionality from scripting and from within the editor.
-7. Optional Visual Studio post-build event.
+	Unity and Visual Studio Tools for Unity automatically creates “.meta” and debugging mdb files (if the pdb file is present).
+
+6. Next you have to drop the files AgXUnityEditor.dll and AgXUnityEditor.pdb (for debugging) in the Editor/Plugins folder: 
+![](agxunityeditorplugin.png)
+
+
+7. AgXUnity is now ready to use! The menu item AgXUnity contains the objects that can be created using the UI.
+
+	![](readytouse.png)
+
+8. Optional Visual Studio post-build event.
 Right click AgXUnity project, select Properties -> Build Events -> “Post-build event command line:” -> “Edit Post-build …” and write:
 echo f | xcopy "$(TargetDir)$(TargetName).*" "<path to Unity project>\Assets\AgXUnity\Plugins\" /Y
 
-AgXUnity.dll and AgXUnity.pdb will be copied to the Unity project AgXUnity plugins folder each time you build the project/solution.
+AgXUnity.dll and AgXUnity.pdb will be copied to the Unity project AgXUnity plugins folder each time you build the project/solution. A similar solution should be done for AgXUnityEditor.dll
 
 It’s currently not possible to copy the agxDotNet.dll each time you build because the dll is not automatically unloaded by Unity.
 
-##AgXUnity.ScriptComponent extends UnityEngine.MonoBehaviour##
+##AGXUnity.ScriptComponent extends UnityEngine.MonoBehaviour##
 Since we’re managing native objects and MonoBehaviour in general has a bit undeterministic behavior, all objects handling native objects should inherit from ScriptComponent rather than MonoBehaviour.
 There’re also native objects that depends on other native objects. One example of this is constraints. The native constraints has to have native instances to the rigid bodies when the constraints are instantiated. To enable this, ScriptComponent has two important methods. “Initialize” where all native objects should be instantiated and “GetInitialized” which guarantees that the returned component is initialized with a valid native instance.
 
@@ -132,16 +148,10 @@ The main benefit of this property synchronization is to write data to the native
 3. Property synchronization.
 
 ##Extending the Unity 3D editor##
-The AgXUnity plugin is linked to the native AgX Dynamics physics engine – having the simulated objects in the native environment. When values/properties etc. are changed from within the editor or a script, the data has to be propagated to the native environment – when needed.
+The AGXUnity plugin is linked to the native AGX Dynamics physics engine – having the simulated objects in the native environment. When values/properties etc. are changed from within the editor or a script, the data has to be propagated to the native environment – when needed.
 
 The native objects are in general instantiated when Unity performs the “Start” calls. This means that all data has to be stored in the managed environment and then written down to the native environment when the managed object receives the “Start”/initialize call. Since all data is present in the Unity managed environment the serialization is trivial (automatic).
 
-###Installing AgXUnity basic editor extension###
-Drag-drop “Data/AgXUnityEditor.unitypackage” to the root “Assets” folder in the project tag in Unity:
-
-![](extension.png)
-
-A folder named “Editor” should appear inside the “AgXUnity” folder.
 
 ###<a name="propagation"> Propagation of data with AgXUnityEditor.BaseEditor<T></a>###
 The BaseEditor class is essential for the propagation of data from the managed to the native environment while using the editor. BaseEditor extends UnityEditor.Editor and it’s basically GUI code that you see in the “Inspector” tab in Unity:
