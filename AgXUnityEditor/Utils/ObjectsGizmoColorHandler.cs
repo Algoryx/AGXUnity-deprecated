@@ -199,7 +199,12 @@ namespace AgXUnityEditor.Utils
     {
       RigidBodyColorData colorData;
       if ( !m_rbColors.TryGetValue( rb, out colorData ) ) {
-        colorData = new RigidBodyColorData() { Color = new Color( UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value, RigidBodyColorAlpha ) };
+        Color color = new Color( UnityEngine.Random.value, UnityEngine.Random.value, UnityEngine.Random.value );
+        //Color color = UnityEngine.Random.ColorHSV( 0f, 1f, 0.5f, 1.0f, 0.5f, 0.85f );
+
+        color.a = RigidBodyColorAlpha;
+        colorData = new RigidBodyColorData() { Color = color };
+
         m_rbColors.Add( rb, colorData );
       }
 
