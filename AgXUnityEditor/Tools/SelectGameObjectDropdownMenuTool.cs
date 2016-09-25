@@ -134,8 +134,10 @@ namespace AgXUnityEditor.Tools
         if ( GUILayout.Button( GetGUIContent( data.GameObject ), Utils.GUI.Skin.button ) )
           m_selected = new SelectedObject() { Object = data.GameObject };
 
-        if ( eventType == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) )
+        if ( eventType == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) ) {
+          SetVisualizedSelection( data.GameObject );
           data.MouseOver = true;
+        }
       }
     }
   }

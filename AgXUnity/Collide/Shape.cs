@@ -247,13 +247,14 @@ namespace AgXUnity.Collide
       }
     }
 
-    private void OnDrawGizmosSelected()
-    {
-      Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
-      if ( data == null )
-        return;
+    // TODO: REMOVE CODE
+    //private void OnDrawGizmosSelected()
+    //{
+    //  Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
+    //  if ( data == null )
+    //    return;
 
-      data.OnDrawGizmosSelected( this );
-    }
+    //  data.OnDrawGizmosSelected( this );
+    //}
   }
 }

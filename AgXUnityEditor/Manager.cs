@@ -182,6 +182,38 @@ namespace AgXUnityEditor
       }
     }
 
+    private static UnityEngine.Object[] m_prevSelected = new UnityEngine.Object[] { };
+
+    /// <summary>
+    /// Routes current object to the desired object when e.g., selected.
+    /// This method uses OnSelectionProxy to find the desired object.
+    /// </summary>
+    /// <returns>Input object if the object doesn't contains an OnSelectionProxy route.</returns>
+    private static UnityEngine.Object RouteObject( UnityEngine.Object obj )
+    {
+      GameObject gameObject = obj as GameObject;
+      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
+      return proxyTarget != null ? proxyTarget.Target : obj;
+    }
+
+    /// <summary>
+    /// Routes given object to the game object of an AgXUnity.Collide.Shape if
+    /// the connection is given using OnSelectionProxy.
+    /// </summary>
+    /// <returns>Shape game object if found - otherwise null.</returns>
+    private static GameObject RouteToShape( UnityEngine.Object obj )
+    {
+      GameObject gameObject = obj as GameObject;
+      OnSelectionProxy selectionProxy = null;
+      if ( gameObject == null || ( selectionProxy = gameObject.GetComponent<OnSelectionProxy>() ) == null )
+        return null;
+
+      if ( selectionProxy.Target != null && selectionProxy.Target.GetComponent<AgXUnity.Collide.Shape>() != null )
+        return selectionProxy.Target;
+
+      return null;
+    }
+
     private static void OnSceneView( SceneView sceneView )
     {
       if ( m_requestSceneViewFocus ) {
@@ -207,8 +239,32 @@ namespace AgXUnityEditor
 
       UpdateMouseOverPrimitives( current );
 
-      if ( Selection.activeGameObject != null )
-        Selection.activeGameObject = RouteGameObject( Selection.activeGameObject );
+      // TODO: This "auto selection" is scary - make it optional. Somehow.
+
+      // Routes each selected object to its correct selection.
+      // Assigning 'selectedObjects' to 'Selection.objects' doesn't
+      // trigger onSelectionChanged (desired behavior).
+      UnityEngine.Object[] selectedObjects = Selection.objects;
+      for ( int i = 0; i < selectedObjects.Length; ++i ) {
+        GameObject shapeGameObject = RouteToShape( selectedObjects[ i ] );
+
+        // Shape selected/clicked.
+        if ( shapeGameObject != null ) {
+          AgXUnity.RigidBody rb = shapeGameObject.GetComponentInParent<AgXUnity.RigidBody>();
+
+          // "Toggles" back and forth RigidBody <-> Shape if a rigid body is present
+          // as a parent to the selected shape.
+          // NOTE: If the number of selections has changed we're selecting the rigid body!
+          //       This since Unity doesn't provide much info while multi-selecting.
+          selectedObjects[ i ] = rb != null && ( selectedObjects.Length != m_prevSelected.Length || !m_prevSelected.Contains( rb.gameObject ) ) ?
+                                   rb.gameObject :
+                                   shapeGameObject;
+        }
+        else
+          selectedObjects[ i ] = RouteObject( selectedObjects[ i ] );
+      }
+      Selection.objects = selectedObjects;
+      m_prevSelected    = selectedObjects;
 
       AgXUnity.Rendering.DebugRenderManager.EditorActiveGameObject = Selection.activeGameObject;
 
@@ -228,7 +284,7 @@ namespace AgXUnityEditor
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
-      MouseOverObject = RouteGameObject( HandleUtility.PickGameObject( current.mousePosition, false ) );
+      MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition, false ) ) as GameObject;
 
       // Early exit if we haven't any active visual primitives.
       if ( m_visualPrimitives.Count == 0 )
@@ -260,16 +316,6 @@ namespace AgXUnityEditor
       bestResult.Primitive.MouseOver = true;
       if ( HijackLeftMouseClick() )
         bestResult.Primitive.OnMouseClick( bestResult.RaycastResult, bestResult.Primitive );
-    }
-
-    /// <summary>
-    /// Routes current game object to the desired object when e.g., selected.
-    /// This method uses OnSelectionProxy to find the desired object.
-    /// </summary>
-    private static GameObject RouteGameObject( GameObject gameObject )
-    {
-      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
-      return proxyTarget != null ? proxyTarget.Target : gameObject;
     }
 
     private static void OnHierarchyWindowChanged()

@@ -106,30 +106,31 @@ namespace AgXUnity.Rendering
       }
     }
 
-    public static Color FindSelectedShapeColor( Shape shape )
-    {
-      GameObject topSelected = DebugRenderManager.EditorActiveGameObject ?? shape.gameObject;
-      if ( topSelected.GetComponentInChildren<RigidBody>() != null )
-        return new Color( 0.05f, 0.05f, 0.45f, 0.25f );
-      return new Color( 0.25f, 0.05f, 0.05f, 0.25f );
-    }
+    // TODO: REMOVE CODE
+    //public static Color FindSelectedShapeColor( Shape shape )
+    //{
+    //  GameObject topSelected = DebugRenderManager.EditorActiveGameObject ?? shape.gameObject;
+    //  if ( topSelected.GetComponentInChildren<RigidBody>() != null )
+    //    return new Color( 0.05f, 0.05f, 0.45f, 0.25f );
+    //  return new Color( 0.25f, 0.05f, 0.05f, 0.25f );
+    //}
 
-    public void OnDrawGizmosSelected( Shape shape )
-    {
-      if ( Node == null )
-        return;
+    //public void OnDrawGizmosSelected( Shape shape )
+    //{
+    //  if ( Node == null )
+    //    return;
 
-      // Assembly tool (AgXUnityEditor.Tools.AssemblyTool) has its own gizmos rendering.
-      if ( DebugRenderManager.EditorActiveGameObject != null && DebugRenderManager.EditorActiveGameObject.GetComponent<Assembly>() != null )
-        return;
+    //  // Assembly tool (AgXUnityEditor.Tools.AssemblyTool) has its own gizmos rendering.
+    //  if ( DebugRenderManager.EditorActiveGameObject != null && DebugRenderManager.EditorActiveGameObject.GetComponent<Assembly>() != null )
+    //    return;
       
-      Gizmos.color = FindSelectedShapeColor( shape );
-      MeshFilter[] filters = Node.GetComponentsInChildren<MeshFilter>();
-      foreach ( var filter in filters ) {
-        Gizmos.matrix = filter.transform.localToWorldMatrix;
-        Gizmos.DrawWireMesh( filter.sharedMesh );
-      }
-    }
+    //  Gizmos.color = FindSelectedShapeColor( shape );
+    //  MeshFilter[] filters = Node.GetComponentsInChildren<MeshFilter>();
+    //  foreach ( var filter in filters ) {
+    //    Gizmos.matrix = filter.transform.localToWorldMatrix;
+    //    Gizmos.DrawWireMesh( filter.sharedMesh );
+    //  }
+    //}
 
     /// <summary>
     /// If no "Node" instance, this method tries to create one

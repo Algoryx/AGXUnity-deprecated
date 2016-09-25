@@ -1,51 +1,114 @@
 ﻿using System;
+using System.Linq;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using AgXUnity;
+using AgXUnity.Rendering;
+using AgXUnity.Collide;
 using Tool = AgXUnityEditor.Tools.Tool;
 
 namespace AgXUnityEditor.Utils
 {
   public static class DrawGizmoCallbackHandler
   {
-    public class ToolScriptComponentData
-    {
-      public Tool Tool { get; private set; }
-      public Predicate<ScriptComponent> Predicate { get; private set; }
+    private static ObjectsGizmoColorHandler m_colorHandler = new ObjectsGizmoColorHandler();
 
-      public ToolScriptComponentData( Tool tool, Predicate<ScriptComponent> predicate )
+    [DrawGizmo( GizmoType.Active | GizmoType.NotInSelectionHierarchy )]
+    public static void OnDrawGizmosDebugRenderManager( DebugRenderManager manager, GizmoType gizmoType )
+    {
+      if ( !manager.isActiveAndEnabled )
+        return;
+
+      // List containing active tools decisions of what could be considered selected.
+      var toolsSelections = new List<Tool.VisualizedSelectionData>();
+      // Active assembly tool has special rendering needs.
+      Tools.AssemblyTool assemblyTool = null;
+
+      Tool.TraverseActive( activeTool =>
       {
-        Tool = tool;
-        Predicate = predicate;
+        if ( assemblyTool == null && activeTool is Tools.AssemblyTool )
+          assemblyTool = activeTool as Tools.AssemblyTool;
+
+        if ( activeTool.VisualizedSelection != null && !toolsSelections.Contains( activeTool.VisualizedSelection ) )
+          toolsSelections.Add( activeTool.VisualizedSelection );
+      } );
+
+      // Find if we've any active selections.
+      bool selectionActive = toolsSelections.Count > 0 ||
+                             ( assemblyTool != null && assemblyTool.HasActiveSelections() ) ||
+                             Array.Exists( Selection.gameObjects, go => { return go.GetComponent<Shape>() != null || go.GetComponent<RigidBody>() != null; } );
+      if ( !selectionActive )
+        m_colorHandler.SelectionColorPulse.Reset();
+
+      // Early exist if we're not visualizing the bodies nor have active selections.
+      bool active = manager.VisualizeBodies || selectionActive || assemblyTool != null;
+      if ( !active )
+        return;
+
+      try {
+        using ( m_colorHandler.BeginEndScope() ) {
+          // Create unique colors for each rigid body in the scene.
+          {
+            var bodies = UnityEngine.Object.FindObjectsOfType<RigidBody>();
+            Array.Sort( bodies, ( b1, b2 ) => { return b1.GetInstanceID() > b2.GetInstanceID() ? -1 : 1; } );
+
+            foreach ( var body in bodies ) {
+              // Create the color for all bodies for the colors to be consistent.
+              m_colorHandler.GetOrCreateColor( body );
+
+              if ( manager.VisualizeBodies )
+                m_colorHandler.Colorize( body );
+            }
+          }
+
+          // An active assembly tool will (atm) render objects in a different
+          // way and, e.g., render colorized bodies despite manager.VisualizeBodies.
+          if ( assemblyTool != null )
+            assemblyTool.OnRenderGizmos( m_colorHandler );
+
+          // Handling objects selected in our tools.
+          {
+            foreach ( var toolSelection in toolsSelections )
+              HandleSelectedGameObject( toolSelection.Object, true );
+          }
+
+          // Handling objects selected in the editor.
+          {
+            GameObject[] editorSelections = Selection.gameObjects;
+            foreach ( var editorSelection in editorSelections )
+              HandleSelectedGameObject( editorSelection );
+          }
+
+          foreach ( var filterColorPair in m_colorHandler.ColoredMeshFilters ) {
+            Gizmos.color = filterColorPair.Value;
+            Gizmos.matrix = filterColorPair.Key.transform.localToWorldMatrix;
+            Gizmos.DrawWireMesh( filterColorPair.Key.sharedMesh );
+          }
+        }
+      }
+      catch ( System.Exception e ) {
+        Debug.LogException( e );
       }
     }
 
-    private static List<ToolScriptComponentData> m_scriptComponentTools = new List<ToolScriptComponentData>();
-
-    public static void Register( Tool tool, Predicate<ScriptComponent> predicate )
+    private static void HandleSelectedGameObject( GameObject selected, bool highlightMeshFilter = false )
     {
-      if ( m_scriptComponentTools.Exists( data => { return data.Tool == tool; } ) )
+      if ( selected == null )
         return;
 
-      m_scriptComponentTools.Add( new ToolScriptComponentData( tool, predicate ) );
-    }
-
-    public static void Unregister( Tool tool )
-    {
-      int index = m_scriptComponentTools.FindIndex( data => { return data.Tool == tool; } );
-      if ( index < 0 )
-        return;
-      
-      m_scriptComponentTools.RemoveAt( index );
-    }
-
-    [DrawGizmo( GizmoType.Active | GizmoType.Selected )]
-    public static void OnDrawScriptComponent( ScriptComponent component, GizmoType gizmoType )
-    {
-      foreach ( var data in m_scriptComponentTools )
-        if ( data.Predicate( component ) )
-          data.Tool.OnDrawGizmosSelected( component );
+      RigidBody rb      = null;
+      Shape shape       = null;
+      MeshFilter filter = null;
+      if ( ( rb = selected.GetComponent<RigidBody>() ) != null ) {
+        m_colorHandler.Highlight( rb );
+      }
+      else if ( ( shape = selected.GetComponent<Shape>() ) != null ) {
+        m_colorHandler.Highlight( shape );
+      }
+      else if ( highlightMeshFilter && ( filter = selected.GetComponent<MeshFilter>() ) != null ) {
+        m_colorHandler.Highlight( filter );
+      }
     }
   }
 }

@@ -11,30 +11,6 @@ namespace AgXUnityEditor.Tools
 {
   public class AssemblyTool : Tool
   {
-    private class ColorPulse
-    {
-      private static float m_t = 0f;
-      private static float m_d = 1f;
-
-      public static void Update( float dt )
-      {
-        m_t += m_d * dt;
-        if ( m_t >= 1f ) {
-          m_t =  1f;
-          m_d = -1f;
-        }
-        else if ( m_t <= 0f ) {
-          m_t = 0f;
-          m_d = 1f;
-        }
-      }
-
-      public static Color Lerp( Color baseColor, Color maxColor )
-      {
-        return Color.Lerp( baseColor, maxColor, m_t );
-      }
-    }
-
     private class SelectionEntry
     {
       public GameObject Object { get; private set; }
@@ -121,7 +97,6 @@ namespace AgXUnityEditor.Tools
     public AssemblyTool( Assembly assembly )
     {
       Assembly = assembly;
-      Utils.DrawGizmoCallbackHandler.Register( this, component => { return component == Assembly; } );
     }
 
     public override void OnAdd()
@@ -144,9 +119,6 @@ namespace AgXUnityEditor.Tools
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      if ( m_mode != Mode.None )
-        ColorPulse.Update( 0.0045f );
-
       // TODO: This is not responsive.
       if ( Manager.KeyEscapeDown ) {
         ChangeMode( Mode.None );
@@ -597,84 +569,32 @@ namespace AgXUnityEditor.Tools
       m_subMode = subMode;
     }
 
-    public override void OnDrawGizmosSelected( ScriptComponent component )
+    public bool HasActiveSelections()
+    {
+      return m_selection.Count > 0 || m_rbSelection != null;
+    }
+
+    public void OnRenderGizmos( Utils.ObjectsGizmoColorHandler colorHandler )
     {
       if ( Assembly == null )
         return;
 
-      Dictionary<MeshFilter, Color> meshColors = new Dictionary<MeshFilter, Color>();
-
-      // Constraint edge/point tools.
-      GameObject detectionMouseOverObject = null;
-      SelectGameObjectDropdownMenuTool dropdownMenuTool = Tool.FindActive<SelectGameObjectDropdownMenuTool>( t => { return true; } );
-      if ( dropdownMenuTool != null ) {
-        foreach ( var data in dropdownMenuTool.DropdownList )
-          if ( data.MouseOver )
-            detectionMouseOverObject = data.GameObject;
-      }
-
       RigidBody[] bodies = Assembly.GetComponentsInChildren<RigidBody>();
-      int orgSeed = UnityEngine.Random.seed;
-      {
-        foreach ( var rb in bodies ) {
-          Color rbColor = UnityEngine.Random.ColorHSV();
-          rbColor.a     = m_selectedColor.a;
+      foreach ( var rb in bodies ) {
+        colorHandler.Colorize( rb );
 
-          MeshFilter[] rbMeshFilters = rb.GetComponentsInChildren<MeshFilter>();
-          foreach ( var rbMeshFilter in rbMeshFilters ) {
-            bool inSelected = ( m_rbSelection != null && m_rbSelection.RigidBody == rb ) ||
-                              ( m_selection.FindIndex( selectedEntry => { return selectedEntry.Object.GetComponent<MeshFilter>() == rbMeshFilter; } ) >= 0 ) ||
-                              ( detectionMouseOverObject != null && ( detectionMouseOverObject == rbMeshFilter.gameObject || rbMeshFilter.transform.IsChildOf( detectionMouseOverObject.transform ) ) );
-            if ( inSelected )
-              meshColors.Add( rbMeshFilter, ColorPulse.Lerp( rbColor, m_selectedColor ) );
-            else
-              meshColors.Add( rbMeshFilter, rbColor );
-          }
-        }
+        // Mesh filters are not colorized by default - give the color (similar/same as body).
+        // NOTE: Shapes debug rendering are not included in these mesh filters.
+        colorHandler.ColorizeMeshFilters( rb );
       }
-      UnityEngine.Random.seed = orgSeed;
 
       foreach ( var selected in m_selection ) {
-        MeshFilter selectedFilter = selected.Object.GetComponent<MeshFilter>();
-        Color color;
-        if ( !meshColors.TryGetValue( selectedFilter, out color ) )
-          meshColors.Add( selectedFilter, ColorPulse.Lerp( m_selectedColor, m_selectedMaxColor ) );
+        MeshFilter filter = selected.Object.GetComponent<MeshFilter>();
+        colorHandler.Highlight( filter );
       }
 
-      if ( detectionMouseOverObject != null ) {
-        MeshFilter[] detectionFilters = detectionMouseOverObject.GetComponentsInChildren<MeshFilter>();
-        foreach ( var filter in detectionFilters ) {
-          Color color;
-          if ( !meshColors.TryGetValue( filter, out color ) )
-            meshColors.Add( filter, ColorPulse.Lerp( m_selectedColor, m_selectedMaxColor ) );
-        }
-
-        AgXUnity.Collide.Shape[] shapes = detectionMouseOverObject.GetComponentsInChildren<AgXUnity.Collide.Shape>();
-        foreach ( var shape in shapes ) {
-          AgXUnity.Rendering.ShapeDebugRenderData debugRenderData = shape.GetComponent<AgXUnity.Rendering.ShapeDebugRenderData>();
-          if ( debugRenderData != null && debugRenderData.Node != null ) {
-            MeshFilter[] filters = debugRenderData.Node.GetComponentsInChildren<MeshFilter>();
-            foreach ( var filter in filters ) {
-              Color color;
-              if ( !meshColors.TryGetValue( filter, out color ) )
-                meshColors.Add( filter, ColorPulse.Lerp( m_selectedColor, m_selectedMaxColor ) );
-            }
-          }
-        }
-      }
-
-      foreach ( var filterAndColor in meshColors )
-        DrawGizmoMesh( filterAndColor.Key, filterAndColor.Value );
-    }
-
-    private void DrawGizmoMesh( MeshFilter filter, Color color )
-    {
-      if ( filter == null )
-        return;
-
-      Gizmos.color = color;
-      Gizmos.matrix = filter.transform.localToWorldMatrix;
-      Gizmos.DrawWireMesh( filter.sharedMesh );
+      if ( m_rbSelection != null )
+        colorHandler.Highlight( m_rbSelection.RigidBody );
     }
   }
 }

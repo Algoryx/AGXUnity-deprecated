@@ -285,6 +285,26 @@ namespace AgXUnityEditor.Tools
     }
 
     /// <summary>
+    /// Depth first traverse of the tool tree.
+    /// </summary>
+    /// <param name="visitor">The Tool visitor.</param>
+    public static void TraverseActive( Action<Tool> visitor )
+    {
+      TraverseActive( GetActiveTool(), visitor );
+    }
+
+    private static void TraverseActive( Tool parent, Action<Tool> visitor )
+    {
+      if ( parent == null || visitor == null )
+        return;
+
+      visitor( parent );
+
+      foreach ( var child in parent.GetChildren() )
+        TraverseActive( child, visitor );
+    }
+
+    /// <summary>
     /// Searches active tool from top level, depth first, given predicate.
     /// </summary>
     /// <typeparam name="T">Type of the tool.</typeparam>
@@ -350,13 +370,6 @@ namespace AgXUnityEditor.Tools
     public virtual void OnAdd() { }
 
     public virtual void OnRemove() { }
-
-    /// <summary>
-    /// Callback when to draw gizmos for given component.
-    /// </summary>
-    /// <remarks>Enable this callback by registering the tool to DrawGizmoCallbackHandler (DrawGizmoCallbackHandler.Register( this )).</remarks>
-    /// <param name="component"></param>
-    public virtual void OnDrawGizmosSelected( AgXUnity.ScriptComponent component ) { }
 
     public Tool GetParent()
     {
@@ -517,9 +530,32 @@ namespace AgXUnityEditor.Tools
     }
 
     private HideDefaultState m_hideDefaultState = null;
+
     protected void HideDefaultHandlesEnableWhenRemoved()
     {
       m_hideDefaultState = new HideDefaultState();
+    }
+
+    public class VisualizedSelectionData
+    {
+      public GameObject Object = null;
+    }
+
+    private List<VisualizedSelectionData> m_visualizedSelection = new List<VisualizedSelectionData>();
+
+    public VisualizedSelectionData VisualizedSelection { get { return m_visualizedSelection.FirstOrDefault(); } }
+
+    protected void SetVisualizedSelection( GameObject gameObject )
+    {
+      ClearVisualizedSelection();
+
+      if ( gameObject != null )
+        m_visualizedSelection.Add( new VisualizedSelectionData() { Object = gameObject } );
+    }
+
+    protected void ClearVisualizedSelection()
+    {
+      m_visualizedSelection.Clear();
     }
 
     private void PerformRemove()
@@ -530,8 +566,8 @@ namespace AgXUnityEditor.Tools
       // Remove all windows that hasn't been closed.
       SceneViewWindow.CloseAllWindows( this );
 
-      // Remove all gizmo callbacks that hasn't been removed.
-      Utils.DrawGizmoCallbackHandler.Unregister( this );
+      // Clear visualized selections for this tool.
+      ClearVisualizedSelection();
 
       // Remove all key handlers that hasn't been removed.
       string[] keyHandlerNames = m_keyHandlers.Keys.ToArray();

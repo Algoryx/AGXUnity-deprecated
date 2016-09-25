@@ -91,6 +91,11 @@ namespace AgXUnity.Rendering
         Instance.SynchronizeShape( shape );
     }
 
+    /// <summary>
+    /// Visualizes shapes in bodies with different colors (wire frame gizmos).
+    /// </summary>
+    public bool VisualizeBodies = false;
+
     protected override bool Initialize()
     {
       gameObject.isStatic  = true;
