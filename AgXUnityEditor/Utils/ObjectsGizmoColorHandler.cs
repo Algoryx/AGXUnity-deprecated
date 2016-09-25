@@ -13,62 +13,6 @@ namespace AgXUnityEditor.Utils
   /// </summary>
   public class ObjectsGizmoColorHandler
   {
-    public class Scope : IDisposable
-    {
-      public Action Callback { get; private set; }
-
-      public Scope( Action callback )
-      {
-        Callback = new Action( callback );
-      }
-
-      public void Dispose()
-      {
-        Callback();
-      }
-    }
-
-    public class ColorPulse
-    {
-      private float m_t         = -1f;
-      private float m_v         =  1f;
-      private double m_lastTime = 0.0;
-
-      public ColorPulse()
-      {
-        Reset();
-      }
-
-      public void Update()
-      {
-        float dt = Convert.ToSingle( EditorApplication.timeSinceStartup - m_lastTime );
-        m_lastTime = EditorApplication.timeSinceStartup;
-
-        m_t += Mathf.Max( Mathf.Abs( m_t ), 0.5f ) * m_v * dt;
-
-        if ( m_t >= 1f ) {
-          m_t = 1f;
-          m_v = -6f;
-        }
-        else if ( m_t <= 0f ) {
-          m_t = 0f;
-          m_v = 1.5f;
-        }
-      }
-
-      public Color Lerp( Color baseColor, Color maxColor )
-      {
-        return Color.Lerp( baseColor, maxColor, m_t );
-      }
-
-      public void Reset()
-      {
-        m_lastTime = EditorApplication.timeSinceStartup;
-        m_t        =  1f;
-        m_v        = -6f;
-      }
-    }
-
     private struct HSVDeltaData
     {
       public float DeltaHue;
@@ -103,11 +47,11 @@ namespace AgXUnityEditor.Utils
     public int RandomSeed            = 1024;
 
     public Dictionary<MeshFilter, Color> ColoredMeshFilters { get { return m_meshColors; } }
-    public ColorPulse SelectionColorPulse { get; private set; }
+    public TimeInterpolator01 TimeInterpolator { get; private set; }
 
     public ObjectsGizmoColorHandler()
     {
-      SelectionColorPulse = new ColorPulse();
+      TimeInterpolator = new TimeInterpolator01( 4f, 2f );
     }
 
     public Color GetOrCreateColor( RigidBody rb )
@@ -180,12 +124,12 @@ namespace AgXUnityEditor.Utils
       foreach ( var shape in shapes ) {
         var shapeFilters = GetMeshFilters( shape );
         foreach ( var shapeFilter in shapeFilters )
-          m_meshColors[ shapeFilter ] = SelectionColorPulse.Lerp( rbColor, ChangeColorHSVDelta( rbColor, HSVDeltaData.HighlightRigidBody ) );
+          m_meshColors[ shapeFilter ] = TimeInterpolator.Lerp( rbColor, ChangeColorHSVDelta( rbColor, HSVDeltaData.HighlightRigidBody ) );
       }
 
       var filters = rb.GetComponentsInChildren<MeshFilter>();
       foreach ( var filter in filters )
-        m_meshColors[ filter ] = SelectionColorPulse.Lerp( rbColor, ChangeColorHSVDelta( rbColor, HSVDeltaData.HighlightRigidBodyMeshFilter ) );
+        m_meshColors[ filter ] = TimeInterpolator.Lerp( rbColor, ChangeColorHSVDelta( rbColor, HSVDeltaData.HighlightRigidBodyMeshFilter ) );
     }
 
     public void Highlight( Shape shape )
@@ -198,7 +142,7 @@ namespace AgXUnityEditor.Utils
 
       var shapeFilters = GetMeshFilters( shape );
       foreach ( var shapeFilter in shapeFilters )
-        m_meshColors[ shapeFilter ] = SelectionColorPulse.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightShape ) );
+        m_meshColors[ shapeFilter ] = TimeInterpolator.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightShape ) );
     }
 
     public void Highlight( MeshFilter filter )
@@ -212,7 +156,7 @@ namespace AgXUnityEditor.Utils
 
       Color color = MeshFilterColor;
 
-      m_meshColors[ filter ] = SelectionColorPulse.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightRigidBodyMeshFilter ) );
+      m_meshColors[ filter ] = TimeInterpolator.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightRigidBodyMeshFilter ) );
     }
 
     public MeshFilter[] GetMeshFilters( Shape shape )
@@ -223,10 +167,10 @@ namespace AgXUnityEditor.Utils
       return new MeshFilter[] { };
     }
 
-    public Scope BeginEndScope()
+    public AgXUnity.Utils.DisposableCallback BeginEndScope()
     {
       Begin();
-      return new Scope( End );
+      return new AgXUnity.Utils.DisposableCallback( End );
     }
 
     public void Begin()
@@ -235,8 +179,6 @@ namespace AgXUnityEditor.Utils
         Debug.LogError( "Begin() called more than once before calling End()." );
         return;
       }
-
-      SelectionColorPulse.Update();
 
       m_oldRandomSeed = UnityEngine.Random.seed;
       UnityEngine.Random.seed = RandomSeed;

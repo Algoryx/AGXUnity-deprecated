@@ -39,7 +39,7 @@ namespace AgXUnityEditor.Utils
                              ( assemblyTool != null && assemblyTool.HasActiveSelections() ) ||
                              Array.Exists( Selection.gameObjects, go => { return go.GetComponent<Shape>() != null || go.GetComponent<RigidBody>() != null; } );
       if ( !selectionActive )
-        m_colorHandler.SelectionColorPulse.Reset();
+        m_colorHandler.TimeInterpolator.Reset();
 
       // Early exist if we're not visualizing the bodies nor have active selections.
       bool active = manager.VisualizeBodies || selectionActive || assemblyTool != null;
