@@ -77,7 +77,7 @@ namespace AgXUnityEditor.Utils
       public float DeltaAlpha;
 
       public static HSVDeltaData HighlightRigidBody { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.1f, DeltaValue = 0.15f, DeltaAlpha = 0f }; } }
-      public static HSVDeltaData HighlightShape { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.1f, DeltaValue = 0.15f, DeltaAlpha = 0f }; } }
+      public static HSVDeltaData HighlightShape { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.1f, DeltaValue = 0.35f, DeltaAlpha = 0.2f }; } }
       public static HSVDeltaData HighlightRigidBodyMeshFilter { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.25f, DeltaValue = 0.15f, DeltaAlpha = 0f }; } }
     }
 

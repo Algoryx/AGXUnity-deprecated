@@ -127,6 +127,7 @@ namespace AgXUnityEditor.Tools
 
     private void OnWindowGUI( EventType eventType )
     {
+      GameObject mouseOverObject = null;
       foreach ( var data in m_gameObjectList ) {
         if ( eventType == EventType.Repaint )
           data.MouseOver = false;
@@ -135,10 +136,13 @@ namespace AgXUnityEditor.Tools
           m_selected = new SelectedObject() { Object = data.GameObject };
 
         if ( eventType == EventType.Repaint && GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) ) {
-          SetVisualizedSelection( data.GameObject );
+          mouseOverObject = data.GameObject;
           data.MouseOver = true;
         }
       }
+
+      if ( eventType == EventType.Repaint )
+        SetVisualizedSelection( mouseOverObject );
     }
   }
 }
