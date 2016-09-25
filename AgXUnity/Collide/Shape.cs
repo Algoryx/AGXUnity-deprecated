@@ -246,15 +246,5 @@ namespace AgXUnity.Collide
         transform.rotation = t.getRotate().ToHandedQuaternion();
       }
     }
-
-    // TODO: REMOVE CODE
-    //private void OnDrawGizmosSelected()
-    //{
-    //  Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
-    //  if ( data == null )
-    //    return;
-
-    //  data.OnDrawGizmosSelected( this );
-    //}
   }
 }
