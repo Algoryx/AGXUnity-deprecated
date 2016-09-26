@@ -67,17 +67,17 @@ namespace AgXUnityEditor.Utils
           if ( assemblyTool != null )
             assemblyTool.OnRenderGizmos( m_colorHandler );
 
-          // Handling objects selected in our tools.
-          {
-            foreach ( var toolSelection in toolsSelections )
-              HandleSelectedGameObject( toolSelection.Object, ObjectsGizmoColorHandler.SelectionType.VaryingIntensity );
-          }
-
           // Handling objects selected in the editor.
           {
             GameObject[] editorSelections = Selection.gameObjects;
             foreach ( var editorSelection in editorSelections )
               HandleSelectedGameObject( editorSelection, ObjectsGizmoColorHandler.SelectionType.ConstantColor );
+          }
+
+          // Handling objects selected in our tools.
+          {
+            foreach ( var toolSelection in toolsSelections )
+              HandleSelectedGameObject( toolSelection.Object, ObjectsGizmoColorHandler.SelectionType.VaryingIntensity );
           }
 
           foreach ( var filterColorPair in m_colorHandler.ColoredMeshFilters ) {

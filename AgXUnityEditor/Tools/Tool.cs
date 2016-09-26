@@ -291,6 +291,7 @@ namespace AgXUnityEditor.Tools
     public static void TraverseActive( Action<Tool> visitor )
     {
       TraverseActive( GetActiveTool(), visitor );
+      TraverseActive( BuiltInTools, visitor );
     }
 
     private static void TraverseActive( Tool parent, Action<Tool> visitor )
@@ -341,18 +342,37 @@ namespace AgXUnityEditor.Tools
     }
 
     /// <summary>
+    /// The built in tools handler.
+    /// </summary>
+    public static BuiltInToolsTool BuiltInTools { get { return m_builtInTools; } }
+
+    /// <summary>
+    /// Activate the built in tools.
+    /// </summary>
+    public static void ActivateBuiltInTools()
+    {
+      if ( m_builtInTools != null )
+        return;
+
+      m_builtInTools = new BuiltInToolsTool();
+    }
+
+    /// <summary>
     /// Call from Manager when it's time to update active tool scene view GUI.
     /// </summary>
     /// <param name="sceneView">Current scene view.</param>
     public static void HandleOnSceneViewGUI( SceneView sceneView )
     {
-      if ( m_active == null )
-        return;
+      if ( m_builtInTools != null )
+        m_builtInTools.HandleOnSceneView( sceneView );
 
-      m_active.HandleOnSceneView( sceneView );
+      if ( m_active != null )
+        m_active.HandleOnSceneView( sceneView );
     }
 
-    private static Tool m_active  = null;
+    private static Tool m_active                   = null;
+    private static BuiltInToolsTool m_builtInTools = null;
+
     private List<Tool> m_children = new List<Tool>();
     private Tool m_parent         = null;
 
