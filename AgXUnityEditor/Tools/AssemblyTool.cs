@@ -590,11 +590,11 @@ namespace AgXUnityEditor.Tools
 
       foreach ( var selected in m_selection ) {
         MeshFilter filter = selected.Object.GetComponent<MeshFilter>();
-        colorHandler.Highlight( filter );
+        colorHandler.Highlight( filter, Utils.ObjectsGizmoColorHandler.SelectionType.VaryingIntensity );
       }
 
       if ( m_rbSelection != null )
-        colorHandler.Highlight( m_rbSelection.RigidBody );
+        colorHandler.Highlight( m_rbSelection.RigidBody, Utils.ObjectsGizmoColorHandler.SelectionType.VaryingIntensity );
     }
   }
 }

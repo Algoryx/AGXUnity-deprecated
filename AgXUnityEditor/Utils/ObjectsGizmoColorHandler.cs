@@ -13,6 +13,12 @@ namespace AgXUnityEditor.Utils
   /// </summary>
   public class ObjectsGizmoColorHandler
   {
+    public enum SelectionType
+    {
+      ConstantColor,
+      VaryingIntensity
+    }
+
     private struct HSVDeltaData
     {
       public float DeltaHue;
@@ -20,9 +26,15 @@ namespace AgXUnityEditor.Utils
       public float DeltaValue;
       public float DeltaAlpha;
 
-      public static HSVDeltaData HighlightRigidBody { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.1f, DeltaValue = 0.15f, DeltaAlpha = 0f }; } }
-      public static HSVDeltaData HighlightShape { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.1f, DeltaValue = 0.35f, DeltaAlpha = 0.2f }; } }
-      public static HSVDeltaData HighlightRigidBodyMeshFilter { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.25f, DeltaValue = 0.15f, DeltaAlpha = 0f }; } }
+      public static HSVDeltaData SelectedRigidBody        { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = 0f, DeltaValue = 0.2f, DeltaAlpha = 0.1f }; } }
+      public static HSVDeltaData SelectedShape            { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = 0f, DeltaValue = 1f, DeltaAlpha = 0.25f }; } }
+      public static HSVDeltaData SelectedMeshFilter       { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.1f, DeltaValue = 0f, DeltaAlpha = 0f }; } }
+
+      public static HSVDeltaData ColorizedMeshFilter      { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = -0.1f, DeltaValue = 0f, DeltaAlpha = 0f }; } }
+
+      public static HSVDeltaData HighlightedRigidBodyMax  { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = 0f, DeltaValue = 0.5f, DeltaAlpha = 0.3f }; } }
+      public static HSVDeltaData HighlightedShapeMax      { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = 0f, DeltaValue = 0.5f, DeltaAlpha = 0.3f }; } }
+      public static HSVDeltaData HighlightedMeshFilterMax { get { return new HSVDeltaData() { DeltaHue = 0f, DeltaSaturation = 0f, DeltaValue = 0.5f, DeltaAlpha = 0.3f }; } }
     }
 
     private class RigidBodyColorData
@@ -62,18 +74,6 @@ namespace AgXUnityEditor.Utils
       return GetOrCreateColorData( rb ).Color;
     }
 
-    public Color GetOrCreateColor( Shape shape )
-    {
-      if ( shape == null )
-        throw new ArgumentNullException( "shape" );
-
-      RigidBody rb = shape.GetComponentInParent<RigidBody>();
-      if ( rb != null )
-        return GetOrCreateColor( rb );
-
-      return ShapeColor;
-    }
-
     public Color Colorize( RigidBody rb )
     {
       if ( rb == null )
@@ -95,44 +95,50 @@ namespace AgXUnityEditor.Utils
       return colorData.Color;
     }
 
-    public void ColorizeMeshFilters( RigidBody rb )
+    public Color ColorizeMeshFilters( RigidBody rb )
     {
       if ( rb == null )
-        return;
+        throw new ArgumentNullException( "rb" );
 
       var colorData = GetOrCreateColorData( rb );
       if ( colorData.MeshFiltersData != null )
-        return;
+        return colorData.MeshFiltersData.Color;
 
       var filters = rb.GetComponentsInChildren<MeshFilter>();
-      Color filterColor = ChangeColorHSVDelta( colorData.Color, HSVDeltaData.HighlightRigidBodyMeshFilter );
+      Color filterColor = ChangeColorHSVDelta( colorData.Color, HSVDeltaData.ColorizedMeshFilter );
 
       colorData.MeshFiltersData = new RigidBodyColorData.ColorizedMeshFilterData() { Color = filterColor };
 
       foreach ( var filter in filters )
         m_meshColors[ filter ] = filterColor;
+
+      return colorData.MeshFiltersData.Color;
     }
 
-    public void Highlight( RigidBody rb )
+    public void Highlight( RigidBody rb, SelectionType selectionType )
     {
       if ( rb == null )
         return;
 
       Color rbColor = Colorize( rb );
-
       var shapes = rb.GetComponentsInChildren<Shape>();
       foreach ( var shape in shapes ) {
         var shapeFilters = GetMeshFilters( shape );
         foreach ( var shapeFilter in shapeFilters )
-          m_meshColors[ shapeFilter ] = TimeInterpolator.Lerp( rbColor, ChangeColorHSVDelta( rbColor, HSVDeltaData.HighlightRigidBody ) );
+          m_meshColors[ shapeFilter ] = selectionType == SelectionType.ConstantColor ?
+                                          ChangeColorHSVDelta( rbColor, HSVDeltaData.SelectedRigidBody ) :
+                                          TimeInterpolator.Lerp( rbColor, ChangeColorHSVDelta( rbColor, HSVDeltaData.HighlightedRigidBodyMax ) );
       }
 
+      Color filterColor = ColorizeMeshFilters( rb );
       var filters = rb.GetComponentsInChildren<MeshFilter>();
       foreach ( var filter in filters )
-        m_meshColors[ filter ] = TimeInterpolator.Lerp( rbColor, ChangeColorHSVDelta( rbColor, HSVDeltaData.HighlightRigidBodyMeshFilter ) );
+        m_meshColors[ filter ] = selectionType == SelectionType.ConstantColor ?
+                                   ChangeColorHSVDelta( filterColor, HSVDeltaData.SelectedMeshFilter ) :
+                                   TimeInterpolator.Lerp( filterColor, ChangeColorHSVDelta( filterColor, HSVDeltaData.HighlightedRigidBodyMax ) );
     }
 
-    public void Highlight( Shape shape )
+    public void Highlight( Shape shape, SelectionType selectionType )
     {
       if ( shape == null )
         return;
@@ -142,21 +148,28 @@ namespace AgXUnityEditor.Utils
 
       var shapeFilters = GetMeshFilters( shape );
       foreach ( var shapeFilter in shapeFilters )
-        m_meshColors[ shapeFilter ] = TimeInterpolator.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightShape ) );
+        m_meshColors[ shapeFilter ] = selectionType == SelectionType.ConstantColor ?
+                                        ChangeColorHSVDelta( color, HSVDeltaData.SelectedShape ) :
+                                        TimeInterpolator.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightedShapeMax ) );
     }
 
-    public void Highlight( MeshFilter filter )
+    public void Highlight( MeshFilter filter, SelectionType selectionType )
     {
       if ( filter == null )
         return;
 
       RigidBody rb = filter.GetComponentInParent<RigidBody>();
-      if ( rb != null )
+      Color color;
+      if ( rb != null ) {
         Colorize( rb );
+        color = ColorizeMeshFilters( rb );
+      }
+      else
+        color = MeshFilterColor;
 
-      Color color = MeshFilterColor;
-
-      m_meshColors[ filter ] = TimeInterpolator.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightRigidBodyMeshFilter ) );
+      m_meshColors[ filter ] = selectionType == SelectionType.ConstantColor ?
+                                 ChangeColorHSVDelta( color, HSVDeltaData.SelectedMeshFilter ) :
+                                 TimeInterpolator.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightedMeshFilterMax ) );
     }
 
     public MeshFilter[] GetMeshFilters( Shape shape )
@@ -222,7 +235,7 @@ namespace AgXUnityEditor.Utils
       float h, s, v;
       Color.RGBToHSV( color, out h, out s, out v );
 
-      v = Mathf.Clamp01( h + data.DeltaHue );
+      h = Mathf.Clamp01( h + data.DeltaHue );
       // Decreasing saturation to make it more white.
       s = Mathf.Clamp01( s + data.DeltaSaturation );
       // Increasing value to make it more intense.

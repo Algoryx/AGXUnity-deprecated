@@ -70,14 +70,14 @@ namespace AgXUnityEditor.Utils
           // Handling objects selected in our tools.
           {
             foreach ( var toolSelection in toolsSelections )
-              HandleSelectedGameObject( toolSelection.Object, true );
+              HandleSelectedGameObject( toolSelection.Object, ObjectsGizmoColorHandler.SelectionType.VaryingIntensity );
           }
 
           // Handling objects selected in the editor.
           {
             GameObject[] editorSelections = Selection.gameObjects;
             foreach ( var editorSelection in editorSelections )
-              HandleSelectedGameObject( editorSelection );
+              HandleSelectedGameObject( editorSelection, ObjectsGizmoColorHandler.SelectionType.ConstantColor );
           }
 
           foreach ( var filterColorPair in m_colorHandler.ColoredMeshFilters ) {
@@ -92,7 +92,7 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    private static void HandleSelectedGameObject( GameObject selected, bool highlightMeshFilter = false )
+    private static void HandleSelectedGameObject( GameObject selected, ObjectsGizmoColorHandler.SelectionType selectionType )
     {
       if ( selected == null )
         return;
@@ -101,13 +101,13 @@ namespace AgXUnityEditor.Utils
       Shape shape       = null;
       MeshFilter filter = null;
       if ( ( rb = selected.GetComponent<RigidBody>() ) != null ) {
-        m_colorHandler.Highlight( rb );
+        m_colorHandler.Highlight( rb, selectionType );
       }
       else if ( ( shape = selected.GetComponent<Shape>() ) != null ) {
-        m_colorHandler.Highlight( shape );
+        m_colorHandler.Highlight( shape, selectionType );
       }
-      else if ( highlightMeshFilter && ( filter = selected.GetComponent<MeshFilter>() ) != null ) {
-        m_colorHandler.Highlight( filter );
+      else if ( ( filter = selected.GetComponent<MeshFilter>() ) != null ) {
+        m_colorHandler.Highlight( filter, selectionType );
       }
     }
   }
