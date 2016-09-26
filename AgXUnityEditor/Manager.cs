@@ -239,6 +239,15 @@ namespace AgXUnityEditor
 
       UpdateMouseOverPrimitives( current );
 
+      // TODO: Experimental code to hold 's' to trigger "SelectGameObjectTool".
+      bool isKeyS = current.isKey && current.keyCode == KeyCode.S && !current.control && !current.shift && !current.alt;
+      if ( isKeyS && current.type == EventType.KeyDown && Tools.Tool.GetActiveTool() == null && Tools.Tool.GetActiveTool<Tools.SelectGameObjectTool>() == null ) {
+        var selectObjectTool = Tools.Tool.ActivateTool<Tools.SelectGameObjectTool>( new Tools.SelectGameObjectTool() { OnSelect = go => { Selection.activeGameObject = go; } } );
+        selectObjectTool.MenuTool.RemoveOnClickMiss = true;
+      }
+      else if ( isKeyS && current.type == EventType.KeyUp && Tools.Tool.GetActiveTool<Tools.SelectGameObjectTool>() != null && !Tools.Tool.GetActiveTool<Tools.SelectGameObjectTool>().SelectionWindowActive )
+        Tools.Tool.RemoveActiveTool();
+
       // TODO: This "auto selection" is scary - make it optional. Somehow.
 
       // Routes each selected object to its correct selection.
