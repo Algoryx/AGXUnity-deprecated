@@ -284,6 +284,33 @@ namespace AgXUnity
       base.OnDestroy();
     }
 
+    protected void FixedUpdate()
+    {
+      if ( Native == null )
+        return;
+
+      RigidBody rb1 = AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>();
+      if ( rb1 == null )
+        return;
+
+      RigidBody rb2 = AttachmentPair.ConnectedObject != null ? AttachmentPair.ConnectedObject.GetComponentInParent<RigidBody>() : null;
+
+      agx.Frame f1 = Native.getAttachment( 0 ).getFrame();
+      agx.Frame f2 = Native.getAttachment( 1 ).getFrame();
+
+      //f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
+      //f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
+
+      if ( rb2 != null ) {
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
+      }
+      else {
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
+      }
+    }
+
     public static float GetGizmoSize( Vector3 position )
     {
       Camera current = Camera.current;
