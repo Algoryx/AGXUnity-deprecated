@@ -7,9 +7,6 @@ namespace AgXUnityEditor.Tools
 {
   public class PickHandlerTool : Tool
   {
-    private float m_distanceFromCamera = -1f;
-    private Predicate<Event> m_removePredicate = null;
-
     [Flags]
     public enum DofTypes
     {
@@ -49,6 +46,9 @@ namespace AgXUnityEditor.Tools
         return;
       }
 
+      Constraint constraint = Constraint;
+      UpdateVisual( constraint );
+
       // NOTE: camera.ScreenToWorldPoint is not stable during all types of events. Pick one!
       if ( !Event.current.isMouse )
         return;
@@ -57,12 +57,19 @@ namespace AgXUnityEditor.Tools
       if ( m_distanceFromCamera < 0f )
         m_distanceFromCamera = sceneView.camera.WorldToViewportPoint( Constraint.AttachmentPair.ReferenceFrame.Position ).z;
 
-      Constraint.AttachmentPair.ConnectedFrame.Position = sceneView.camera.ScreenToWorldPoint( new Vector3( Event.current.mousePosition.x,
+      constraint.AttachmentPair.ConnectedFrame.Position = sceneView.camera.ScreenToWorldPoint( new Vector3( Event.current.mousePosition.x,
                                                                                                             sceneView.camera.pixelHeight - Event.current.mousePosition.y,
                                                                                                             m_distanceFromCamera ) );
 
-      SetComplianceDamping( Constraint );
+      SetComplianceDamping( constraint );
     }
+
+    private float m_distanceFromCamera = -1f;
+    private Predicate<Event> m_removePredicate = null;
+
+    private Utils.VisualPrimitiveSphere VisualSphereReference { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveSphere>( "reference", "Standard" ); } }
+    private Utils.VisualPrimitiveSphere VisualSphereConnected { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveSphere>( "connected", "Standard" ); } }
+    private Utils.VisualPrimitiveCylinder VisualCylinder { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveCylinder>( "cylinder", "Standard" ); } }
 
     private void Initialize()
     {
@@ -72,6 +79,14 @@ namespace AgXUnityEditor.Tools
       var hit = AgXUnity.Utils.Raycast.Test( Manager.MouseOverObject, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) );
       if ( !hit.Triangle.Valid || hit.Triangle.Target.GetComponentInParent<RigidBody>() == null )
         return;
+
+      VisualSphereReference.Color = Color.HSVToRGB( 0.02f, 0.78f, 0.95f );
+      VisualSphereConnected.Color = Color.HSVToRGB( 0.02f, 0.78f, 0.95f );
+      VisualCylinder.Color        = Color.HSVToRGB( 0.02f, 0.78f, 0.95f );
+
+      VisualSphereReference.Pickable = false;
+      VisualSphereConnected.Pickable = false;
+      VisualCylinder.Pickable        = false;
 
       ConstraintType constraintType = ConstrainedDofTypes == DofTypes.Translation ?
                                         ConstraintType.BallJoint :
@@ -92,6 +107,8 @@ namespace AgXUnityEditor.Tools
 
       constraint.AttachmentPair.Synchronized = false;
 
+      constraint.DrawGizmosEnable = false;
+      
       ConstraintGameObject.name = "PickHandlerConstraint";
 
       SetComplianceDamping( Constraint );
@@ -130,6 +147,23 @@ namespace AgXUnityEditor.Tools
         rotationalRow.RowData.Compliance = rotationalCompliance;
         rotationalRow.RowData.Damping = damping;
       }
+    }
+
+    private void UpdateVisual( Constraint constraint )
+    {
+      if ( constraint.Type == ConstraintType.AngularLockJoint )
+        return;
+
+      const float sphereRadius   = 0.05f;
+      const float cylinderRadius = 0.5f * sphereRadius;
+
+      VisualSphereReference.Visible = true;
+      VisualSphereConnected.Visible = true;
+      VisualCylinder.Visible        = true;
+
+      VisualSphereReference.SetTransform( constraint.AttachmentPair.ReferenceFrame.Position, Quaternion.identity, sphereRadius );
+      VisualSphereConnected.SetTransform( constraint.AttachmentPair.ConnectedFrame.Position, Quaternion.identity, sphereRadius );
+      VisualCylinder.SetTransform( constraint.AttachmentPair.ReferenceFrame.Position, constraint.AttachmentPair.ConnectedFrame.Position, cylinderRadius );
     }
   }
 }

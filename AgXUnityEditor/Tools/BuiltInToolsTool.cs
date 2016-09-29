@@ -21,6 +21,8 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    public Utils.KeyHandler SelectGameObjectKey { get { return GetKeyHandler( "SelectObject" ); } }
+
     public PickHandlerTool PickHandler
     {
       get { return GetChild<PickHandlerTool>(); }
@@ -34,6 +36,14 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    public Utils.KeyHandler PickHandlerKey { get { return GetKeyHandler( "PickHandler" ); } }
+
+    public BuiltInToolsTool()
+    {
+      AddKeyHandler( "SelectObject", new Utils.KeyHandler( KeyCode.S ) );
+      AddKeyHandler( "PickHandler", new Utils.KeyHandler( KeyCode.A ) );
+    }
+
     public override void OnSceneViewGUI( SceneView sceneView )
     {
       var currentEvent = Event.current;
@@ -44,7 +54,10 @@ namespace AgXUnityEditor.Tools
 
     private void HandleSceneViewSelectTool( Event current, SceneView sceneView )
     {
-      bool isKeyS = current.isKey && current.keyCode == KeyCode.S && !current.control && !current.shift && !current.alt;
+      bool isKeyS = SelectGameObjectKey.IsDown &&
+                    !current.control &&
+                    !current.shift &&
+                    !current.alt;
       if ( !isKeyS )
         return;
 
@@ -60,7 +73,7 @@ namespace AgXUnityEditor.Tools
       bool activatePickHandler = EditorApplication.isPlaying &&
                                  PickHandler == null &&
                                  EditorWindow.mouseOverWindow == sceneView &&
-                                 current.control &&
+                                 PickHandlerKey.IsDown &&
                                  !current.shift &&
                                  !current.alt &&
                                  current.type == EventType.MouseDown &&

@@ -164,6 +164,9 @@ namespace AgXUnityEditor.Utils
       float height  = dir.magnitude;
       dir          /= height;
 
+      if ( height < 1.0E-4f )
+        dir = Vector3.up;
+
       Node.transform.localScale = new Vector3( 2.0f * r, 0.5f * height, 2.0f * r );
       Node.transform.rotation   = Quaternion.FromToRotation( Vector3.up, dir );
       Node.transform.position   = 0.5f * ( start + end );

@@ -14,6 +14,18 @@ namespace AgXUnity.Rendering
   public class ShapeDebugRenderData : DebugRenderData
   {
     /// <summary>
+    /// Find the debug rendering mesh filters for a given shape (if debug rendered).
+    /// </summary>
+    public static MeshFilter[] GetMeshFilters( Shape shape )
+    {
+      ShapeDebugRenderData debugRenderData = null;
+      if ( shape == null || ( debugRenderData = shape.GetComponent<ShapeDebugRenderData>() ) == null )
+        return new MeshFilter[] { };
+
+      return debugRenderData.MeshFilters;
+    }
+
+    /// <summary>
     /// Type name is shape type - prefabs in Resources folder has been
     /// named to fit these names.
     /// </summary>

@@ -69,6 +69,12 @@ namespace AgXUnityEditor
 
       MouseOverObject = null;
 
+      // Focus on scene view for events to be properly handled. E.g.,
+      // holding one key and click in scene view is not working until
+      // scene view is focused since some other event is taking the
+      // key event.
+      RequestSceneViewFocus();
+
       Tools.Tool.ActivateBuiltInTools();
     }
 
@@ -223,12 +229,14 @@ namespace AgXUnityEditor
         m_requestSceneViewFocus = false;
       }
 
-      Event current   = Event.current;
+      //if ( Event.current.Equals( Event.KeyboardEvent( "s" ) ) )
+      //  Debug.Log( "HEJ" );
 
+      Event current   = Event.current;
       LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
       KeyEscapeDown   = current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
-
       RightMouseClick = current.type == EventType.MouseDown && current.button == 1;
+
       if ( RightMouseClick )
         RightMouseDown = true;
       if ( current.type == EventType.MouseUp && current.button == 1 )
@@ -286,7 +294,36 @@ namespace AgXUnityEditor
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
-      MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition, false ) ) as GameObject;
+      if ( current.isMouse ) {
+        //GameObject go1 = HandleUtility.PickGameObject( current.mousePosition, false );
+        //GameObject go2 = HandleUtility.PickGameObject( current.mousePosition, false, new GameObject[] { go1 } );
+        //if ( go1 != null && go2 != null && RouteToShape( go1 ) != null && RouteToShape( go2 ) != null ) {
+        //  AgXUnity.Rendering.ShapeDebugRenderData sdrd1 = RouteToShape( go1 ).GetComponent<AgXUnity.Rendering.ShapeDebugRenderData>();
+        //  AgXUnity.Rendering.ShapeDebugRenderData sdrd2 = RouteToShape( go2 ).GetComponent<AgXUnity.Rendering.ShapeDebugRenderData>();
+        //  Ray worldRay = HandleUtility.GUIPointToWorldRay( Event.current.mousePosition );
+
+        //  float closest1 = float.MaxValue;
+        //  foreach ( var f in sdrd1.MeshFilters ) {
+        //    Ray ray = new Ray( f.transform.InverseTransformPoint( worldRay.origin ), f.transform.InverseTransformVector( worldRay.direction ).normalized );
+        //    float dist;
+        //    if ( f.sharedMesh.bounds.IntersectRay( ray, out dist ) && dist < closest1 )
+        //      closest1 = dist;
+        //  }
+
+        //  float closest2 = float.MaxValue;
+        //  foreach ( var f in sdrd2.MeshFilters ) {
+        //    Ray ray = new Ray( f.transform.InverseTransformPoint( worldRay.origin ), f.transform.InverseTransformVector( worldRay.direction ).normalized );
+        //    float dist;
+        //    if ( f.sharedMesh.bounds.IntersectRay( ray, out dist ) && dist < closest2 )
+        //      closest2 = dist;
+        //  }
+
+        //  Debug.Log( sdrd1.GetComponent<AgXUnity.Collide.Shape>().name + ": " + closest1 );
+        //  Debug.Log( sdrd2.GetComponent<AgXUnity.Collide.Shape>().name + ": " + closest2 );
+        //}
+
+        MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition, false ) ) as GameObject;
+      }
 
       // Early exit if we haven't any active visual primitives.
       if ( m_visualPrimitives.Count == 0 )

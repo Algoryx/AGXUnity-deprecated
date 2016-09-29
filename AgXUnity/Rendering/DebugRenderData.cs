@@ -17,6 +17,21 @@ namespace AgXUnity.Rendering
     public GameObject Node { get; set; }
 
     /// <summary>
+    /// Debug rendering mesh filters - if Node has been created.
+    /// </summary>
+    [HideInInspector]
+    public MeshFilter[] MeshFilters
+    {
+      get
+      {
+        if ( Node == null )
+          return new MeshFilter[] { };
+
+        return Node.GetComponentsInChildren<MeshFilter>();
+      }
+    }
+
+    /// <summary>
     /// Typename used to load prefab from resources. In general
     /// "Resources/Debug/(ret GetTypeName)Renderer".
     /// </summary>

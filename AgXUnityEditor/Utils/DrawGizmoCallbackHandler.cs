@@ -34,8 +34,11 @@ namespace AgXUnityEditor.Utils
           toolsSelections.Add( activeTool.VisualizedSelection );
       } );
 
+      bool highlightMouseOverObject = DebugRenderManager.HasInstance && DebugRenderManager.Instance.HighlightMouseOverObject;
+
       // Find if we've any active selections.
-      bool selectionActive = toolsSelections.Count > 0 ||
+      bool selectionActive = ( highlightMouseOverObject && Manager.MouseOverObject != null ) ||
+                             toolsSelections.Count > 0 ||
                              ( assemblyTool != null && assemblyTool.HasActiveSelections() ) ||
                              Array.Exists( Selection.gameObjects, go => { return go.GetComponent<Shape>() != null || go.GetComponent<RigidBody>() != null; } );
       if ( !selectionActive )
@@ -79,6 +82,9 @@ namespace AgXUnityEditor.Utils
             foreach ( var toolSelection in toolsSelections )
               HandleSelectedGameObject( toolSelection.Object, ObjectsGizmoColorHandler.SelectionType.VaryingIntensity );
           }
+
+          if ( highlightMouseOverObject )
+            HandleSelectedGameObject( Manager.MouseOverObject, ObjectsGizmoColorHandler.SelectionType.VaryingIntensity );
 
           foreach ( var filterColorPair in m_colorHandler.ColoredMeshFilters ) {
             Gizmos.color = filterColorPair.Value;

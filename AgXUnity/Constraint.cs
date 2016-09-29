@@ -192,6 +192,17 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Draw gizmos flag - paired with DrawGizmosEnable.
+    /// </summary>
+    [SerializeField]
+    private bool m_drawGizmosEnable = true;
+
+    /// <summary>
+    /// Enable/disable gizmos drawing of this constraint. Enabled by default.
+    /// </summary>
+    public bool DrawGizmosEnable { get { return m_drawGizmosEnable; } set { m_drawGizmosEnable = value; } }
+
+    /// <summary>
     /// Creates native instance and adds it to the simulation if this constraint
     /// is properly configured.
     /// </summary>
@@ -286,6 +297,8 @@ namespace AgXUnity
 
     protected void FixedUpdate()
     {
+      // TODO: Implement event pre/post etc in Simulation. This update has to be before stepForward.
+
       if ( Native == null )
         return;
 
@@ -298,8 +311,8 @@ namespace AgXUnity
       agx.Frame f1 = Native.getAttachment( 0 ).getFrame();
       agx.Frame f2 = Native.getAttachment( 1 ).getFrame();
 
-      //f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
-      //f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
+      f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
+      f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
 
       if ( rb2 != null ) {
         f2.setLocalTranslate( AttachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
@@ -366,11 +379,17 @@ namespace AgXUnity
 
     private void OnDrawGizmos()
     {
+      if ( !DrawGizmosEnable )
+        return;
+
       DrawGizmos( Color.blue, AttachmentPair );
     }
 
     private void OnDrawGizmosSelected()
     {
+      if ( !DrawGizmosEnable )
+        return;
+
       DrawGizmos( Color.green, AttachmentPair );
     }
   }

@@ -85,7 +85,7 @@ namespace AgXUnityEditor.Utils
 
       var shapes = rb.GetComponentsInChildren<Shape>();
       foreach ( var shape in shapes ) {
-        var shapeFilters = GetMeshFilters( shape );
+        var shapeFilters = ShapeDebugRenderData.GetMeshFilters( shape );
         foreach ( var shapeFilter in shapeFilters )
           m_meshColors.Add( shapeFilter, colorData.Color );
       }
@@ -123,7 +123,7 @@ namespace AgXUnityEditor.Utils
       Color rbColor = Colorize( rb );
       var shapes = rb.GetComponentsInChildren<Shape>();
       foreach ( var shape in shapes ) {
-        var shapeFilters = GetMeshFilters( shape );
+        var shapeFilters = ShapeDebugRenderData.GetMeshFilters( shape );
         foreach ( var shapeFilter in shapeFilters )
           m_meshColors[ shapeFilter ] = selectionType == SelectionType.ConstantColor ?
                                           ChangeColorHSVDelta( rbColor, HSVDeltaData.SelectedRigidBody ) :
@@ -146,7 +146,7 @@ namespace AgXUnityEditor.Utils
       RigidBody rb = shape.GetComponentInParent<RigidBody>();
       Color color = rb != null ? Colorize( rb ) : ShapeColor;
 
-      var shapeFilters = GetMeshFilters( shape );
+      var shapeFilters = ShapeDebugRenderData.GetMeshFilters( shape );
       foreach ( var shapeFilter in shapeFilters )
         m_meshColors[ shapeFilter ] = selectionType == SelectionType.ConstantColor ?
                                         ChangeColorHSVDelta( color, HSVDeltaData.SelectedShape ) :
@@ -170,14 +170,6 @@ namespace AgXUnityEditor.Utils
       m_meshColors[ filter ] = selectionType == SelectionType.ConstantColor ?
                                  ChangeColorHSVDelta( color, HSVDeltaData.SelectedMeshFilter ) :
                                  TimeInterpolator.Lerp( color, ChangeColorHSVDelta( color, HSVDeltaData.HighlightedMeshFilterMax ) );
-    }
-
-    public MeshFilter[] GetMeshFilters( Shape shape )
-    {
-      ShapeDebugRenderData shapeDebugRenderData = shape.GetComponent<ShapeDebugRenderData>();
-      if ( shapeDebugRenderData != null && shapeDebugRenderData.Node != null )
-        return shapeDebugRenderData.Node.GetComponentsInChildren<MeshFilter>();
-      return new MeshFilter[] { };
     }
 
     public AgXUnity.Utils.DisposableCallback BeginEndScope()
