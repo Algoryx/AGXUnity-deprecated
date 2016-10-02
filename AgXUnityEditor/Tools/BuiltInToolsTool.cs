@@ -55,6 +55,7 @@ namespace AgXUnityEditor.Tools
     private void HandleSceneViewSelectTool( Event current, SceneView sceneView )
     {
       bool isKeyS = SelectGameObjectKey.IsDown &&
+                    EditorWindow.mouseOverWindow == sceneView &&
                     !current.control &&
                     !current.shift &&
                     !current.alt;
@@ -82,7 +83,7 @@ namespace AgXUnityEditor.Tools
 
       if ( activatePickHandler ) {
         Predicate<Event> removePredicate = null;
-        PickHandlerTool.DofTypes dofTypes = PickHandlerTool.DofTypes.Translation;
+        AgXUnity.PickHandler.DofTypes dofTypes = AgXUnity.PickHandler.DofTypes.Translation;
 
         // Left mouse button = ball joint.
         if ( current.button == 0 ) {
@@ -91,7 +92,7 @@ namespace AgXUnityEditor.Tools
 
           removePredicate = ( e ) => { return Manager.HijackLeftMouseClick(); };
           // Ball joint.
-          dofTypes = PickHandlerTool.DofTypes.Translation;
+          dofTypes = AgXUnity.PickHandler.DofTypes.Translation;
         }
         // Middle/scroll mouse button = lock joint.
         else if ( current.button == 2 ) {
@@ -99,7 +100,7 @@ namespace AgXUnityEditor.Tools
 
           removePredicate = ( e ) => { return e.type == EventType.MouseUp && e.button == 2; };
           // Lock joint.
-          dofTypes = PickHandlerTool.DofTypes.Translation | PickHandlerTool.DofTypes.Rotation;
+          dofTypes = AgXUnity.PickHandler.DofTypes.Translation | AgXUnity.PickHandler.DofTypes.Rotation;
         }
         // Right mouse button = angular lock?
         else {
@@ -109,7 +110,7 @@ namespace AgXUnityEditor.Tools
 
           removePredicate = ( e ) => { return e.type == EventType.MouseUp && e.button == 1; };
           // Angular lock.
-          dofTypes = PickHandlerTool.DofTypes.Rotation;
+          dofTypes = AgXUnity.PickHandler.DofTypes.Rotation;
         }
 
         PickHandler = new PickHandlerTool( dofTypes, removePredicate );

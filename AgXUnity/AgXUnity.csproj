@@ -80,6 +80,7 @@
     <Compile Include="ElementaryConstraint.cs" />
     <Compile Include="ElementaryConstraintRowData.cs" />
     <Compile Include="Frame.cs" />
+    <Compile Include="PickHandler.cs" />
     <Compile Include="Rendering\SegmentSpawner.cs" />
     <Compile Include="Utils\ConstraintUtils.cs" />
     <Compile Include="Utils\DisposableCallback.cs" />

@@ -294,36 +294,8 @@ namespace AgXUnityEditor
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
-      if ( current.isMouse ) {
-        //GameObject go1 = HandleUtility.PickGameObject( current.mousePosition, false );
-        //GameObject go2 = HandleUtility.PickGameObject( current.mousePosition, false, new GameObject[] { go1 } );
-        //if ( go1 != null && go2 != null && RouteToShape( go1 ) != null && RouteToShape( go2 ) != null ) {
-        //  AgXUnity.Rendering.ShapeDebugRenderData sdrd1 = RouteToShape( go1 ).GetComponent<AgXUnity.Rendering.ShapeDebugRenderData>();
-        //  AgXUnity.Rendering.ShapeDebugRenderData sdrd2 = RouteToShape( go2 ).GetComponent<AgXUnity.Rendering.ShapeDebugRenderData>();
-        //  Ray worldRay = HandleUtility.GUIPointToWorldRay( Event.current.mousePosition );
-
-        //  float closest1 = float.MaxValue;
-        //  foreach ( var f in sdrd1.MeshFilters ) {
-        //    Ray ray = new Ray( f.transform.InverseTransformPoint( worldRay.origin ), f.transform.InverseTransformVector( worldRay.direction ).normalized );
-        //    float dist;
-        //    if ( f.sharedMesh.bounds.IntersectRay( ray, out dist ) && dist < closest1 )
-        //      closest1 = dist;
-        //  }
-
-        //  float closest2 = float.MaxValue;
-        //  foreach ( var f in sdrd2.MeshFilters ) {
-        //    Ray ray = new Ray( f.transform.InverseTransformPoint( worldRay.origin ), f.transform.InverseTransformVector( worldRay.direction ).normalized );
-        //    float dist;
-        //    if ( f.sharedMesh.bounds.IntersectRay( ray, out dist ) && dist < closest2 )
-        //      closest2 = dist;
-        //  }
-
-        //  Debug.Log( sdrd1.GetComponent<AgXUnity.Collide.Shape>().name + ": " + closest1 );
-        //  Debug.Log( sdrd2.GetComponent<AgXUnity.Collide.Shape>().name + ": " + closest2 );
-        //}
-
+      if ( current.isMouse )
         MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition, false ) ) as GameObject;
-      }
 
       // Early exit if we haven't any active visual primitives.
       if ( m_visualPrimitives.Count == 0 )

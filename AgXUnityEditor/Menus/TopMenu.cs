@@ -247,6 +247,15 @@ namespace AgXUnityEditor
         AgXUnity.WindAndWaterManager.ResetDestroyedState();
       return Selection.activeGameObject = AgXUnity.WindAndWaterManager.Instance.gameObject;
     }
+
+    [MenuItem( "AgXUnity/Pick Handler (Game View)" )]
+    public static GameObject PickHandler()
+    {
+      if ( AgXUnity.PickHandler.Instance == null )
+        AgXUnity.PickHandler.ResetDestroyedState();
+
+      return Selection.activeGameObject = AgXUnity.PickHandler.Instance.gameObject;
+    }
     #endregion
 
     #region Utils
