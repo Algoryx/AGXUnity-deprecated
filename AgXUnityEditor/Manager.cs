@@ -290,12 +290,25 @@ namespace AgXUnityEditor
     private static void UpdateMouseOverPrimitives( Event current )
     {
       // Can't perform picking during repaint event.
-      if ( current == null || !(current.isMouse || current.isKey) )
+      if ( current == null || !( current.isMouse || current.isKey ) )
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
-      if ( current.isMouse )
-        MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition, false ) ) as GameObject;
+      // NOTE: We're putting our "visual primitives" in the ignore list.
+      if ( current.isMouse ) {
+        List<GameObject> ignoreList = new List<GameObject>();
+        foreach ( var primitive in m_visualPrimitives ) {
+          if ( !primitive.Visible )
+            continue;
+
+          MeshFilter[] primitiveFilters = primitive.Node.GetComponentsInChildren<MeshFilter>();
+          ignoreList.AddRange( primitiveFilters.Select( pf => { return pf.gameObject; } ) );
+        }
+
+        MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition,
+                                                                     false,
+                                                                     ignoreList.ToArray() ) ) as GameObject;
+      }
 
       // Early exit if we haven't any active visual primitives.
       if ( m_visualPrimitives.Count == 0 )
