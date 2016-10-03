@@ -91,6 +91,16 @@ namespace AgXUnity.Rendering
         Instance.SynchronizeShape( shape );
     }
 
+    /// <summary>
+    /// Visualizes shapes and visuals in bodies with different colors (wire frame gizmos).
+    /// </summary>
+    public bool VisualizeBodies = false;
+
+    /// <summary>
+    /// Highlights the shape or visual the mouse is currently hovering in the scene view.
+    /// </summary>
+    public bool HighlightMouseOverObject = false;
+
     protected override bool Initialize()
     {
       gameObject.isStatic  = true;

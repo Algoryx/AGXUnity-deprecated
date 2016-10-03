@@ -14,6 +14,18 @@ namespace AgXUnity.Rendering
   public class ShapeDebugRenderData : DebugRenderData
   {
     /// <summary>
+    /// Find the debug rendering mesh filters for a given shape (if debug rendered).
+    /// </summary>
+    public static MeshFilter[] GetMeshFilters( Shape shape )
+    {
+      ShapeDebugRenderData debugRenderData = null;
+      if ( shape == null || ( debugRenderData = shape.GetComponent<ShapeDebugRenderData>() ) == null )
+        return new MeshFilter[] { };
+
+      return debugRenderData.MeshFilters;
+    }
+
+    /// <summary>
     /// Type name is shape type - prefabs in Resources folder has been
     /// named to fit these names.
     /// </summary>
@@ -103,31 +115,6 @@ namespace AgXUnity.Rendering
 
         sphereLower.localScale    = 2.0f * capsule.Radius * Vector3.one;
         sphereLower.localPosition = 0.5f * capsule.Height * Vector3.down;
-      }
-    }
-
-    public static Color FindSelectedShapeColor( Shape shape )
-    {
-      GameObject topSelected = DebugRenderManager.EditorActiveGameObject ?? shape.gameObject;
-      if ( topSelected.GetComponentInChildren<RigidBody>() != null )
-        return new Color( 0.05f, 0.05f, 0.45f, 0.25f );
-      return new Color( 0.25f, 0.05f, 0.05f, 0.25f );
-    }
-
-    public void OnDrawGizmosSelected( Shape shape )
-    {
-      if ( Node == null )
-        return;
-
-      // Assembly tool (AgXUnityEditor.Tools.AssemblyTool) has its own gizmos rendering.
-      if ( DebugRenderManager.EditorActiveGameObject != null && DebugRenderManager.EditorActiveGameObject.GetComponent<Assembly>() != null )
-        return;
-      
-      Gizmos.color = FindSelectedShapeColor( shape );
-      MeshFilter[] filters = Node.GetComponentsInChildren<MeshFilter>();
-      foreach ( var filter in filters ) {
-        Gizmos.matrix = filter.transform.localToWorldMatrix;
-        Gizmos.DrawWireMesh( filter.sharedMesh );
       }
     }
 

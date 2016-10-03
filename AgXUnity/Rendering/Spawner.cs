@@ -2,7 +2,7 @@
 
 namespace AgXUnity.Rendering
 {
-  public static class Spawner
+  public static partial class Spawner
   {
     public enum Primitive
     {

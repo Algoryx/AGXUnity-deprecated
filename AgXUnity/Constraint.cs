@@ -192,6 +192,17 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Draw gizmos flag - paired with DrawGizmosEnable.
+    /// </summary>
+    [SerializeField]
+    private bool m_drawGizmosEnable = true;
+
+    /// <summary>
+    /// Enable/disable gizmos drawing of this constraint. Enabled by default.
+    /// </summary>
+    public bool DrawGizmosEnable { get { return m_drawGizmosEnable; } set { m_drawGizmosEnable = value; } }
+
+    /// <summary>
     /// Creates native instance and adds it to the simulation if this constraint
     /// is properly configured.
     /// </summary>
@@ -284,22 +295,33 @@ namespace AgXUnity
       base.OnDestroy();
     }
 
-    public static float GetGizmoSize( Vector3 position )
+    protected void FixedUpdate()
     {
-      Camera current = Camera.current;
-      position = Gizmos.matrix.MultiplyPoint( position );
+      // TODO: Implement event pre/post etc in Simulation. This update has to be before stepForward.
 
-      if ( current ) {
-        Transform transform = current.transform;
-        Vector3 position2 = transform.position;
-        float z = Vector3.Dot( position - position2, transform.TransformDirection( new Vector3( 0f, 0f, 1f ) ) );
-        Vector3 a = current.WorldToScreenPoint( position2 + transform.TransformDirection( new Vector3( 0f, 0f, z ) ) );
-        Vector3 b = current.WorldToScreenPoint( position2 + transform.TransformDirection( new Vector3( 1f, 0f, z ) ) );
-        float magnitude = ( a - b ).magnitude;
-        return 80f / Mathf.Max( magnitude, 0.0001f );
+      if ( Native == null )
+        return;
+
+      RigidBody rb1 = AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>();
+      if ( rb1 == null )
+        return;
+
+      RigidBody rb2 = AttachmentPair.ConnectedObject != null ? AttachmentPair.ConnectedObject.GetComponentInParent<RigidBody>() : null;
+
+      agx.Frame f1 = Native.getAttachment( 0 ).getFrame();
+      agx.Frame f2 = Native.getAttachment( 1 ).getFrame();
+
+      f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
+      f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
+
+      if ( rb2 != null ) {
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
       }
-
-      return 20f;
+      else {
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
+      }
     }
 
     private static Mesh m_gizmosMesh = null;
@@ -328,7 +350,10 @@ namespace AgXUnity
     private static void DrawGizmos( Color color, ConstraintAttachmentPair attachmentPair )
     {
       Gizmos.color = color;
-      Gizmos.DrawMesh( GetOrCreateGizmosMesh(), attachmentPair.ReferenceFrame.Position, attachmentPair.ReferenceFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ), 0.3f * GetGizmoSize( attachmentPair.ReferenceFrame.Position ) * Vector3.one );
+      Gizmos.DrawMesh( GetOrCreateGizmosMesh(),
+                       attachmentPair.ReferenceFrame.Position,
+                       attachmentPair.ReferenceFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ),
+                       0.3f * Rendering.Spawner.Utils.FindConstantScreenSizeScale( attachmentPair.ReferenceFrame.Position, Camera.current ) * Vector3.one );
 
       if ( !attachmentPair.Synchronized ) {
         Gizmos.color = Color.red;
@@ -339,11 +364,17 @@ namespace AgXUnity
 
     private void OnDrawGizmos()
     {
+      if ( !DrawGizmosEnable )
+        return;
+
       DrawGizmos( Color.blue, AttachmentPair );
     }
 
     private void OnDrawGizmosSelected()
     {
+      if ( !DrawGizmosEnable )
+        return;
+
       DrawGizmos( Color.green, AttachmentPair );
     }
   }
