@@ -197,8 +197,16 @@ namespace AgXUnity
     private MouseButtonState m_mouseButtonState = new MouseButtonState();
     private float m_distanceFromCamera = -1f;
 
+    protected override void OnEnable()
+    {
+      Simulation.Instance.PreCallbacks += PreStepForwardCallback;
+    }
+
     protected override void OnDisable()
     {
+      if ( Simulation.HasInstance )
+        Simulation.Instance.PreCallbacks -= PreStepForwardCallback;
+
       if ( ConstraintGameObject != null )
         Destroy( ConstraintGameObject );
       ConstraintGameObject = null;
@@ -210,7 +218,7 @@ namespace AgXUnity
       m_mouseButtonState.Update( Event.current, Input.GetKey( TriggerKey ) );
     }
 
-    private void FixedUpdate()
+    private void PreStepForwardCallback()
     {
       Camera camera = Camera.main;
       if ( camera == null )

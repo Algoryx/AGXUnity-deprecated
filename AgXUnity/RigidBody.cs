@@ -246,20 +246,24 @@ namespace AgXUnity
 
       UpdateMassProperties();
 
+      Simulation.Instance.PostSynchronizeTransforms += PostSynchronizeTransformsCallback;
+
       return base.Initialize();
     }
 
     protected override void OnDestroy()
     {
-      if ( GetSimulation() != null )
+      if ( GetSimulation() != null ) {
+        Simulation.Instance.PostSynchronizeTransforms -= PostSynchronizeTransformsCallback;
         GetSimulation().remove( m_rb );
+      }
 
       m_rb = null;
 
       base.OnDestroy();
     }
 
-    protected void LateUpdate()
+    private void PostSynchronizeTransformsCallback()
     {
       SyncUnityTransform();
       SyncProperties();
@@ -296,6 +300,7 @@ namespace AgXUnity
 
     private void SyncProperties()
     {
+      // TODO: If "get" has native we can return the current velocity? Still possible to set.
       if ( m_rb == null )
         return;
 

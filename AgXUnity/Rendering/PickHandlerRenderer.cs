@@ -32,6 +32,7 @@ namespace AgXUnity.Rendering
                                                   sphereRadius,
                                                   true );
 
+      // TODO: Handle when reference frame position == connected frame position.
       Rendering.Spawner.Utils.SetCylinderTransform( ConnectingCylinder,
                                                     constraint.AttachmentPair.ReferenceFrame.Position,
                                                     constraint.AttachmentPair.ConnectedFrame.Position,

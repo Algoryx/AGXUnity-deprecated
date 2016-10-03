@@ -1,4 +1,5 @@
-﻿using AgXUnity.Utils;
+﻿using System.Linq;
+using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity
@@ -14,7 +15,6 @@ namespace AgXUnity
     /// Native instance.
     /// </summary>
     private agxSDK.Simulation m_simulation = null;
-
     private double m_stepForwardTime = 0.0;
 
     /// <summary>
@@ -41,7 +41,7 @@ namespace AgXUnity
     /// Time step size is the default callback frequency in Unity.
     /// </summary>
     [SerializeField]
-    float m_timeStep = 1.0f / 50.0f;
+    private float m_timeStep = 1.0f / 50.0f;
 
     /// <summary>
     /// Get or set time step size. Note that the time step has to
@@ -56,6 +56,73 @@ namespace AgXUnity
         if ( m_simulation != null )
           m_simulation.setTimeStep( m_timeStep );
       }
+    }
+
+    /// <summary>
+    /// Get the native instance, if not deleted.
+    /// </summary>
+    public agxSDK.Simulation Native { get { return GetOrCreateSimulation(); } }
+
+    public delegate void StepCallbackFunction();
+
+    public StepCallbackFunction PreCallbacks;
+    public StepCallbackFunction PreSynchronizeTransforms;
+    public StepCallbackFunction PostSynchronizeTransforms;
+    public StepCallbackFunction PostCallbacks;
+
+    protected override bool Initialize()
+    {
+      GetOrCreateSimulation();
+
+      return base.Initialize();
+    }
+
+    protected void FixedUpdate()
+    {
+      if ( m_simulation != null ) {
+        PreCallbacks?.Invoke();
+        PreSynchronizeTransforms?.Invoke();
+
+        agx.Timer t = new agx.Timer( true );
+        
+        m_simulation.stepForward();
+
+        t.stop();
+        m_stepForwardTime = t.getTime();
+
+        PostSynchronizeTransforms?.Invoke();
+        PostCallbacks?.Invoke();
+      }
+    }
+
+    protected void OnGUI()
+    {
+      GUILayout.Label( "Step forward time: " + m_stepForwardTime + " ms." );
+      GUILayout.Label( "Step forward FPS:  " + (int)( 1000.0 / m_stepForwardTime + 0.5 ) );
+      GUILayout.Label( "Update frequencey: " + (int)( 1.0f / Time.fixedDeltaTime ) );
+    }
+
+    protected override void OnApplicationQuit()
+    {
+      base.OnApplicationQuit();
+      if ( m_simulation != null )
+        m_simulation.cleanup();
+    }
+
+    protected override void OnDestroy()
+    {
+      base.OnDestroy();
+      if ( m_simulation != null )
+        m_simulation.cleanup();
+      m_simulation = null;
+    }
+
+    private agxSDK.Simulation GetOrCreateSimulation()
+    {
+      if ( m_simulation == null )
+        m_simulation = new agxSDK.Simulation();
+
+      return m_simulation;
     }
 
     [InvokableInInspector( "Open in AgX native viewer" )]
@@ -116,60 +183,6 @@ end";
       System.IO.File.WriteAllText( path + tmpLuaFilename, luaFileContent );
 
       System.Diagnostics.Process.Start( "luaagx.exe", path + tmpLuaFilename+ " -p --renderDebug 1" );
-    }
-
-    /// <summary>
-    /// Get the native instance, if not deleted.
-    /// </summary>
-    public agxSDK.Simulation Native { get { return GetOrCreateSimulation(); } }
-
-    protected override bool Initialize()
-    {
-      GetOrCreateSimulation();
-
-      return base.Initialize();
-    }
-
-    protected void FixedUpdate()
-    {
-      if ( m_simulation != null ) {
-        agx.Timer t = new agx.Timer( true );
-        
-        m_simulation.stepForward();
-
-        t.stop();
-        m_stepForwardTime = t.getTime();
-      }
-    }
-
-    protected void OnGUI()
-    {
-      GUILayout.Label( "Step forward time: " + m_stepForwardTime + " ms." );
-      GUILayout.Label( "Step forward FPS:  " + (int)( 1000.0 / m_stepForwardTime + 0.5 ) );
-      GUILayout.Label( "Update frequencey: " + (int)( 1.0f / Time.fixedDeltaTime ) );
-    }
-
-    protected override void OnApplicationQuit()
-    {
-      base.OnApplicationQuit();
-      if ( m_simulation != null )
-        m_simulation.cleanup();
-    }
-
-    protected override void OnDestroy()
-    {
-      base.OnDestroy();
-      if ( m_simulation != null )
-        m_simulation.cleanup();
-      m_simulation = null;
-    }
-
-    private agxSDK.Simulation GetOrCreateSimulation()
-    {
-      if ( m_simulation == null )
-        m_simulation = new agxSDK.Simulation();
-
-      return m_simulation;
     }
   }
 }
