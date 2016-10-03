@@ -76,9 +76,9 @@ namespace AgXUnityEditor.Tools
 
       Constraint.DrawGizmosEnable = false;
 
-      VisualSphereReference.Color = Color.HSVToRGB( 0.02f, 0.78f, 0.95f );
-      VisualSphereConnected.Color = Color.HSVToRGB( 0.02f, 0.78f, 0.95f );
-      VisualCylinder.Color        = Color.HSVToRGB( 0.02f, 0.78f, 0.95f );
+      VisualSphereReference.Color = PickHandler.ReferenceSphereColor;
+      VisualSphereConnected.Color = PickHandler.ConnectedSphereColor;
+      VisualCylinder.Color        = PickHandler.ConnectingCylinderColor;
 
       VisualSphereReference.Pickable = false;
       VisualSphereConnected.Pickable = false;

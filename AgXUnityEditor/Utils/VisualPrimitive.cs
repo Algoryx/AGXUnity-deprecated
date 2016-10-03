@@ -121,20 +121,6 @@ namespace AgXUnityEditor.Utils
       m_shaderName = shader;
     }
 
-    protected float ConditionalConstantScreenSize( bool constantScreenSize, float size, Vector3 position )
-    {
-      return constantScreenSize ?
-               size * HandleUtility.GetHandleSize( position ) :
-               size;
-    }
-
-    protected Vector3 ConditionalConstantScreenSize( bool constantScreenSize, Vector3 size, Vector3 position )
-    {
-      return constantScreenSize ?
-               Vector3.Scale( size, HandleUtility.GetHandleSize( position ) * Vector3.one ) :
-               size;
-    }
-
     private GameObject CreateNode()
     {
       string name = ( GetType().Namespace != null ? GetType().Namespace : "" ) + "." + GetType().Name;
@@ -143,12 +129,7 @@ namespace AgXUnityEditor.Utils
 
     private void UpdateColor()
     {
-      if ( Node == null )
-        return;
-
-      var renderers = Node.GetComponentsInChildren<MeshRenderer>();
-      foreach ( var renderer in renderers )
-        renderer.sharedMaterial.color = m_mouseOverNode ? MouseOverColor : Color;
+      AgXUnity.Rendering.Spawner.Utils.SetColor( Node, m_mouseOverNode ? MouseOverColor : Color );
     }
   }
 
@@ -156,20 +137,7 @@ namespace AgXUnityEditor.Utils
   {
     public void SetTransform( Vector3 start, Vector3 end, float radius, bool constantScreenSize = true )
     {
-      if ( Node == null )
-        return;
-
-      float r       = ConditionalConstantScreenSize( constantScreenSize, radius, 0.5f * ( start + end ) );
-      Vector3 dir   = end - start;
-      float height  = dir.magnitude;
-      dir          /= height;
-
-      if ( height < 1.0E-4f )
-        dir = Vector3.up;
-
-      Node.transform.localScale = new Vector3( 2.0f * r, 0.5f * height, 2.0f * r );
-      Node.transform.rotation   = Quaternion.FromToRotation( Vector3.up, dir );
-      Node.transform.position   = 0.5f * ( start + end );
+      AgXUnity.Rendering.Spawner.Utils.SetCylinderTransform( Node, start, end, radius, constantScreenSize );
     }
 
     public VisualPrimitiveCylinder( string shader = "Unlit/Color" )
@@ -182,12 +150,7 @@ namespace AgXUnityEditor.Utils
   {
     public void SetTransform( Vector3 position, Quaternion rotation, float radius, bool constantScreenSize = true, float minRadius = 0f, float maxRadius = float.MaxValue )
     {
-      if ( Node == null )
-        return;
-
-      Node.transform.localScale = 2.0f * Mathf.Clamp( ConditionalConstantScreenSize( constantScreenSize, radius, position ), minRadius, maxRadius ) * Vector3.one;
-      Node.transform.rotation   = rotation;
-      Node.transform.position   = position;
+      AgXUnity.Rendering.Spawner.Utils.SetSphereTransform( Node, position, rotation, radius, constantScreenSize, minRadius, maxRadius );
     }
 
     public VisualPrimitiveSphere( string shader = "Unlit/Color" )
@@ -232,10 +195,12 @@ namespace AgXUnityEditor.Utils
   {
     public void SetTransform( Vector3 position, Quaternion rotation, Vector3 scale, bool constantScreenSize = true )
     {
+      // TODO: Mouse over isn't working. It only highlights cylinder or top?
+
       if ( Node == null )
         return;
 
-      Node.transform.localScale = ConditionalConstantScreenSize( constantScreenSize, scale, position );
+      Node.transform.localScale = AgXUnity.Rendering.Spawner.Utils.ConditionalConstantScreenSize( constantScreenSize, scale, position );
       Node.transform.position   = position;
       Node.transform.rotation   = rotation;
     }

@@ -7,6 +7,15 @@ namespace AgXUnity
 {
   public class PickHandler : UniqueGameObject<PickHandler>
   {
+    [HideInInspector]
+    public static Color ReferenceSphereColor { get { return Color.HSVToRGB( 0.02f, 0.78f, 0.95f ); } }
+
+    [HideInInspector]
+    public static Color ConnectedSphereColor { get { return Color.HSVToRGB( 0.02f, 0.78f, 0.95f ); } }
+
+    [HideInInspector]
+    public static Color ConnectingCylinderColor { get { return Color.HSVToRGB( 0.02f, 0.78f, 0.95f ); } }
+
     public static GameObject TryCreateConstraint( Ray ray, GameObject gameObject, DofTypes constrainedDofs, string gameObjectName )
     {
       if ( gameObject == null || gameObject.GetComponentInParent<RigidBody>() == null )
@@ -212,8 +221,11 @@ namespace AgXUnity
         List<BroadPhaseResult> results = FindRayBoundingVolumeOverlaps( ray );
         if ( results.Count > 0 ) {
           ConstraintGameObject = TryCreateConstraint( ray, results[ 0 ].GameObject, MouseButtonToDofTypes( m_mouseButtonState.ButtonDown ), "PickHandlerConstraint" );
-          if ( ConstraintGameObject != null )
+          if ( ConstraintGameObject != null ) {
+            ConstraintGameObject.AddComponent<Rendering.PickHandlerRenderer>();
+            Constraint.DrawGizmosEnable = false;
             m_distanceFromCamera = FindDistanceFromCamera( camera, Constraint.AttachmentPair.ReferenceFrame.Position );
+          }
         }
 
         m_mouseButtonState.Use( m_mouseButtonState.ButtonDown, buttonUp =>
@@ -230,7 +242,10 @@ namespace AgXUnity
         Constraint.AttachmentPair.ConnectedFrame.Position = camera.ScreenToWorldPoint( new Vector3( Input.mousePosition.x,
                                                                                                     Input.mousePosition.y,
                                                                                                     m_distanceFromCamera ) );
+
         SetComplianceDamping( Constraint );
+
+        ConstraintGameObject.GetComponent<Rendering.PickHandlerRenderer>().ThisMethodIsntAllowedToBeNamedUpdateByUnity( Constraint );
       }
     }
 
