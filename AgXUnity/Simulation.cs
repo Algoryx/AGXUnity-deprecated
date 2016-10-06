@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using AgXUnity.Utils;
+﻿using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity
@@ -63,12 +62,12 @@ namespace AgXUnity
     /// </summary>
     public agxSDK.Simulation Native { get { return GetOrCreateSimulation(); } }
 
-    public delegate void StepCallbackFunction();
+    private StepCallbackFunctions m_stepCallbackFunctions = new StepCallbackFunctions();
 
-    public StepCallbackFunction PreCallbacks;
-    public StepCallbackFunction PreSynchronizeTransforms;
-    public StepCallbackFunction PostSynchronizeTransforms;
-    public StepCallbackFunction PostCallbacks;
+    /// <summary>
+    /// Step callback interface. Valid use from "initialize" to "Destroy".
+    /// </summary>
+    public StepCallbackFunctions StepCallbacks { get { return m_stepCallbackFunctions; } }
 
     protected override bool Initialize()
     {
@@ -80,8 +79,8 @@ namespace AgXUnity
     protected void FixedUpdate()
     {
       if ( m_simulation != null ) {
-        PreCallbacks?.Invoke();
-        PreSynchronizeTransforms?.Invoke();
+        StepCallbacks.PreStepForward?.Invoke();
+        StepCallbacks.PreSynchronizeTransforms?.Invoke();
 
         agx.Timer t = new agx.Timer( true );
         
@@ -90,8 +89,8 @@ namespace AgXUnity
         t.stop();
         m_stepForwardTime = t.getTime();
 
-        PostSynchronizeTransforms?.Invoke();
-        PostCallbacks?.Invoke();
+        StepCallbacks.PostSynchronizeTransforms?.Invoke();
+        StepCallbacks.PostStepForward?.Invoke();
       }
     }
 

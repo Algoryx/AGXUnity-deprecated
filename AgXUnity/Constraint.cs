@@ -279,7 +279,7 @@ namespace AgXUnity
 
         bool valid = added && Native.getValid();
         if ( valid )
-          Simulation.Instance.PreSynchronizeTransforms += PreStepForwardUpdate;
+          Simulation.Instance.StepCallbacks.PreSynchronizeTransforms += OnPreStepForwardUpdate;
 
         return valid;
       }
@@ -292,7 +292,7 @@ namespace AgXUnity
     protected override void OnDestroy()
     {
       if ( GetSimulation() != null ) {
-        Simulation.Instance.PreSynchronizeTransforms -= PreStepForwardUpdate;
+        Simulation.Instance.StepCallbacks.PreSynchronizeTransforms -= OnPreStepForwardUpdate;
         GetSimulation().remove( Native );
       }
 
@@ -301,7 +301,7 @@ namespace AgXUnity
       base.OnDestroy();
     }
 
-    private void PreStepForwardUpdate()
+    private void OnPreStepForwardUpdate()
     {
       if ( Native == null )
         return;

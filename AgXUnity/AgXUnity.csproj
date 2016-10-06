@@ -84,6 +84,7 @@
     <Compile Include="Rendering\PickHandlerRenderer.cs" />
     <Compile Include="Rendering\SegmentSpawner.cs" />
     <Compile Include="Rendering\SpawnerUtils.cs" />
+    <Compile Include="StepCallbackFunctions.cs" />
     <Compile Include="Utils\ConstraintUtils.cs" />
     <Compile Include="Utils\DisposableCallback.cs" />
     <Compile Include="Utils\InvokeWrapper.cs" />

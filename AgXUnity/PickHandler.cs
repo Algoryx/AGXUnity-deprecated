@@ -199,13 +199,13 @@ namespace AgXUnity
 
     protected override void OnEnable()
     {
-      Simulation.Instance.PreCallbacks += PreStepForwardCallback;
+      Simulation.Instance.StepCallbacks.PreStepForward += OnPreStepForwardCallback;
     }
 
     protected override void OnDisable()
     {
       if ( Simulation.HasInstance )
-        Simulation.Instance.PreCallbacks -= PreStepForwardCallback;
+        Simulation.Instance.StepCallbacks.PreStepForward -= OnPreStepForwardCallback;
 
       if ( ConstraintGameObject != null )
         Destroy( ConstraintGameObject );
@@ -218,7 +218,7 @@ namespace AgXUnity
       m_mouseButtonState.Update( Event.current, Input.GetKey( TriggerKey ) );
     }
 
-    private void PreStepForwardCallback()
+    private void OnPreStepForwardCallback()
     {
       Camera camera = Camera.main;
       if ( camera == null )

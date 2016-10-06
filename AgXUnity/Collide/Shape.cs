@@ -189,7 +189,7 @@ namespace AgXUnity.Collide
       //}
 
       // TODO: Add pre-synch to be able to move geometries during play?
-      Simulation.Instance.PostSynchronizeTransforms += PostSynchronizeTransformsCallback;
+      Simulation.Instance.StepCallbacks.PostSynchronizeTransforms += OnPostSynchronizeTransformsCallback;
 
       return base.Initialize();
     }
@@ -203,7 +203,7 @@ namespace AgXUnity.Collide
         GetSimulation().remove( m_geometry );
 
       if ( Simulation.Instance != null )
-        Simulation.Instance.PostSynchronizeTransforms -= PostSynchronizeTransformsCallback;
+        Simulation.Instance.StepCallbacks.PostSynchronizeTransforms -= OnPostSynchronizeTransformsCallback;
 
       if ( m_shape != null )
         m_shape.Dispose();
@@ -220,13 +220,13 @@ namespace AgXUnity.Collide
     /// Late update call from Unity where stepForward can
     /// be assumed to be done.
     /// </summary>
-    private void PostSynchronizeTransformsCallback()
+    private void OnPostSynchronizeTransformsCallback()
     {
       SyncUnityTransform();
 
       // If we have a body the debug rendering synchronization is made from that body.
       if ( m_geometry != null && m_geometry.getRigidBody() == null )
-        Rendering.DebugRenderManager.OnLateUpdate( this );
+        Rendering.DebugRenderManager.OnPostSynchronizeTransforms( this );
     }
 
     /// <summary>

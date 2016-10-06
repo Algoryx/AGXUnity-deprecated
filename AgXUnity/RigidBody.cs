@@ -246,7 +246,7 @@ namespace AgXUnity
 
       UpdateMassProperties();
 
-      Simulation.Instance.PostSynchronizeTransforms += PostSynchronizeTransformsCallback;
+      Simulation.Instance.StepCallbacks.PostSynchronizeTransforms += OnPostSynchronizeTransformsCallback;
 
       return base.Initialize();
     }
@@ -254,7 +254,7 @@ namespace AgXUnity
     protected override void OnDestroy()
     {
       if ( GetSimulation() != null ) {
-        Simulation.Instance.PostSynchronizeTransforms -= PostSynchronizeTransformsCallback;
+        Simulation.Instance.StepCallbacks.PostSynchronizeTransforms -= OnPostSynchronizeTransformsCallback;
         GetSimulation().remove( m_rb );
       }
 
@@ -263,12 +263,12 @@ namespace AgXUnity
       base.OnDestroy();
     }
 
-    private void PostSynchronizeTransformsCallback()
+    private void OnPostSynchronizeTransformsCallback()
     {
       SyncUnityTransform();
       SyncProperties();
 
-      Rendering.DebugRenderManager.OnLateUpdate( this );
+      Rendering.DebugRenderManager.OnPostSynchronizeTransforms( this );
     }
     #endregion
 

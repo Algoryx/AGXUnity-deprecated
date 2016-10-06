@@ -16,6 +16,12 @@ namespace AgXUnity.Rendering
 
     public float NumberOfSegmentsPerMeter = 2.0f;
 
+    public void OnPostStepForward( Wire wire )
+    {
+      if ( wire != null )
+        Render( wire );
+    }
+
     protected override bool Initialize()
     {
       InitializeRenderer( true );
@@ -32,16 +38,19 @@ namespace AgXUnity.Rendering
       base.OnDestroy();
     }
 
+    /// <summary>
+    /// Catching LateUpdate calls since ExecuteInEditMode attribute.
+    /// </summary>
     protected void LateUpdate()
     {
-      Wire wire = GetComponent<Wire>();
-      if ( wire == null )
+      // During play we're receiving callbacks from the wire
+      // to OnPostStepForward.
+      if ( Application.isPlaying )
         return;
 
-      if ( !Application.isPlaying && wire.Native == null )
+      Wire wire = GetComponent<Wire>();
+      if ( wire != null && wire.Native == null )
         RenderRoute( wire.Route, wire.Radius );
-      else
-        Render( wire );
     }
 
     private void RenderRoute( WireRoute route, float radius )

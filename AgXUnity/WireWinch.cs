@@ -107,7 +107,7 @@ namespace AgXUnity
       return true;
     }
 
-    public void OnLateUpdate()
+    public void OnPostStepForward( Wire wire )
     {
       if ( Native != null )
         m_pulledInLength = Convert.ToSingle( Native.getPulledInWireLength() );

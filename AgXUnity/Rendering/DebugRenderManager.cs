@@ -68,9 +68,9 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
-    /// Called on LateUpdate from shapes without rigid bodies.
+    /// Called after Simulation.StepForward from shapes without rigid bodies.
     /// </summary>
-    public static void OnLateUpdate( Collide.Shape shape )
+    public static void OnPostSynchronizeTransforms( Collide.Shape shape )
     {
       if ( !ActiveForSynchronize )
         return;
@@ -79,9 +79,9 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
-    /// Called on LateUpdate from bodies to synchronize debug rendering of the shapes.
+    /// Called after Simulation.StepForward from bodies to synchronize debug rendering of the shapes.
     /// </summary>
-    public static void OnLateUpdate( RigidBody rb )
+    public static void OnPostSynchronizeTransforms( RigidBody rb )
     {
       if ( !ActiveForSynchronize )
         return;
