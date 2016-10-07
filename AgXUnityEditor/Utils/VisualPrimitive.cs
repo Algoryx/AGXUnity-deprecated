@@ -195,8 +195,6 @@ namespace AgXUnityEditor.Utils
   {
     public void SetTransform( Vector3 position, Quaternion rotation, Vector3 scale, bool constantScreenSize = true )
     {
-      // TODO: Mouse over isn't working. It only highlights cylinder or top?
-
       if ( Node == null )
         return;
 

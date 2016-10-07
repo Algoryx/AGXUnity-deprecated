@@ -277,7 +277,11 @@ namespace AgXUnity
           CollisionGroupsManager.Instance.GetInitialized<CollisionGroupsManager>().SetEnablePair( groupName, groupName, false );
         }
 
-        return added && Native.getValid();
+        bool valid = added && Native.getValid();
+        if ( valid )
+          Simulation.Instance.StepCallbacks.PreSynchronizeTransforms += OnPreStepForwardUpdate;
+
+        return valid;
       }
       catch ( System.Exception e ) {
         Debug.LogException( e, gameObject );
@@ -287,18 +291,18 @@ namespace AgXUnity
 
     protected override void OnDestroy()
     {
-      if ( GetSimulation() != null )
+      if ( GetSimulation() != null ) {
+        Simulation.Instance.StepCallbacks.PreSynchronizeTransforms -= OnPreStepForwardUpdate;
         GetSimulation().remove( Native );
+      }
 
       Native = null;
 
       base.OnDestroy();
     }
 
-    protected void FixedUpdate()
+    private void OnPreStepForwardUpdate()
     {
-      // TODO: Implement event pre/post etc in Simulation. This update has to be before stepForward.
-
       if ( Native == null )
         return;
 

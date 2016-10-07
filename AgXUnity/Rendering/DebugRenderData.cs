@@ -40,7 +40,7 @@ namespace AgXUnity.Rendering
 
     /// <summary>
     /// Callback from the DebugRenderManager each editor "Update" or
-    /// in "LateUpdate" when the application is running.
+    /// after each simulation step when the application is running.
     /// 
     /// Synchronize the transform of the "Node" game object - create the "Node"
     /// instance if it's null.

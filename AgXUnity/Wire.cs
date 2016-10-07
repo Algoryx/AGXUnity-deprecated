@@ -237,6 +237,7 @@ namespace AgXUnity
         }
 
         GetSimulation().add( Native );
+        Simulation.Instance.StepCallbacks.PostStepForward += OnPostStepForward;
       }
       catch ( System.Exception e ) {
         Debug.LogException( e, this );
@@ -246,22 +247,27 @@ namespace AgXUnity
       return Native.initialized();
     }
 
-    protected void LateUpdate()
-    {
-      if ( BeginWinch != null )
-        BeginWinch.OnLateUpdate();
-      if ( EndWinch != null )
-        EndWinch.OnLateUpdate();
-    }
-
     protected override void OnDestroy()
     {
-      if ( GetSimulation() != null )
+      if ( GetSimulation() != null ) {
         GetSimulation().remove( Native );
+        Simulation.Instance.StepCallbacks.PostStepForward -= OnPostStepForward;
+      }
 
       Native = null;
 
       base.OnDestroy();
+    }
+
+    private void OnPostStepForward()
+    {
+      GetComponent<Rendering.WireRenderer>().OnPostStepForward( this );
+
+      if ( BeginWinch != null )
+        BeginWinch.OnPostStepForward( this );
+
+      if ( EndWinch != null )
+        EndWinch.OnPostStepForward( this );
     }
   }
 }
