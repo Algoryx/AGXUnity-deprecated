@@ -38,6 +38,28 @@ namespace AgXUnityEditor.Tools
 
     public Utils.KeyHandler PickHandlerKey { get { return GetKeyHandler( "PickHandler" ); } }
 
+    public bool SelectGameObjectTrigger( Event current, SceneView sceneView )
+    {
+      return SelectGameObjectKey.IsDown &&
+             EditorWindow.mouseOverWindow == sceneView &&
+            !current.control &&
+            !current.shift &&
+            !current.alt;
+    }
+
+    public bool PickHandlerTrigger( Event current, SceneView sceneView )
+    {
+      return EditorApplication.isPlaying &&
+             PickHandler == null &&
+             EditorWindow.mouseOverWindow == sceneView &&
+             PickHandlerKey.IsDown &&
+            !current.shift &&
+            !current.alt &&
+             current.type == EventType.MouseDown &&
+             current.button >= 0 &&
+             current.button <= 2;
+    }
+
     public BuiltInToolsTool()
     {
       AddKeyHandler( "SelectObject", new Utils.KeyHandler( KeyCode.S ) );
@@ -57,67 +79,62 @@ namespace AgXUnityEditor.Tools
       // Implement scene view selection here. Move code from Manager.
       // Add keys to select body, shape etc.
 
-      bool isKeyS = SelectGameObjectKey.IsDown &&
-                    EditorWindow.mouseOverWindow == sceneView &&
-                    !current.control &&
-                    !current.shift &&
-                    !current.alt;
-      if ( !isKeyS )
-        return;
-
-      SelectGameObjectTool selectTool = SelectGameObject;
-      if ( selectTool == null && current.type == EventType.KeyDown )
-        SelectGameObject = new SelectGameObjectTool() { OnSelect = go => { Selection.activeGameObject = go; } };
-      else if ( selectTool != null && !selectTool.SelectionWindowActive && current.type == EventType.KeyUp )
-        SelectGameObject = null;
+      // Routes each selected object to its correct selection.
+      // Assigning 'selectedObjects' to 'Selection.objects' doesn't
+      // trigger onSelectionChanged (desired behavior).
+      UnityEngine.Object[] selectedObjects = Selection.objects;
+      for ( int i = 0; i < selectedObjects.Length; ++i ) {
+        // TODO: Key combo to select bodies etc.
+        selectedObjects[ i ] = Manager.RouteObject( selectedObjects[ i ] );
+      }
+      Selection.objects = selectedObjects;
+      
+      if ( SelectGameObjectTrigger( current, sceneView ) ) {
+        SelectGameObjectTool selectTool = SelectGameObject;
+        if ( selectTool == null && current.type == EventType.KeyDown )
+          SelectGameObject = new SelectGameObjectTool() { OnSelect = go => { Selection.activeGameObject = go; } };
+        else if ( selectTool != null && !selectTool.SelectionWindowActive && current.type == EventType.KeyUp )
+          SelectGameObject = null;
+      }
     }
 
     private void HandlePickHandler( Event current, SceneView sceneView )
     {
-      bool activatePickHandler = EditorApplication.isPlaying &&
-                                 PickHandler == null &&
-                                 EditorWindow.mouseOverWindow == sceneView &&
-                                 PickHandlerKey.IsDown &&
-                                 !current.shift &&
-                                 !current.alt &&
-                                 current.type == EventType.MouseDown &&
-                                 current.button >= 0 &&
-                                 current.button <= 2;
+      if ( !PickHandlerTrigger( current, sceneView ) )
+        return;
 
-      if ( activatePickHandler ) {
-        Predicate<Event> removePredicate = null;
-        AgXUnity.PickHandler.DofTypes dofTypes = AgXUnity.PickHandler.DofTypes.Translation;
+      Predicate<Event> removePredicate = null;
+      AgXUnity.PickHandler.DofTypes dofTypes = AgXUnity.PickHandler.DofTypes.Translation;
 
-        // Left mouse button = ball joint.
-        if ( current.button == 0 ) {
-          // If left mouse - make sure the manager is taking over this mouse event.
-          Manager.HijackLeftMouseClick();
+      // Left mouse button = ball joint.
+      if ( current.button == 0 ) {
+        // If left mouse - make sure the manager is taking over this mouse event.
+        Manager.HijackLeftMouseClick();
 
-          removePredicate = ( e ) => { return Manager.HijackLeftMouseClick(); };
-          // Ball joint.
-          dofTypes = AgXUnity.PickHandler.DofTypes.Translation;
-        }
-        // Middle/scroll mouse button = lock joint.
-        else if ( current.button == 2 ) {
-          current.Use();
-
-          removePredicate = ( e ) => { return e.type == EventType.MouseUp && e.button == 2; };
-          // Lock joint.
-          dofTypes = AgXUnity.PickHandler.DofTypes.Translation | AgXUnity.PickHandler.DofTypes.Rotation;
-        }
-        // Right mouse button = angular lock?
-        else {
-          Debug.Assert( current.button == 1 );
-
-          current.Use();
-
-          removePredicate = ( e ) => { return e.type == EventType.MouseUp && e.button == 1; };
-          // Angular lock.
-          dofTypes = AgXUnity.PickHandler.DofTypes.Rotation;
-        }
-
-        PickHandler = new PickHandlerTool( dofTypes, removePredicate );
+        removePredicate = ( e ) => { return Manager.HijackLeftMouseClick(); };
+        // Ball joint.
+        dofTypes = AgXUnity.PickHandler.DofTypes.Translation;
       }
+      // Middle/scroll mouse button = lock joint.
+      else if ( current.button == 2 ) {
+        current.Use();
+
+        removePredicate = ( e ) => { return e.type == EventType.MouseUp && e.button == 2; };
+        // Lock joint.
+        dofTypes = AgXUnity.PickHandler.DofTypes.Translation | AgXUnity.PickHandler.DofTypes.Rotation;
+      }
+      // Right mouse button = angular lock?
+      else {
+        Debug.Assert( current.button == 1 );
+
+        current.Use();
+
+        removePredicate = ( e ) => { return e.type == EventType.MouseUp && e.button == 1; };
+        // Angular lock.
+        dofTypes = AgXUnity.PickHandler.DofTypes.Rotation;
+      }
+
+      PickHandler = new PickHandlerTool( dofTypes, removePredicate );
     }
   }
 }

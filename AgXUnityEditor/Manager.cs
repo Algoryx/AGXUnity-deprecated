@@ -145,6 +145,36 @@ namespace AgXUnityEditor
       m_requestSceneViewFocus = true;
     }
 
+    /// <summary>
+    /// Routes current object to the desired object when e.g., selected.
+    /// This method uses OnSelectionProxy to find the desired object.
+    /// </summary>
+    /// <returns>Input object if the object doesn't contains an OnSelectionProxy route.</returns>
+    public static UnityEngine.Object RouteObject( UnityEngine.Object obj )
+    {
+      GameObject gameObject = obj as GameObject;
+      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
+      return proxyTarget != null ? proxyTarget.Target : obj;
+    }
+
+    /// <summary>
+    /// Routes given object to the game object of an AgXUnity.Collide.Shape if
+    /// the connection is given using OnSelectionProxy.
+    /// </summary>
+    /// <returns>Shape game object if found - otherwise null.</returns>
+    public static GameObject RouteToShape( UnityEngine.Object obj )
+    {
+      GameObject gameObject = obj as GameObject;
+      OnSelectionProxy selectionProxy = null;
+      if ( gameObject == null || ( selectionProxy = gameObject.GetComponent<OnSelectionProxy>() ) == null )
+        return null;
+
+      if ( selectionProxy.Target != null && selectionProxy.Target.GetComponent<AgXUnity.Collide.Shape>() != null )
+        return selectionProxy.Target;
+
+      return null;
+    }
+
     public static void OnVisualPrimitiveNodeCreate( Utils.VisualPrimitive primitive )
     {
       if ( primitive == null || primitive.Node == null )
@@ -190,84 +220,12 @@ namespace AgXUnityEditor
       }
     }
 
-    private static UnityEngine.Object[] m_prevSelected = new UnityEngine.Object[] { };
-
-    /// <summary>
-    /// Routes current object to the desired object when e.g., selected.
-    /// This method uses OnSelectionProxy to find the desired object.
-    /// </summary>
-    /// <returns>Input object if the object doesn't contains an OnSelectionProxy route.</returns>
-    private static UnityEngine.Object RouteObject( UnityEngine.Object obj )
-    {
-      GameObject gameObject = obj as GameObject;
-      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
-      return proxyTarget != null ? proxyTarget.Target : obj;
-    }
-
-    /// <summary>
-    /// Routes given object to the game object of an AgXUnity.Collide.Shape if
-    /// the connection is given using OnSelectionProxy.
-    /// </summary>
-    /// <returns>Shape game object if found - otherwise null.</returns>
-    private static GameObject RouteToShape( UnityEngine.Object obj )
-    {
-      GameObject gameObject = obj as GameObject;
-      OnSelectionProxy selectionProxy = null;
-      if ( gameObject == null || ( selectionProxy = gameObject.GetComponent<OnSelectionProxy>() ) == null )
-        return null;
-
-      if ( selectionProxy.Target != null && selectionProxy.Target.GetComponent<AgXUnity.Collide.Shape>() != null )
-        return selectionProxy.Target;
-
-      return null;
-    }
-
-    //private static bool m_tmpDown = false;
     private static void OnSceneView( SceneView sceneView )
     {
       if ( m_requestSceneViewFocus ) {
         sceneView.Focus();
         m_requestSceneViewFocus = false;
       }
-
-      //if ( !m_tmpDown && Event.current.shift ) {
-      //  m_tmpDown = true;
-      //  GUIUtility.hotControl = 0;
-      //  Event.current.Use();
-
-      //  Debug.Log( "Down" );
-      //}
-      //else if ( m_tmpDown && !Event.current.shift ) {
-      //  m_tmpDown = false;
-      //  Event.current.Use();
-
-      //  Debug.Log( "Up" );
-      //}
-
-      //string keyCode = @"LeftShift";
-      //if ( m_tmpDown ) {
-      //  if ( Event.current.type == EventType.KeyUp ) {
-      //    Debug.Log( "Up" );
-      //    m_tmpDown = false;
-      //  }
-      //  else if ( Event.current.Equals( Event.KeyboardEvent( keyCode ) ) ) {
-      //    GUIUtility.hotControl = 0;
-      //    Event.current.Use();
-      //  }
-      //}
-      //else if ( Event.current.Equals( Event.KeyboardEvent( keyCode ) ) ) {
-      //  Debug.Log( "Down" );
-      //  m_tmpDown = true;
-      //  GUIUtility.hotControl = 0;
-      //  Event.current.Use();
-      //}
-
-      //if ( Event.current.Equals( Event.KeyboardEvent( "s" ) ) ) {
-      //  if ( Event.current.type == EventType.KeyDown )
-      //    Debug.Log( "DOWN" );
-      //  else
-      //    Debug.Log( Event.current.type );
-      //}
 
       Event current   = Event.current;
       LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
@@ -285,35 +243,6 @@ namespace AgXUnityEditor
         primitive.OnSceneView( sceneView );
 
       UpdateMouseOverPrimitives( current );
-
-      // TODO: This "auto selection" is scary - make it optional. Somehow.
-
-      // Routes each selected object to its correct selection.
-      // Assigning 'selectedObjects' to 'Selection.objects' doesn't
-      // trigger onSelectionChanged (desired behavior).
-      UnityEngine.Object[] selectedObjects = Selection.objects;
-      for ( int i = 0; i < selectedObjects.Length; ++i ) {
-        GameObject shapeGameObject = RouteToShape( selectedObjects[ i ] );
-
-        // Shape selected/clicked.
-        if ( false && shapeGameObject != null ) {
-          AgXUnity.RigidBody rb = shapeGameObject.GetComponentInParent<AgXUnity.RigidBody>();
-
-          // "Toggles" back and forth RigidBody <-> Shape if a rigid body is present
-          // as a parent to the selected shape.
-          // NOTE: If the number of selections has changed we're selecting the rigid body!
-          //       This since Unity doesn't provide much info while multi-selecting.
-          selectedObjects[ i ] = rb != null && ( selectedObjects.Length != m_prevSelected.Length || !m_prevSelected.Contains( rb.gameObject ) ) ?
-                                   rb.gameObject :
-                                   shapeGameObject;
-        }
-        else
-          selectedObjects[ i ] = RouteObject( selectedObjects[ i ] );
-      }
-      Selection.objects = selectedObjects;
-      m_prevSelected    = selectedObjects;
-
-      AgXUnity.Rendering.DebugRenderManager.EditorActiveGameObject = Selection.activeGameObject;
 
       Tools.Tool.HandleOnSceneViewGUI( sceneView );
  
