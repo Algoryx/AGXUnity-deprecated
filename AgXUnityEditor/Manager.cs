@@ -222,6 +222,7 @@ namespace AgXUnityEditor
       return null;
     }
 
+    //private static bool m_tmpDown = false;
     private static void OnSceneView( SceneView sceneView )
     {
       if ( m_requestSceneViewFocus ) {
@@ -229,8 +230,44 @@ namespace AgXUnityEditor
         m_requestSceneViewFocus = false;
       }
 
-      //if ( Event.current.Equals( Event.KeyboardEvent( "s" ) ) )
-      //  Debug.Log( "HEJ" );
+      //if ( !m_tmpDown && Event.current.shift ) {
+      //  m_tmpDown = true;
+      //  GUIUtility.hotControl = 0;
+      //  Event.current.Use();
+
+      //  Debug.Log( "Down" );
+      //}
+      //else if ( m_tmpDown && !Event.current.shift ) {
+      //  m_tmpDown = false;
+      //  Event.current.Use();
+
+      //  Debug.Log( "Up" );
+      //}
+
+      //string keyCode = @"LeftShift";
+      //if ( m_tmpDown ) {
+      //  if ( Event.current.type == EventType.KeyUp ) {
+      //    Debug.Log( "Up" );
+      //    m_tmpDown = false;
+      //  }
+      //  else if ( Event.current.Equals( Event.KeyboardEvent( keyCode ) ) ) {
+      //    GUIUtility.hotControl = 0;
+      //    Event.current.Use();
+      //  }
+      //}
+      //else if ( Event.current.Equals( Event.KeyboardEvent( keyCode ) ) ) {
+      //  Debug.Log( "Down" );
+      //  m_tmpDown = true;
+      //  GUIUtility.hotControl = 0;
+      //  Event.current.Use();
+      //}
+
+      //if ( Event.current.Equals( Event.KeyboardEvent( "s" ) ) ) {
+      //  if ( Event.current.type == EventType.KeyDown )
+      //    Debug.Log( "DOWN" );
+      //  else
+      //    Debug.Log( Event.current.type );
+      //}
 
       Event current   = Event.current;
       LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
@@ -259,7 +296,7 @@ namespace AgXUnityEditor
         GameObject shapeGameObject = RouteToShape( selectedObjects[ i ] );
 
         // Shape selected/clicked.
-        if ( shapeGameObject != null ) {
+        if ( false && shapeGameObject != null ) {
           AgXUnity.RigidBody rb = shapeGameObject.GetComponentInParent<AgXUnity.RigidBody>();
 
           // "Toggles" back and forth RigidBody <-> Shape if a rigid body is present

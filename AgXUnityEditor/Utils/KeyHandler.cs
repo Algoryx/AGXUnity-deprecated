@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Linq;
+using System.Collections.Generic;
+using UnityEngine;
 
 namespace AgXUnityEditor.Utils
 {
@@ -7,11 +10,6 @@ namespace AgXUnityEditor.Utils
   /// </summary>
   public class KeyHandler
   {
-    /// <summary>
-    /// Key to check if pressed.
-    /// </summary>
-    public KeyCode Key { get; set; }
-
     /// <summary>
     /// True if the given key is down - otherwise false.
     /// </summary>
@@ -45,9 +43,9 @@ namespace AgXUnityEditor.Utils
     ///  Default constructor.
     /// </summary>
     /// <param name="key">Key to handle.</param>
-    public KeyHandler( KeyCode key )
+    public KeyHandler( params KeyCode[] keys )
     {
-      Key = key;
+      m_keyData = ( from key in keys select new KeyData() { IsDown = false, Key = key } ).ToList();
       HideDefaultHandlesWhenIsDown = false;
     }
 
@@ -63,15 +61,30 @@ namespace AgXUnityEditor.Utils
     /// </summary>
     public void Update( Event current )
     {
-      if ( Key == KeyCode.LeftShift || Key == KeyCode.RightShift )
-        IsDown = current.shift;
-      else if ( current.type == EventType.KeyDown && Key == current.keyCode )
-        IsDown = true;
-      else if ( current.type == EventType.KeyUp && Key == current.keyCode )
-        IsDown = false;
+      bool allDown = m_keyData.Count > 0;
+      foreach ( var data in m_keyData ) {
+        if ( data.Key == KeyCode.LeftShift || data.Key == KeyCode.RightShift )
+          data.IsDown = current.shift;
+        else if ( current.type == EventType.KeyDown && data.Key == current.keyCode )
+          data.IsDown = true;
+        else if ( current.type == EventType.KeyUp && data.Key == current.keyCode )
+          data.IsDown = false;
+
+        allDown = allDown && data.IsDown;
+      }
+
+      IsDown = allDown;
+    }
+
+    private class KeyData
+    {
+      public KeyCode Key { get; set; }
+
+      public bool IsDown { get; set; }
     }
 
     private bool m_isDown = false;
     private Tools.Tool.HideDefaultState m_defaultHandleStateHidden = null;
+    private List<KeyData> m_keyData = new List<KeyData>();
   }
 }

@@ -54,6 +54,9 @@ namespace AgXUnityEditor.Tools
 
     private void HandleSceneViewSelectTool( Event current, SceneView sceneView )
     {
+      // Implement scene view selection here. Move code from Manager.
+      // Add keys to select body, shape etc.
+
       bool isKeyS = SelectGameObjectKey.IsDown &&
                     EditorWindow.mouseOverWindow == sceneView &&
                     !current.control &&

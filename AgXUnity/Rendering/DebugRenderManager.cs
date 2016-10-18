@@ -94,7 +94,7 @@ namespace AgXUnity.Rendering
     /// <summary>
     /// Visualizes shapes and visuals in bodies with different colors (wire frame gizmos).
     /// </summary>
-    public bool VisualizeBodies = false;
+    public bool ColorizeBodies = false;
 
     /// <summary>
     /// Highlights the shape or visual the mouse is currently hovering in the scene view.

@@ -36,6 +36,11 @@ namespace AgXUnityEditor.Tools
     public Utils.KeyHandler SymmetricScaleKey { get { return GetKeyHandler( "Symmetric" ); } }
 
     /// <summary>
+    /// True for this tool to remove itself when key "Esc" is pressed.
+    /// </summary>
+    public bool RemoveOnKeyEscape = false;
+
+    /// <summary>
     /// Shape this tool handles.
     /// </summary>
     public Shape Shape { get; private set; }
@@ -43,14 +48,22 @@ namespace AgXUnityEditor.Tools
     public ShapeResizeTool( Shape shape )
     {
       AddKeyHandler( "Activate", new Utils.KeyHandler( KeyCode.LeftControl ) );
-      AddKeyHandler( "Symmetric", new Utils.KeyHandler( KeyCode.LeftShift ) );
+      AddKeyHandler( "Symmetric", new Utils.KeyHandler( KeyCode.LeftAlt, KeyCode.LeftShift ) );
 
       Shape = shape;
     }
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      if ( ActivateKey.IsDown )
+      if ( RemoveOnKeyEscape && Manager.KeyEscapeDown ) {
+        EditorUtility.SetDirty( Shape );
+
+        PerformRemoveFromParent();
+
+        return;
+      }
+
+      if ( ActivateKey.IsDown || SymmetricScaleKey.IsDown )
         Update( SymmetricScaleKey.IsDown );
     }
 
