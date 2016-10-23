@@ -21,7 +21,7 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    public Utils.KeyHandler SelectGameObjectKey { get { return GetKeyHandler( "SelectObject" ); } }
+    public Utils.KeyHandler SelectGameObjectKeyHandler { get { return EditorSettings.Instance.BuiltInToolsTool_SelectGameObjectKeyHandler; } }
 
     public PickHandlerTool PickHandler
     {
@@ -36,11 +36,11 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    public Utils.KeyHandler PickHandlerKey { get { return GetKeyHandler( "PickHandler" ); } }
+    public Utils.KeyHandler PickHandlerKeyHandler { get { return EditorSettings.Instance.BuiltInToolsTool_PickHandlerKeyHandler; } }
 
     public bool SelectGameObjectTrigger( Event current, SceneView sceneView )
     {
-      return SelectGameObjectKey.IsDown &&
+      return SelectGameObjectKeyHandler.IsDown &&
              EditorWindow.mouseOverWindow == sceneView &&
             !current.control &&
             !current.shift &&
@@ -52,7 +52,7 @@ namespace AgXUnityEditor.Tools
       return EditorApplication.isPlaying &&
              PickHandler == null &&
              EditorWindow.mouseOverWindow == sceneView &&
-             PickHandlerKey.IsDown &&
+             PickHandlerKeyHandler.IsDown &&
             !current.shift &&
             !current.alt &&
              current.type == EventType.MouseDown &&
@@ -62,8 +62,8 @@ namespace AgXUnityEditor.Tools
 
     public BuiltInToolsTool()
     {
-      AddKeyHandler( "SelectObject", new Utils.KeyHandler( KeyCode.S ) );
-      AddKeyHandler( "PickHandler", new Utils.KeyHandler( KeyCode.A ) );
+      AddKeyHandler( "SelectObject", SelectGameObjectKeyHandler );
+      AddKeyHandler( "PickHandler", PickHandlerKeyHandler );
     }
 
     public override void OnSceneViewGUI( SceneView sceneView )
@@ -76,8 +76,7 @@ namespace AgXUnityEditor.Tools
 
     private void HandleSceneViewSelectTool( Event current, SceneView sceneView )
     {
-      // Implement scene view selection here. Move code from Manager.
-      // Add keys to select body, shape etc.
+      // TODO: Add keys to select body, shape etc.
 
       // Routes each selected object to its correct selection.
       // Assigning 'selectedObjects' to 'Selection.objects' doesn't
@@ -88,14 +87,15 @@ namespace AgXUnityEditor.Tools
         selectedObjects[ i ] = Manager.RouteObject( selectedObjects[ i ] );
       }
       Selection.objects = selectedObjects;
-      
+
       if ( SelectGameObjectTrigger( current, sceneView ) ) {
-        SelectGameObjectTool selectTool = SelectGameObject;
-        if ( selectTool == null && current.type == EventType.KeyDown )
+        // User is holding activate select tool - SelectGameObjectTool is waiting for the mouse click.
+        if ( SelectGameObject == null )
           SelectGameObject = new SelectGameObjectTool() { OnSelect = go => { Selection.activeGameObject = go; } };
-        else if ( selectTool != null && !selectTool.SelectionWindowActive && current.type == EventType.KeyUp )
-          SelectGameObject = null;
       }
+      // The user has released select game object trigger and the window isn't showing.
+      else if ( SelectGameObject != null && !SelectGameObject.SelectionWindowActive )
+        SelectGameObject = null;
     }
 
     private void HandlePickHandler( Event current, SceneView sceneView )

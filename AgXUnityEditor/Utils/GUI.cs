@@ -122,11 +122,20 @@ namespace AgXUnityEditor.Utils
 
     public static void TargetEditorEnable<T>( T target, GUISkin skin ) where T : class
     {
+      KeyHandler.HandleDetectKeyOnEnable( target );
+
       Tools.Tool.ActivateToolGivenTarget( target );
+    }
+
+    public static bool TargetEditorOnInspectorGUI<T>( T target, GUISkin skin ) where T : class
+    {
+      return KeyHandler.HandleDetectKeyOnGUI( target, Event.current );
     }
 
     public static void TargetEditorDisable<T>( T target ) where T : class
     {
+      KeyHandler.HandleDetectKeyOnDisable( target );
+
       var targetTool = Tools.Tool.GetActiveTool( target );
       if ( targetTool != null )
         Tools.Tool.RemoveActiveTool();

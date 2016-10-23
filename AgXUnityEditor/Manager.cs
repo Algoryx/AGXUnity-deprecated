@@ -271,9 +271,13 @@ namespace AgXUnityEditor
           ignoreList.AddRange( primitiveFilters.Select( pf => { return pf.gameObject; } ) );
         }
 
-        MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition,
-                                                                     false,
-                                                                     ignoreList.ToArray() ) ) as GameObject;
+        // If the mouse is hovering a scene view window - MouseOverObject should be null.
+        if ( SceneViewWindow.GetMouseOverWindow( current.mousePosition ) != null )
+          MouseOverObject = null;
+        else 
+          MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition,
+                                                                       false,
+                                                                       ignoreList.ToArray() ) ) as GameObject;
       }
 
       // Early exit if we haven't any active visual primitives.

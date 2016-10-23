@@ -12,8 +12,14 @@ namespace AgXUnityEditor
 {
   public class BaseEditor<T> : UnityEditor.Editor where T : class
   {
-    public override void OnInspectorGUI()
+    public override sealed void OnInspectorGUI()
     {
+      if ( Utils.GUI.TargetEditorOnInspectorGUI<T>( target as T, CurrentSkin ) )
+        return;
+
+      if ( OverrideOnInspectorGUI( target as T, CurrentSkin ) )
+        return;
+
       DrawMembersGUI( target, target as T, CurrentSkin );
     }
 
@@ -30,6 +36,8 @@ namespace AgXUnityEditor
       //if ( Application.isEditor && target != null )
       //  Debug.Log( "Create!" );
     }
+
+    protected virtual bool OverrideOnInspectorGUI( T target, GUISkin skin ) { return false; }
 
     public void OnDestroy()
     {
@@ -73,7 +81,7 @@ namespace AgXUnityEditor
       return false;
     }
 
-    private static GUISkin CurrentSkin { get { return EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector ); } }
+    public static GUISkin CurrentSkin { get { return EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector ); } }
 
     private static bool DrawMembersGUI( object obj, T target, GUISkin skin )
     {
