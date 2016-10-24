@@ -44,6 +44,7 @@
   <ItemGroup>
     <Compile Include="BaseEditor.cs" />
     <Compile Include="EditorData.cs" />
+    <Compile Include="EditorDataEntry.cs" />
     <Compile Include="EditorSettings.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="Menus\AssetsMenu.cs" />

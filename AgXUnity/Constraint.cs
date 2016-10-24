@@ -200,6 +200,7 @@ namespace AgXUnity
     /// <summary>
     /// Enable/disable gizmos drawing of this constraint. Enabled by default.
     /// </summary>
+    [HideInInspector]
     public bool DrawGizmosEnable { get { return m_drawGizmosEnable; } set { m_drawGizmosEnable = value; } }
 
     /// <summary>

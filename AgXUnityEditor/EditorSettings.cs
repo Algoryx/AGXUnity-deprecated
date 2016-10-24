@@ -144,7 +144,43 @@ namespace AgXUnityEditor
     #endregion Rendering GUI
 
     #region Static singleton initialization methods
-    [MenuItem( "AgXUnity/Settings... _&a" )]
+    public static bool PrepareEditorDataFolder()
+    {
+      if ( !AgXUnityFolderExist ) {
+        Debug.LogError( "AgXUnity folder is not present in the Assets folder. Something is wrong with the configuration." );
+        return false;
+      }
+
+      if ( !AgXUnityEditorFolderExist ) {
+        Debug.LogError( "AgXUnity/Editor folder is not present in the Assets folder. Something is wrong with the configuration." );
+        return false;
+      }
+
+      if ( !AgXUnityEditorDataFolderExist ) {
+        AssetDatabase.CreateFolder( AgXUnityEditorPath, "Data" );
+        AssetDatabase.SaveAssets();
+      }
+
+      return true;
+    }
+
+    public static T GetOrCreateEditorDataFolderFileInstance<T>( string name ) where T : ScriptableObject
+    {
+      if ( !PrepareEditorDataFolder() )
+        return null;
+
+      string settingsPathAndName = AgXUnityEditorDataPath + @name;
+      T instance = AssetDatabase.LoadAssetAtPath<T>( settingsPathAndName );
+      if ( instance == null ) {
+        instance = CreateInstance<T>();
+        AssetDatabase.CreateAsset( instance, settingsPathAndName );
+        AssetDatabase.SaveAssets();
+      }
+
+      return instance;
+    }
+
+    [ MenuItem( "AgXUnity/Settings..." ) ]
     private static void Init()
     {
       EditorSettings instance = GetOrCreateInstance();
@@ -160,30 +196,7 @@ namespace AgXUnityEditor
       if ( m_instance != null )
         return m_instance;
 
-      if ( !AgXUnityFolderExist ) {
-        Debug.LogError( "AgXUnity folder is not present in the Assets folder. Something is wrong with the configuration." );
-        return null;
-      }
-
-      if ( !AgXUnityEditorFolderExist ) {
-        Debug.LogError( "AgXUnity/Editor folder is not present in the Assets folder. Something is wrong with the configuration." );
-        return null;
-      }
-
-      if ( !AgXUnityEditorDataFolderExist ) {
-        AssetDatabase.CreateFolder( AgXUnityEditorPath, "Data" );
-        AssetDatabase.SaveAssets();
-      }
-
-      string settingsPathAndName = AgXUnityEditorDataPath + @"/Settings.asset";
-      m_instance = AssetDatabase.LoadAssetAtPath<EditorSettings>( settingsPathAndName );
-      if ( m_instance == null ) {
-        m_instance = CreateInstance<EditorSettings>();
-        AssetDatabase.CreateAsset( m_instance, settingsPathAndName );
-        AssetDatabase.SaveAssets();
-      }
-
-      return m_instance;
+      return ( m_instance = GetOrCreateEditorDataFolderFileInstance<EditorSettings>( "/Settings.asset" ) );
     }
 
     [NonSerialized]

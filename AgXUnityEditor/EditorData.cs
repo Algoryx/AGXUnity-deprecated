@@ -1,87 +1,59 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEditor;
-using AgXUnity;
-using AgXUnity.Utils;
 
 namespace AgXUnityEditor
 {
-  // TODO: Fix so that this object is stored with m_visualsParent in the Manager.
-  // NOTE: THIS SHOULD BE A SCRIPT ASSET AND STORED IN THE HIERARCHY
-  // It's possible to get some errors using HideFlags.HideInHierarchy | HideFlags.HideInInspector | HideFlags.DontSaveInBuild.
-  public class EditorData : ScriptComponent
+  public class EditorData : ScriptableObject
   {
-    [Serializable]
-    public class SelectedState
+    public static EditorData Instance { get { return GetOrCreateInstance(); } }
+
+    public T GetData<T>( UnityEngine.Object target, string identifier, Action<T> onCreate = null ) where T : EditorDataEntry
     {
-      [SerializeField]
-      private bool m_selected = false;
-      public bool Selected
-      {
-        get { return m_selected; }
-        set
-        {
-          if ( m_selected == value )
-            return;
+      if ( target == null )
+        throw new AgXUnity.Exception( "Invalid (null) EditorData target. Target has to be given and has to be valid." );
 
-          m_selected = value;
+      var key = EditorDataEntry.CalculateKey( target, identifier );
+      int dataIndex = -1;
+      if ( !m_dataCache.TryGetValue( key, out dataIndex ) ) {
+        dataIndex = m_data.FindIndex( data => data.Key == key );
+        if ( dataIndex < 0 ) {
+          T instance = CreateInstance<T>();
+          instance.Initialize( target, key );
+          dataIndex = m_data.Count;
 
-          if ( Target != null )
-            EditorUtility.SetDirty( Target );
+          m_data.Add( instance );
+
+          onCreate?.Invoke( instance );
         }
+
+        m_dataCache.Add( key, dataIndex );
       }
 
-      [SerializeField]
-      private UnityEngine.Object m_target = null;
-      public UnityEngine.Object Target { get { return m_target; } private set { m_target = value; } }
-
-      [SerializeField]
-      private string m_identifier = string.Empty;
-      public string Identifier { get { return m_identifier; } private set { m_identifier = value; } }
-
-      public uint Key { get { return BuildKey( Target, Identifier ); } }
-
-      public SelectedState( UnityEngine.Object target, string identifier )
-      {
-        Target = target;
-        Identifier = identifier;
-      }
-
-      private static int m_localInstanceId = 1234;
-      public static uint BuildKey( UnityEngine.Object target, string identifier )
-      {
-        string targetName = target != null ? target.name : "null";
-        int instanceId = target != null ? target.GetInstanceID() : m_localInstanceId++;
-        return ( targetName + identifier + instanceId.ToString() ).To32BitFnv1aHash();
-      }
+      return m_data[ dataIndex ] as T;
     }
 
     [SerializeField]
-    private List<SelectedState> m_selectedStates = new List<SelectedState>();
-    private Dictionary<uint, int> m_selectedStatesCache = new Dictionary<uint, int>();
+    private List<EditorDataEntry> m_data = new List<EditorDataEntry>();
+    private Dictionary<uint, int> m_dataCache = new Dictionary<uint, int>();
 
-    public SelectedState Selected( UnityEngine.Object target, string identifier, bool defaultSelected = false )
+    private static EditorData m_instance = null;
+    private static EditorData GetOrCreateInstance()
     {
-      int index = -1;
-      var key = SelectedState.BuildKey( target, identifier );
-      if ( m_selectedStatesCache.TryGetValue( key, out index ) )
-        return m_selectedStates[ index ];
+      if ( m_instance != null )
+        return m_instance;
 
-      SelectedState state = null;
-      index = m_selectedStates.FindIndex( s => s.Key == key );
-      if ( index < 0 ) {
-        index = m_selectedStates.Count;
-        state = new SelectedState( target, identifier );
-        m_selectedStates.Add( state );
-      }
-      else
-        state = m_selectedStates[ index ];
+      return ( m_instance = EditorSettings.GetOrCreateEditorDataFolderFileInstance<EditorData>( "/Data.asset" ) );
+    }
+  }
 
-      m_selectedStatesCache.Add( state.Key, index );
-
-      return state;
+  [CustomEditor( typeof( EditorData ) )]
+  public class EditorDataEditor : BaseEditor<EditorData>
+  {
+    protected override bool OverrideOnInspectorGUI( EditorData target, GUISkin skin )
+    {
+      return true;
     }
   }
 }

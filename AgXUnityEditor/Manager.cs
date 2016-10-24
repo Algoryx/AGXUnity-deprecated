@@ -45,11 +45,6 @@ namespace AgXUnityEditor
     /// True if mouse + key combo is assumed to be a camera control move.
     /// </summary>
     public static bool IsCameraControl { get; private set; }
-    
-    /// <summary>
-    /// Editor data object containing tools/editor specific, session persistent, data.
-    /// </summary>
-    public static EditorData EditorData { get { return VisualsParent.GetOrCreateComponent<EditorData>(); } }
 
     /// <summary>
     /// Constructor called when the Unity editor is initialized.
@@ -317,9 +312,6 @@ namespace AgXUnityEditor
       var scene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
       if ( scene != null && scene.name != m_currentSceneName ) {
         m_currentSceneName = scene.name;
-
-        if ( !EditorApplication.isPlaying && VisualsParent.GetComponent<EditorData>() != null )
-          Component.DestroyImmediate( VisualsParent.GetComponent<EditorData>() );
 
         // There shouldn't be any MassProperties components since we've
         // changed them to be ScriptAssets.
