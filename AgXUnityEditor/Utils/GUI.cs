@@ -325,20 +325,20 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    public static bool Foldout( EditorDataEntryBool state, GUIContent label, GUISkin skin )
+    public static bool Foldout( EditorDataEntry state, GUIContent label, GUISkin skin )
     {
       EditorGUILayout.BeginHorizontal();
       {
-        state.Value = GUILayout.Button( MakeLabel( state.Value ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !state.Value : state.Value;
+        state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !state.Bool : state.Bool;
         GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
         if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
-          state.Value = !state.Value;
+          state.Bool = !state.Bool;
           GUIUtility.ExitGUI();
         }
       }
       EditorGUILayout.EndHorizontal();
 
-      return state.Value;
+      return state.Bool;
     }
 
     private static GUISkin m_editorGUISkin = null;

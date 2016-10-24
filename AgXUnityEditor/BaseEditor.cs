@@ -302,7 +302,7 @@ namespace AgXUnityEditor
 
     public static void HandleList( System.Collections.IList list, GUIContent label, T target )
     {
-      if ( Utils.GUI.Foldout( EditorData.Instance.GetData<EditorDataEntryBool>( target as UnityEngine.Object, label.text ), label, CurrentSkin ) ) {
+      if ( Utils.GUI.Foldout( EditorData.Instance.GetData( target as UnityEngine.Object, label.text ), label, CurrentSkin ) ) {
         object insertElementBefore = null;
         object insertElementAfter = null;
         object eraseElement = null;

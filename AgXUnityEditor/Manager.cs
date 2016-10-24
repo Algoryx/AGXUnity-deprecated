@@ -245,6 +245,9 @@ namespace AgXUnityEditor
 
       LeftMouseClick = false;
 
+      if ( EditorData.Instance.SecondsSinceLastGC > 5.0 * 60 )
+        EditorData.Instance.GC();
+
       SceneView.RepaintAll();
     }
 
@@ -311,6 +314,8 @@ namespace AgXUnityEditor
     {
       var scene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
       if ( scene != null && scene.name != m_currentSceneName ) {
+        EditorData.Instance.GC();
+
         m_currentSceneName = scene.name;
 
         // There shouldn't be any MassProperties components since we've
