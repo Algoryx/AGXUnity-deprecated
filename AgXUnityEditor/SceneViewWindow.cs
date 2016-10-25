@@ -108,6 +108,11 @@ namespace AgXUnityEditor
       /// </summary>
       public bool Movable { get; set; }
 
+      /// <summary>
+      /// Request focus to this window. Default false.
+      /// </summary>
+      public bool RequestFocus { get; set; }
+
       public enum CloseEventType
       {
         None,
@@ -136,10 +141,11 @@ namespace AgXUnityEditor
       /// <param name="callack"></param>
       public Data( Action<EventType> callack )
       {
-        Callback = callack;
-        Id       = GUIUtility.GetControlID( FocusType.Passive );
-        Movable  = false;
-        IsMoving = false;
+        Callback     = callack;
+        Id           = GUIUtility.GetControlID( FocusType.Passive );
+        Movable      = false;
+        IsMoving     = false;
+        RequestFocus = false;
       }
     }
 
@@ -152,8 +158,9 @@ namespace AgXUnityEditor
     /// <param name="size">Size of the window.</param>
     /// <param name="position">Position of the window.</param>
     /// <param name="title">Title of the window.</param>
+    /// <param name="requestFocus">Request focus to the window.</param>
     /// <returns>Window data.</returns>
-    public static Data Show( Action<EventType> guiCallback, Vector2 size, Vector2 position, string title )
+    public static Data Show( Action<EventType> guiCallback, Vector2 size, Vector2 position, string title, bool requestFocus = false )
     {
       if ( guiCallback == null )
         throw new ArgumentNullException( "guiCallback" );
@@ -164,9 +171,10 @@ namespace AgXUnityEditor
         m_activeWindows.Add( guiCallback, data );
       }
 
-      data.Size     = size;
-      data.Position = position;
-      data.Title    = title;
+      data.Size         = size;
+      data.Position     = position;
+      data.Title        = title;
+      data.RequestFocus = requestFocus;
 
       return data;
     }
@@ -250,6 +258,11 @@ namespace AgXUnityEditor
 
         data.Size     = rect.size;
         data.Position = rect.position;
+
+        if ( data.RequestFocus ) {
+          GUI.FocusWindow( data.Id );
+          data.RequestFocus = false;
+        }
 
         bool hasListener = data.CloseEventListener.GetInvocationList().Length > 1;
         if ( hasListener ) {

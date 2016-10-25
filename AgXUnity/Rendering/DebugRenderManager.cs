@@ -95,6 +95,21 @@ namespace AgXUnity.Rendering
     /// </summary>
     public bool HighlightMouseOverObject = false;
 
+    [SerializeField]
+    private bool m_includeInBuild = false;
+    public bool IncludeInBuild
+    {
+      get { return m_includeInBuild; }
+      set
+      {
+        m_includeInBuild = value;
+        if ( m_includeInBuild )
+          gameObject.hideFlags = HideFlags.None;
+        else
+          gameObject.hideFlags = HideFlags.DontSaveInBuild;
+      }
+    }
+
     protected override bool Initialize()
     {
       gameObject.isStatic  = true;
