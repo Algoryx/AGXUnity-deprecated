@@ -1,86 +1,123 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using UnityEditor;
-using AgXUnity;
-using AgXUnity.Utils;
+using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor
 {
-  // TODO: Fix so that this object is stored with m_visualsParent in the Manager.
-  // It's possible to get some errors using HideFlags.HideInHierarchy | HideFlags.HideInInspector | HideFlags.DontSaveInBuild.
-  public class EditorData : ScriptComponent
+  public class EditorData : ScriptableObject
   {
-    [Serializable]
-    public class SelectedState
+    public static EditorData Instance { get { return GetOrCreateInstance(); } }
+
+    public double SecondsSinceLastGC { get { return EditorApplication.timeSinceStartup - m_lastGC; } }
+
+    public int NumEntries { get { return m_data.Count; } }
+
+    public int NumCachedEntries { get { return m_dataCache.Count; } }
+
+    public EditorDataEntry GetData( UnityEngine.Object target, string identifier, Action<EditorDataEntry> onCreate = null )
     {
-      [SerializeField]
-      private bool m_selected = false;
-      public bool Selected
-      {
-        get { return m_selected; }
-        set
-        {
-          if ( m_selected == value )
-            return;
+      if ( target == null )
+        throw new AgXUnity.Exception( "Invalid (null) EditorData target. Target has to be given and has to be valid." );
 
-          m_selected = value;
+      var key = EditorDataEntry.CalculateKey( target, identifier );
+      int dataIndex = -1;
+      if ( !m_dataCache.TryGetValue( key, out dataIndex ) ) {
+        dataIndex = m_data.FindIndex( data => data.Key == key );
+        if ( dataIndex < 0 ) {
+          EditorDataEntry instance = new EditorDataEntry( target, key );
+          dataIndex = m_data.Count;
 
-          if ( Target != null )
-            EditorUtility.SetDirty( Target );
+          m_data.Add( instance );
+
+          onCreate?.Invoke( instance );
         }
+
+        m_dataCache.Add( key, dataIndex );
       }
 
-      [SerializeField]
-      private UnityEngine.Object m_target = null;
-      public UnityEngine.Object Target { get { return m_target; } private set { m_target = value; } }
+      return m_data[ dataIndex ];
+    }
 
-      [SerializeField]
-      private string m_identifier = string.Empty;
-      public string Identifier { get { return m_identifier; } private set { m_identifier = value; } }
+    public void GC()
+    {
+      m_dataCache.Clear();
 
-      public uint Key { get { return BuildKey( Target, Identifier ); } }
-
-      public SelectedState( UnityEngine.Object target, string identifier )
-      {
-        Target = target;
-        Identifier = identifier;
+      int index = 0;
+      while ( index < m_data.Count ) {
+        var data = m_data[ index ];
+        if ( data == null || EditorUtility.InstanceIDToObject( data.InstanceId ) == null )
+          m_data.RemoveAt( index );
+        else
+          ++index;
       }
 
-      private static int m_localInstanceId = 1234;
-      public static uint BuildKey( UnityEngine.Object target, string identifier )
-      {
-        string targetName = target != null ? target.name : "null";
-        int instanceId = target != null ? target.GetInstanceID() : m_localInstanceId++;
-        return ( targetName + identifier + instanceId.ToString() ).To32BitFnv1aHash();
-      }
+      m_lastGC = EditorApplication.timeSinceStartup;
     }
 
     [SerializeField]
-    private List<SelectedState> m_selectedStates = new List<SelectedState>();
-    private Dictionary<uint, int> m_selectedStatesCache = new Dictionary<uint, int>();
+    private List<EditorDataEntry> m_data = new List<EditorDataEntry>();
+    private Dictionary<uint, int> m_dataCache = new Dictionary<uint, int>();
 
-    public SelectedState Selected( UnityEngine.Object target, string identifier, bool defaultSelected = false )
+    [SerializeField]
+    private double m_lastGC = 0.0;
+
+    private static EditorData m_instance = null;
+    private static EditorData GetOrCreateInstance()
     {
-      int index = -1;
-      var key = SelectedState.BuildKey( target, identifier );
-      if ( m_selectedStatesCache.TryGetValue( key, out index ) )
-        return m_selectedStates[ index ];
+      if ( m_instance != null )
+        return m_instance;
 
-      SelectedState state = null;
-      index = m_selectedStates.FindIndex( s => s.Key == key );
-      if ( index < 0 ) {
-        index = m_selectedStates.Count;
-        state = new SelectedState( target, identifier );
-        m_selectedStates.Add( state );
+      return ( m_instance = EditorSettings.GetOrCreateEditorDataFolderFileInstance<EditorData>( "/Data.asset" ) );
+    }
+  }
+
+  [CustomEditor( typeof( EditorData ) )]
+  public class EditorDataEditor : BaseEditor<EditorData>
+  {
+    protected override bool OverrideOnInspectorGUI( EditorData target, GUISkin skin )
+    {
+      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+        GUILayout.Label( GUI.MakeLabel( "Editor data", 18, true ), skin.label );
+
+      GUI.Separator3D();
+
+      const float firstLabelWidth = 190;
+
+      GUILayout.BeginHorizontal();
+      {
+        TimeSpan span = TimeSpan.FromSeconds( target.SecondsSinceLastGC );
+        GUILayout.Label( GUI.MakeLabel( "Seconds since last GC:" ), skin.label, GUILayout.Width( firstLabelWidth ) );
+        GUILayout.Label( GUI.MakeLabel( string.Format( "{0:D2}m:{1:D2}s", span.Minutes, span.Seconds ), true ), skin.label );
       }
-      else
-        state = m_selectedStates[ index ];
+      GUILayout.EndHorizontal();
 
-      m_selectedStatesCache.Add( state.Key, index );
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Label( GUI.MakeLabel( "Number of data entries:" ), skin.label, GUILayout.Width( firstLabelWidth ) );
+        GUILayout.Label( GUI.MakeLabel( target.NumEntries.ToString(), true ), skin.label );
+      }
+      GUILayout.EndHorizontal();
 
-      return state;
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Label( GUI.MakeLabel( "Number of cached data entries:" ), skin.label, GUILayout.Width( firstLabelWidth ) );
+        GUILayout.Label( GUI.MakeLabel( target.NumCachedEntries.ToString(), true ), skin.label );
+      }
+      GUILayout.EndHorizontal();
+
+      GUI.Separator();
+      using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.25f ) ) )
+      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
+        if ( GUILayout.Button( GUI.MakeLabel( "Collect garbage" ), skin.button, GUILayout.Width( 110 ) ) )
+          target.GC();
+      }
+      GUI.Separator();
+
+      EditorUtility.SetDirty( target );
+
+      return true;
     }
   }
 }

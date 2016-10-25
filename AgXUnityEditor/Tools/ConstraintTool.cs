@@ -135,9 +135,9 @@ namespace AgXUnityEditor.Tools
       Controller
     }
 
-    private EditorData.SelectedState Selected( SelectedFoldout sf, string identifier = "", bool defaultSelected = false )
+    private EditorDataEntry Selected( SelectedFoldout sf, string identifier = "", bool defaultSelected = false )
     {
-      return Manager.EditorData.Selected( Constraint, sf.ToString() + identifier, defaultSelected );
+      return EditorData.Instance.GetData( Constraint, sf.ToString() + identifier, newEntry => { newEntry.Bool = defaultSelected; } );
     }
 
     private class BeginConstraintRowGUI : IDisposable

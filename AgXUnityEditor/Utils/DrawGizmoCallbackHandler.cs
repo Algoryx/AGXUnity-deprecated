@@ -45,7 +45,7 @@ namespace AgXUnityEditor.Utils
         m_colorHandler.TimeInterpolator.Reset();
 
       // Early exist if we're not visualizing the bodies nor have active selections.
-      bool active = manager.VisualizeBodies || selectionActive || assemblyTool != null;
+      bool active = manager.ColorizeBodies || selectionActive || assemblyTool != null;
       if ( !active )
         return;
 
@@ -60,7 +60,7 @@ namespace AgXUnityEditor.Utils
               // Create the color for all bodies for the colors to be consistent.
               m_colorHandler.GetOrCreateColor( body );
 
-              if ( manager.VisualizeBodies )
+              if ( manager.ColorizeBodies )
                 m_colorHandler.Colorize( body );
             }
           }

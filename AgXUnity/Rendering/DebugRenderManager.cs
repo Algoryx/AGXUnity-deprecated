@@ -14,12 +14,6 @@ namespace AgXUnity.Rendering
   public class DebugRenderManager : UniqueGameObject<DebugRenderManager>
   {
     /// <summary>
-    /// The active/selected game object in the editor.
-    /// </summary>
-    [HideInInspector]
-    public static GameObject EditorActiveGameObject = null;
-
-    /// <summary>
     /// BaseEditor.cs is calling this method when the editor receives
     /// an OnDestroy call and the application isn't playing. This
     /// behavior is assumed to be a "select -> delete".
@@ -94,7 +88,7 @@ namespace AgXUnity.Rendering
     /// <summary>
     /// Visualizes shapes and visuals in bodies with different colors (wire frame gizmos).
     /// </summary>
-    public bool VisualizeBodies = false;
+    public bool ColorizeBodies = false;
 
     /// <summary>
     /// Highlights the shape or visual the mouse is currently hovering in the scene view.

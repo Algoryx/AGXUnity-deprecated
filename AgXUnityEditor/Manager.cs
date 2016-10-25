@@ -45,11 +45,6 @@ namespace AgXUnityEditor
     /// True if mouse + key combo is assumed to be a camera control move.
     /// </summary>
     public static bool IsCameraControl { get; private set; }
-    
-    /// <summary>
-    /// Editor data object containing tools/editor specific, session persistent, data.
-    /// </summary>
-    public static EditorData EditorData { get { return VisualsParent.GetOrCreateComponent<EditorData>(); } }
 
     /// <summary>
     /// Constructor called when the Unity editor is initialized.
@@ -145,6 +140,36 @@ namespace AgXUnityEditor
       m_requestSceneViewFocus = true;
     }
 
+    /// <summary>
+    /// Routes current object to the desired object when e.g., selected.
+    /// This method uses OnSelectionProxy to find the desired object.
+    /// </summary>
+    /// <returns>Input object if the object doesn't contains an OnSelectionProxy route.</returns>
+    public static UnityEngine.Object RouteObject( UnityEngine.Object obj )
+    {
+      GameObject gameObject = obj as GameObject;
+      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
+      return proxyTarget != null ? proxyTarget.Target : obj;
+    }
+
+    /// <summary>
+    /// Routes given object to the game object of an AgXUnity.Collide.Shape if
+    /// the connection is given using OnSelectionProxy.
+    /// </summary>
+    /// <returns>Shape game object if found - otherwise null.</returns>
+    public static GameObject RouteToShape( UnityEngine.Object obj )
+    {
+      GameObject gameObject = obj as GameObject;
+      OnSelectionProxy selectionProxy = null;
+      if ( gameObject == null || ( selectionProxy = gameObject.GetComponent<OnSelectionProxy>() ) == null )
+        return null;
+
+      if ( selectionProxy.Target != null && selectionProxy.Target.GetComponent<AgXUnity.Collide.Shape>() != null )
+        return selectionProxy.Target;
+
+      return null;
+    }
+
     public static void OnVisualPrimitiveNodeCreate( Utils.VisualPrimitive primitive )
     {
       if ( primitive == null || primitive.Node == null )
@@ -190,47 +215,12 @@ namespace AgXUnityEditor
       }
     }
 
-    private static UnityEngine.Object[] m_prevSelected = new UnityEngine.Object[] { };
-
-    /// <summary>
-    /// Routes current object to the desired object when e.g., selected.
-    /// This method uses OnSelectionProxy to find the desired object.
-    /// </summary>
-    /// <returns>Input object if the object doesn't contains an OnSelectionProxy route.</returns>
-    private static UnityEngine.Object RouteObject( UnityEngine.Object obj )
-    {
-      GameObject gameObject = obj as GameObject;
-      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
-      return proxyTarget != null ? proxyTarget.Target : obj;
-    }
-
-    /// <summary>
-    /// Routes given object to the game object of an AgXUnity.Collide.Shape if
-    /// the connection is given using OnSelectionProxy.
-    /// </summary>
-    /// <returns>Shape game object if found - otherwise null.</returns>
-    private static GameObject RouteToShape( UnityEngine.Object obj )
-    {
-      GameObject gameObject = obj as GameObject;
-      OnSelectionProxy selectionProxy = null;
-      if ( gameObject == null || ( selectionProxy = gameObject.GetComponent<OnSelectionProxy>() ) == null )
-        return null;
-
-      if ( selectionProxy.Target != null && selectionProxy.Target.GetComponent<AgXUnity.Collide.Shape>() != null )
-        return selectionProxy.Target;
-
-      return null;
-    }
-
     private static void OnSceneView( SceneView sceneView )
     {
       if ( m_requestSceneViewFocus ) {
         sceneView.Focus();
         m_requestSceneViewFocus = false;
       }
-
-      //if ( Event.current.Equals( Event.KeyboardEvent( "s" ) ) )
-      //  Debug.Log( "HEJ" );
 
       Event current   = Event.current;
       LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
@@ -249,40 +239,14 @@ namespace AgXUnityEditor
 
       UpdateMouseOverPrimitives( current );
 
-      // TODO: This "auto selection" is scary - make it optional. Somehow.
-
-      // Routes each selected object to its correct selection.
-      // Assigning 'selectedObjects' to 'Selection.objects' doesn't
-      // trigger onSelectionChanged (desired behavior).
-      UnityEngine.Object[] selectedObjects = Selection.objects;
-      for ( int i = 0; i < selectedObjects.Length; ++i ) {
-        GameObject shapeGameObject = RouteToShape( selectedObjects[ i ] );
-
-        // Shape selected/clicked.
-        if ( shapeGameObject != null ) {
-          AgXUnity.RigidBody rb = shapeGameObject.GetComponentInParent<AgXUnity.RigidBody>();
-
-          // "Toggles" back and forth RigidBody <-> Shape if a rigid body is present
-          // as a parent to the selected shape.
-          // NOTE: If the number of selections has changed we're selecting the rigid body!
-          //       This since Unity doesn't provide much info while multi-selecting.
-          selectedObjects[ i ] = rb != null && ( selectedObjects.Length != m_prevSelected.Length || !m_prevSelected.Contains( rb.gameObject ) ) ?
-                                   rb.gameObject :
-                                   shapeGameObject;
-        }
-        else
-          selectedObjects[ i ] = RouteObject( selectedObjects[ i ] );
-      }
-      Selection.objects = selectedObjects;
-      m_prevSelected    = selectedObjects;
-
-      AgXUnity.Rendering.DebugRenderManager.EditorActiveGameObject = Selection.activeGameObject;
-
       Tools.Tool.HandleOnSceneViewGUI( sceneView );
  
       HandleWindowsGUI( sceneView );
 
       LeftMouseClick = false;
+
+      if ( EditorData.Instance.SecondsSinceLastGC > 5.0 * 60 )
+        EditorData.Instance.GC();
 
       SceneView.RepaintAll();
     }
@@ -305,9 +269,13 @@ namespace AgXUnityEditor
           ignoreList.AddRange( primitiveFilters.Select( pf => { return pf.gameObject; } ) );
         }
 
-        MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition,
-                                                                     false,
-                                                                     ignoreList.ToArray() ) ) as GameObject;
+        // If the mouse is hovering a scene view window - MouseOverObject should be null.
+        if ( SceneViewWindow.GetMouseOverWindow( current.mousePosition ) != null )
+          MouseOverObject = null;
+        else 
+          MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition,
+                                                                       false,
+                                                                       ignoreList.ToArray() ) ) as GameObject;
       }
 
       // Early exit if we haven't any active visual primitives.
@@ -346,10 +314,9 @@ namespace AgXUnityEditor
     {
       var scene = UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene();
       if ( scene != null && scene.name != m_currentSceneName ) {
-        m_currentSceneName = scene.name;
+        EditorData.Instance.GC();
 
-        if ( !EditorApplication.isPlaying && VisualsParent.GetComponent<EditorData>() != null )
-          Component.DestroyImmediate( VisualsParent.GetComponent<EditorData>() );
+        m_currentSceneName = scene.name;
 
         // There shouldn't be any MassProperties components since we've
         // changed them to be ScriptAssets.

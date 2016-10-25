@@ -122,11 +122,20 @@ namespace AgXUnityEditor.Utils
 
     public static void TargetEditorEnable<T>( T target, GUISkin skin ) where T : class
     {
+      KeyHandler.HandleDetectKeyOnEnable( target );
+
       Tools.Tool.ActivateToolGivenTarget( target );
+    }
+
+    public static bool TargetEditorOnInspectorGUI<T>( T target, GUISkin skin ) where T : class
+    {
+      return KeyHandler.HandleDetectKeyOnGUI( target, Event.current );
     }
 
     public static void TargetEditorDisable<T>( T target ) where T : class
     {
+      KeyHandler.HandleDetectKeyOnDisable( target );
+
       var targetTool = Tools.Tool.GetActiveTool( target );
       if ( targetTool != null )
         Tools.Tool.RemoveActiveTool();
@@ -316,20 +325,20 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    public static bool Foldout( EditorData.SelectedState state, GUIContent label, GUISkin skin )
+    public static bool Foldout( EditorDataEntry state, GUIContent label, GUISkin skin )
     {
       EditorGUILayout.BeginHorizontal();
       {
-        state.Selected = GUILayout.Button( GUI.MakeLabel( state.Selected ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !state.Selected : state.Selected;
+        state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !state.Bool : state.Bool;
         GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
         if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
-          state.Selected = !state.Selected;
+          state.Bool = !state.Bool;
           GUIUtility.ExitGUI();
         }
       }
       EditorGUILayout.EndHorizontal();
 
-      return state.Selected;
+      return state.Bool;
     }
 
     private static GUISkin m_editorGUISkin = null;

@@ -205,6 +205,19 @@ namespace AgXUnityEditor
       return data;
     }
 
+    /// <summary>
+    /// Finds current window the mouse pointer is over. Null if none.
+    /// </summary>
+    /// <param name="mousePosition">Current scene view mouse position.</param>
+    /// <returns>Window data of window the mouse pointer is over - otherwise null.</returns>
+    public static Data GetMouseOverWindow( Vector2 mousePosition )
+    {
+      foreach ( var data in m_activeWindows.Values )
+        if ( data.Contains( mousePosition ) )
+          return data;
+      return null;
+    }
+
     public static void OnSceneView( SceneView sceneView )
     {
       List<Data> windowsToClose = new List<Data>();
@@ -228,6 +241,8 @@ namespace AgXUnityEditor
                                           if ( data.IsMoving )
                                             GUI.DragWindow();
                                         }
+
+                                        EatMouseEvents( data );
                                       },
                                       data.Title,
                                       Utils.GUI.Skin.window,
@@ -251,6 +266,42 @@ namespace AgXUnityEditor
 
       foreach ( Data data in windowsToClose )
         Close( data.Callback );
+    }
+
+    /// <summary>
+    /// Eating mouse events when mouse is over window. Taken from:
+    /// http://answers.unity3d.com/questions/801834/guilayout-window-consume-mouse-events.html
+    /// </summary>
+    /// <param name="data">Window data.</param>
+    private static void EatMouseEvents( Data data )
+    {
+      int controlID = GUIUtility.GetControlID( data.Id, FocusType.Native, data.GetRect() );
+
+      switch ( Event.current.GetTypeForControl( controlID ) ) {
+        case EventType.MouseDown:
+          if ( data.GetRect().Contains( Event.current.mousePosition ) ) {
+            GUIUtility.hotControl = controlID;
+            Event.current.Use();
+          }
+          break;
+
+        case EventType.MouseUp:
+          if ( GUIUtility.hotControl == controlID ) {
+            GUIUtility.hotControl = 0;
+            Event.current.Use();
+          }
+          break;
+
+        case EventType.MouseDrag:
+          if ( GUIUtility.hotControl == controlID )
+            Event.current.Use();
+          break;
+
+        case EventType.ScrollWheel:
+          if ( data.GetRect().Contains( Event.current.mousePosition ) )
+            Event.current.Use();
+          break;
+      }
     }
   }
 }

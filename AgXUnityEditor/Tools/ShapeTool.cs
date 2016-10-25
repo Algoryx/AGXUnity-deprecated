@@ -16,9 +16,13 @@ namespace AgXUnityEditor.Tools
       set
       {
         if ( value && GetChild<ShapeResizeTool>() == null ) {
-          ShapeResizeTool shapeResizeTool = new ShapeResizeTool( Shape );
-          shapeResizeTool.ActivateKey.HideDefaultHandlesWhenIsDown = true;
+          ShapeResizeTool shapeResizeTool                                = new ShapeResizeTool( Shape );
+          shapeResizeTool.ActivateKey.HideDefaultHandlesWhenIsDown       = true;
+          shapeResizeTool.SymmetricScaleKey.HideDefaultHandlesWhenIsDown = true;
+          shapeResizeTool.RemoveOnKeyEscape                              = true;
+
           AddChild( shapeResizeTool );
+
           Manager.RequestSceneViewFocus();
         }
         else if ( !value )
