@@ -26,6 +26,19 @@ namespace AgXUnity
   public class Constraint : ScriptComponent
   {
     /// <summary>
+    /// Controller type used to find controllers in a constraint. 'Primary'
+    /// can be used for all constraints with controllers except Cylindrical joint.
+    /// The Cylindrical joint has two of each controller. One along the translational
+    /// axis and one along the rotational.
+    /// </summary>
+    public enum ControllerType
+    {
+      Primary = 0,
+      Translational = 1,
+      Rotational = 2
+    }
+
+    /// <summary>
     /// Create a new constraint component given constraint type.
     /// </summary>
     /// <param name="type">Type of constraint.</param>
@@ -151,6 +164,18 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Draw gizmos flag - paired with DrawGizmosEnable.
+    /// </summary>
+    [SerializeField]
+    private bool m_drawGizmosEnable = true;
+
+    /// <summary>
+    /// Enable/disable gizmos drawing of this constraint. Enabled by default.
+    /// </summary>
+    [HideInInspector]
+    public bool DrawGizmosEnable { get { return m_drawGizmosEnable; } set { m_drawGizmosEnable = value; } }
+
+    /// <summary>
     /// Type of the native instance constructed from agxDotNet.dll and current ConstraintType.
     /// </summary>
     public Type NativeType { get { return System.Type.GetType( "agx." + m_type + ", agxDotNet" ); } }
@@ -192,16 +217,25 @@ namespace AgXUnity
     }
 
     /// <summary>
-    /// Draw gizmos flag - paired with DrawGizmosEnable.
+    /// Find controller of given type and dimension. Asking for the controller of a
+    /// hinge and a prismatic with <paramref name="controllerType"/> == Primary will
+    /// always be valid. The same with <paramref name="controllerType"/> == Rotational
+    /// and the prismatic controller will be null, since it's Translational.
     /// </summary>
-    [SerializeField]
-    private bool m_drawGizmosEnable = true;
+    /// <typeparam name="T">Type of the controller.</typeparam>
+    /// <param name="controllerType">Working dimension of the controller. Primary for "first".</param>
+    /// <returns>Controller of given type and working dimension - if present, otherwise null.</returns>
+    public T GetController<T>( ControllerType controllerType = ControllerType.Primary ) where T : ElementaryConstraintController
+    {
+      var controllers = GetElementaryConstraintControllers();
+      for ( int i = 0; i < controllers.Length; ++i ) {
+        T controller = controllers[ i ].As<T>( controllerType );
+        if ( controller != null )
+          return controller;
+      }
 
-    /// <summary>
-    /// Enable/disable gizmos drawing of this constraint. Enabled by default.
-    /// </summary>
-    [HideInInspector]
-    public bool DrawGizmosEnable { get { return m_drawGizmosEnable; } set { m_drawGizmosEnable = value; } }
+      return null;
+    }
 
     /// <summary>
     /// Creates native instance and adds it to the simulation if this constraint
