@@ -23,6 +23,8 @@ namespace AgXUnityEditor.Tools
 
     public Utils.KeyHandler SelectGameObjectKeyHandler { get { return EditorSettings.Instance.BuiltInToolsTool_SelectGameObjectKeyHandler; } }
 
+    public Utils.KeyHandler SelectRigidBodyKeyHandler { get { return EditorSettings.Instance.BuiltInToolsTool_SelectRigidBodyKeyHandler; } }
+
     public PickHandlerTool PickHandler
     {
       get { return GetChild<PickHandlerTool>(); }
@@ -47,6 +49,15 @@ namespace AgXUnityEditor.Tools
             !current.alt;
     }
 
+    public bool SelectRigidBodyTrigger( Event current, SceneView sceneView )
+    {
+      return SelectRigidBodyKeyHandler.IsDown &&
+             EditorWindow.mouseOverWindow == sceneView &&
+            !current.control &&
+            !current.shift &&
+            !current.alt;
+    }
+
     public bool PickHandlerTrigger( Event current, SceneView sceneView )
     {
       return EditorApplication.isPlaying &&
@@ -63,6 +74,7 @@ namespace AgXUnityEditor.Tools
     public BuiltInToolsTool()
     {
       AddKeyHandler( "SelectObject", SelectGameObjectKeyHandler );
+      AddKeyHandler( "SelectRigidBody", SelectRigidBodyKeyHandler );
       AddKeyHandler( "PickHandler", PickHandlerKeyHandler );
     }
 
@@ -82,9 +94,16 @@ namespace AgXUnityEditor.Tools
       // Assigning 'selectedObjects' to 'Selection.objects' doesn't
       // trigger onSelectionChanged (desired behavior).
       UnityEngine.Object[] selectedObjects = Selection.objects;
+      bool selectRigidBodyMode = SelectRigidBodyTrigger( current, sceneView );
       for ( int i = 0; i < selectedObjects.Length; ++i ) {
         // TODO: Key combo to select bodies etc.
-        selectedObjects[ i ] = Manager.RouteObject( selectedObjects[ i ] );
+        UnityEngine.Object routedObject = Manager.RouteObject( selectedObjects[ i ] );
+        AgXUnity.RigidBody rigidBody = selectRigidBodyMode &&
+                                       routedObject != null &&
+                                       routedObject is GameObject ?
+                                         ( routedObject as GameObject ).GetComponentInParent<AgXUnity.RigidBody>() :
+                                         null;
+        selectedObjects[ i ] = rigidBody != null ? rigidBody.gameObject : routedObject;
       }
       Selection.objects = selectedObjects;
 

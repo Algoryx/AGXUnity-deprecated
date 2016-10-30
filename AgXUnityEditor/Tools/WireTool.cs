@@ -54,7 +54,7 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    public override void OnInspectorGUI( GUISkin skin )
+    public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       //const char addNodesToolSymbol = '\u260D';
 

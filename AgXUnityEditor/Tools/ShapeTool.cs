@@ -43,7 +43,7 @@ namespace AgXUnityEditor.Tools
     {
     }
 
-    public override void OnInspectorGUI( GUISkin skin )
+    public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       bool guiWasEnabled               = UnityEngine.GUI.enabled;
       const char shapeResizeToolSymbol = '\u21C4';

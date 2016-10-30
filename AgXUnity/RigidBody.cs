@@ -1,4 +1,5 @@
-﻿using AgXUnity.Utils;
+﻿using System;
+using AgXUnity.Utils;
 using AgXUnity.Collide;
 using UnityEngine;
 
@@ -173,34 +174,37 @@ namespace AgXUnity
     /// Get native instance, if initialized.
     /// </summary>
     public agx.RigidBody Native { get { return m_rb; } }
-
-    /// <summary>
-    /// Magic property making it possible to assign shape materials
-    /// through the inspector/editor.
-    /// </summary>
-    public ShapeMaterial AssignMaterialToAllShapes
-    {
-      get { return null; }
-      set
-      {
-        Shape[] shapes = GetComponentsInChildren<Shape>();
-        foreach ( Shape shape in shapes )
-          shape.Material = value;
-      }
-    }
     #endregion
 
     #region Public Methods
+    /// <summary>
+    /// Updates mass properties script asset with current mass, inertia etc.
+    /// </summary>
     public void UpdateMassProperties()
     {
-      // If we have a native instance we can assume the geometries to be
-      // synchronized (added, correct position etc).
-      if ( m_rb != null ) {
-        m_rb.updateMassProperties();
-        MassProperties.SetDefaultCalculated( m_rb );
-      }
-      // The native instance hasn't been created yet - create temporary
-      // body with temporary geometries/shapes.
+      PeekTemporaryNativeOrGetNative( ( rb, isTemp ) =>
+      {
+        if ( !isTemp )
+          rb.updateMassProperties();
+
+        MassProperties.SetDefaultCalculated( rb );
+      } );
+    }
+
+    /// <summary>
+    /// Peek at a temporary native instance or the current (if initialized).
+    /// </summary>
+    /// <param name="callback">Callback with temporary or already initialized native instance. Callback signature ( nativeRb, isTemporary ).</param>
+    /// <remarks>
+    /// Always assume the native instance to be temporary. It's never safe to cache an instance to the native object.
+    /// </remarks>
+    public void PeekTemporaryNativeOrGetNative( Action<agx.RigidBody, bool> callback )
+    {
+      if ( callback == null )
+        return;
+
+      if ( m_rb != null )
+        callback( m_rb, false );
       else {
         Shape[] shapes = GetComponentsInChildren<Shape>();
 
@@ -215,7 +219,11 @@ namespace AgXUnity
             }
           }
 
-          MassProperties.SetDefaultCalculated( rb );
+          // For center of mass position/rotation to be correct we have to
+          // synchronize the native transform given current game object transform.
+          SyncNativeTransform( rb );
+
+          callback( rb, true );
 
           // Hitting "Update" (mass or inertia in the Inspector) several times
           // will crash agx if we don't remove the geometries and shapes.
@@ -238,7 +246,7 @@ namespace AgXUnity
       m_rb = new agx.RigidBody();
       m_rb.setName( name );
 
-      SyncNativeTransform();
+      SyncNativeTransform( m_rb );
 
       SyncShapes();
 
@@ -308,13 +316,13 @@ namespace AgXUnity
       m_angularVelocity = m_rb.getAngularVelocity().ToHandedVector3();
     }
 
-    private void SyncNativeTransform()
+    private void SyncNativeTransform( agx.RigidBody nativeRb )
     {
-      if ( m_rb == null )
+      if ( nativeRb == null )
         return;
 
-      m_rb.setPosition( transform.position.ToHandedVec3() );
-      m_rb.setRotation( transform.rotation.ToHandedQuat() );
+      nativeRb.setPosition( transform.position.ToHandedVec3() );
+      nativeRb.setRotation( transform.rotation.ToHandedQuat() );
     }
 
     private void VerifyConfiguration()

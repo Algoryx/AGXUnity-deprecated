@@ -127,7 +127,7 @@ namespace AgXUnityEditor.Tools
 
       if ( m_mode == Mode.RigidBody ) {
         if ( Manager.HijackLeftMouseClick() ) {
-          Predicate<GameObject> filter = m_subMode == SubMode.None            ? new Predicate<GameObject>( obj => { return obj != null && obj.GetComponent<AgXUnity.Collide.Shape>() == null && obj.GetComponentInParent<RigidBody>() == null; } ) :
+          Predicate<GameObject> filter = m_subMode == SubMode.None            ? new Predicate<GameObject>( obj => { return obj != null && obj.GetComponent<AgXUnity.Collide.Shape>() == null; } ) :
                                          m_subMode == SubMode.SelectRigidBody ? new Predicate<GameObject>( obj => { return obj != null && obj.GetComponentInParent<RigidBody>() != null; } ) :
                                                                                 null;
 
@@ -183,7 +183,7 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    public override void OnInspectorGUI( GUISkin skin )
+    public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       // TODO: Improvements.
       //   - "Copy-paste" shape.
@@ -238,7 +238,7 @@ namespace AgXUnityEditor.Tools
     {
       GUI.Separator3D();
 
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
+      using ( GUI.AlignBlock.Center ) {
         if ( m_subMode == SubMode.SelectRigidBody )
           GUILayout.Label( GUI.MakeLabel( "Select rigid body object in scene view.", true ), skin.label );
         else
@@ -247,15 +247,20 @@ namespace AgXUnityEditor.Tools
 
       GUI.Separator();
 
+      bool selectionHasRigidBody = m_selection.Find( entry => entry.Object.GetComponentInParent<RigidBody>() != null ) != null;
+
       bool createNewRigidBodyPressed = false;
       bool addToExistingRigidBodyPressed = false;
+      bool moveToNewRigidBodyPressed = false;
       GUILayout.BeginHorizontal();
       {
         GUILayout.Space( 12 );
-        UnityEngine.GUI.enabled = m_selection.Count > 0;
+        UnityEngine.GUI.enabled = m_selection.Count > 0 && !selectionHasRigidBody;
         createNewRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Create new", false, "Create new rigid body with selected objects" ), skin.button, GUILayout.Width( 78 ) );
         UnityEngine.GUI.enabled = m_selection.Count > 0 && Assembly.GetComponentInChildren<RigidBody>() != null;
         addToExistingRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Add to existing", false, "Add selected objects to existing rigid body" ), GUI.ConditionalCreateSelectedStyle( m_subMode == SubMode.SelectRigidBody, skin.button ), GUILayout.Width( 100 ) );
+        UnityEngine.GUI.enabled = selectionHasRigidBody;
+        moveToNewRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Move to new", false, "Move objects that already contains a rigid body to a new rigid body" ), skin.button, GUILayout.Width( 85 ) );
         UnityEngine.GUI.enabled = true;
       }
       GUILayout.EndHorizontal();
@@ -263,7 +268,7 @@ namespace AgXUnityEditor.Tools
       GUI.Separator3D();
 
       // Creates new rigid body and move selected objects to it (as children).
-      if ( createNewRigidBodyPressed ) {
+      if ( createNewRigidBodyPressed || moveToNewRigidBodyPressed ) {
         CreateOrMoveToRigidBodyFromSelectionEntries( m_selection );
         m_selection.Clear();
       }
@@ -285,7 +290,7 @@ namespace AgXUnityEditor.Tools
     {
       GUI.Separator3D();
 
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
+      using ( GUI.AlignBlock.Center ) {
         GUILayout.Label( GUI.MakeLabel( "Select object(s) in scene view.", true ), skin.label );
       }
 
@@ -399,7 +404,7 @@ namespace AgXUnityEditor.Tools
 
       GUI.Separator3D();
 
-      attachmentPairTool.OnInspectorGUI( skin );
+      attachmentPairTool.OnPreTargetMembersGUI( skin );
 
       m_createConstraintData.CollisionState = ConstraintTool.ConstraintCollisionsStateGUI( m_createConstraintData.CollisionState, skin );
 
@@ -452,10 +457,6 @@ namespace AgXUnityEditor.Tools
       foreach ( var selection in selectionEntries ) {
         if ( selection.Object == null ) {
           Debug.LogError( "Unable to create rigid body - selection contains null object(s)." );
-          return;
-        }
-        else if ( selection.Object.GetComponentInParent<RigidBody>() != null ) {
-          Debug.LogError( "Unable to create rigid body - selected object already part of a rigid body.", selection.Object );
           return;
         }
       }

@@ -39,9 +39,13 @@ namespace AgXUnityEditor.Utils
     {
       public enum Alignment { Left, Center, Right };
 
+      public static AlignBlock Left { get { return new AlignBlock( Alignment.Left ); } }
+      public static AlignBlock Center { get { return new AlignBlock( Alignment.Center ); } }
+      public static AlignBlock Right { get { return new AlignBlock( Alignment.Right ); } }
+
       private Alignment m_alignment = Alignment.Center;
 
-      public AlignBlock( Alignment alignment )
+      private AlignBlock( Alignment alignment )
       {
         m_alignment = alignment;
 
@@ -141,11 +145,20 @@ namespace AgXUnityEditor.Utils
         Tools.Tool.RemoveActiveTool();
     }
 
+    private enum TargetToolGUICallbackType
+    {
+      Pre,
+      Post
+    }
+
     public static void PreTargetMembers<T>( T target, GUISkin skin ) where T : class
     {
-      var targetTool = Tools.Tool.GetActiveTool( target );
-      if ( targetTool != null )
-        OnToolInspectorGUI( targetTool, target, skin );
+      OnToolInspectorGUI( target, skin, TargetToolGUICallbackType.Pre );
+    }
+
+    public static void PostTargetMembers<T>( T target, GUISkin skin ) where T : class
+    {
+      OnToolInspectorGUI( target, skin, TargetToolGUICallbackType.Post );
     }
 
     public static string AddColorTag( string str, Color color )
@@ -321,7 +334,7 @@ namespace AgXUnityEditor.Utils
         Tools.FrameTool frameTool = null;
         if ( includeFrameToolIfPresent && ( frameTool = Tools.FrameTool.FindActive( frame ) ) != null )
           using ( new Indent( 12 ) )
-            frameTool.OnInspectorGUI( skin );
+            frameTool.OnPreTargetMembersGUI( skin );
       }
     }
 
@@ -432,13 +445,16 @@ namespace AgXUnityEditor.Utils
       return selected ? CreateSelectedStyle( orgStyle ) : orgStyle;
     }
 
-    public static void OnToolInspectorGUI( Tools.Tool tool, object target, GUISkin skin )
+    private static void OnToolInspectorGUI( object target, GUISkin skin, TargetToolGUICallbackType callbackType )
     {
-      if ( tool != null ) {
-        tool.OnInspectorGUI( skin );
-        //if ( target is UnityEngine.Object )
-        //  EditorUtility.SetDirty( target as UnityEngine.Object );
-      }
+      var targetTool = Tools.Tool.GetActiveTool( target );
+      if ( targetTool == null )
+        return;
+
+      if ( callbackType == TargetToolGUICallbackType.Pre )
+        targetTool.OnPreTargetMembersGUI( skin );
+      else if ( callbackType == TargetToolGUICallbackType.Post )
+        targetTool.OnPostTargetMembersGUI( skin );
     }
   }
 }

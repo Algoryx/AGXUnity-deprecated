@@ -108,6 +108,9 @@ namespace AgXUnityEditor
                     select methodInfo;
       methods.ToList().ForEach( methodInfo => changed = HandleMethod( methodInfo, target ) || changed );
 
+      if ( obj == target )
+        Utils.GUI.PostTargetMembers( target, CurrentSkin );
+
       return changed;
     }
 

@@ -27,7 +27,7 @@ namespace AgXUnityEditor.Tools
       base.OnRemove();
     }
 
-    public override void OnInspectorGUI( GUISkin skin )
+    public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       // Possible undo performed that deleted the constraint. Remove us.
       if ( Constraint == null ) {
@@ -39,7 +39,7 @@ namespace AgXUnityEditor.Tools
       GUI.Separator();
 
       // Render ConstraintAttachmentPair GUI.
-      base.OnInspectorGUI( skin );
+      base.OnPreTargetMembersGUI( skin );
 
       GUI.Separator();
 

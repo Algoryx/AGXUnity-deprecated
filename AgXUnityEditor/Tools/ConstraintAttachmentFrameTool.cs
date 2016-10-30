@@ -41,7 +41,7 @@ namespace AgXUnityEditor.Tools
       OnChangeDirtyTarget = null;
     }
 
-    public override void OnInspectorGUI( GUISkin skin )
+    public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       if ( AttachmentPair == null ) {
         PerformRemoveFromParent();

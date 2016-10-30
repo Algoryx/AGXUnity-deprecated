@@ -385,7 +385,9 @@ namespace AgXUnityEditor.Tools
 
     public virtual void OnSceneViewGUI( SceneView sceneView ) { }
 
-    public virtual void OnInspectorGUI( GUISkin skin ) { }
+    public virtual void OnPreTargetMembersGUI( GUISkin skin ) { }
+
+    public virtual void OnPostTargetMembersGUI( GUISkin skin ) { }
 
     public virtual void OnAdd() { }
 

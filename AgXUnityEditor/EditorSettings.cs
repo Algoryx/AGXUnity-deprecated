@@ -37,31 +37,33 @@ namespace AgXUnityEditor
 
     #region BuiltInToolsTool settings
     public Utils.KeyHandler BuiltInToolsTool_SelectGameObjectKeyHandler = new Utils.KeyHandler( KeyCode.S );
+    public Utils.KeyHandler BuiltInToolsTool_SelectRigidBodyKeyHandler = new Utils.KeyHandler( KeyCode.B );
     public Utils.KeyHandler BuiltInToolsTool_PickHandlerKeyHandler = new Utils.KeyHandler( KeyCode.A );
     #endregion BuiltInToolsTool settings
 
     #region Rendering GUI
     public void OnInspectorGUI( GUISkin skin )
     {
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+      using ( GUI.AlignBlock.Center )
         GUILayout.Label( GUI.MakeLabel( "AgXUnity Editor Settings", 24, true ), skin.label );
 
       GUI.Separator3D();
 
       // Debug render manager.
       {
-        using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+        using ( GUI.AlignBlock.Center )
           GUILayout.Label( GUI.MakeLabel( "Debug render manager", 16, true ), skin.label );
       }
 
       // BuiltInToolsTool settings GUI.
       {
-        using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+        using ( GUI.AlignBlock.Center )
           GUILayout.Label( GUI.MakeLabel( "Built in tools", 16, true ), skin.label );
 
         GUI.Separator();
 
         HandleKeyHandlerGUI( GUI.MakeLabel( "Select game object" ), BuiltInToolsTool_SelectGameObjectKeyHandler, skin );
+        HandleKeyHandlerGUI( GUI.MakeLabel( "Select rigid body game object" ), BuiltInToolsTool_SelectGameObjectKeyHandler, skin );
         HandleKeyHandlerGUI( GUI.MakeLabel( "Pick handler (scene view)" ), BuiltInToolsTool_PickHandlerKeyHandler, skin );
       }
 

@@ -78,7 +78,7 @@ namespace AgXUnityEditor
   {
     protected override bool OverrideOnInspectorGUI( EditorData target, GUISkin skin )
     {
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+      using ( GUI.AlignBlock.Center )
         GUILayout.Label( GUI.MakeLabel( "Editor data", 18, true ), skin.label );
 
       GUI.Separator3D();
@@ -109,7 +109,7 @@ namespace AgXUnityEditor
 
       GUI.Separator();
       using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.25f ) ) )
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
+      using ( GUI.AlignBlock.Center ) {
         if ( GUILayout.Button( GUI.MakeLabel( "Collect garbage" ), skin.button, GUILayout.Width( 110 ) ) )
           target.GC();
       }
