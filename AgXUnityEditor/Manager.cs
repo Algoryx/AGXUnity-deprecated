@@ -318,6 +318,18 @@ namespace AgXUnityEditor
 
         m_currentSceneName = scene.name;
 
+        // Verifies so that our shapes doesn't have multiple debug rendering components.
+        AgXUnity.Collide.Shape[] shapes = UnityEngine.Object.FindObjectsOfType<AgXUnity.Collide.Shape>();
+        foreach ( var shape in shapes ) {
+          AgXUnity.Rendering.ShapeDebugRenderData[] data = shape.GetComponents<AgXUnity.Rendering.ShapeDebugRenderData>();
+          if ( data.Length > 1 ) {
+            Debug.Log( "Shape has several ShapeDebugRenderData. Removing/resetting.", shape );
+            foreach ( var instance in data )
+              Component.DestroyImmediate( instance );
+            data = null;
+          }
+        }
+
         // There shouldn't be any MassProperties components since we've
         // changed them to be ScriptAssets.
         AgXUnity.RigidBody[] bodies = UnityEngine.Object.FindObjectsOfType<AgXUnity.RigidBody>();
