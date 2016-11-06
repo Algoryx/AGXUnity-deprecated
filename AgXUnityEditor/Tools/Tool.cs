@@ -465,11 +465,15 @@ namespace AgXUnityEditor.Tools
 
     protected T GetVisualPrimitive<T>( string name ) where T : Utils.VisualPrimitive
     {
-      Utils.VisualPrimitive primitive = null;
       // C-cast style cast to throw if the type isn't matching.
-      if ( m_visualPrimitives.TryGetValue( name, out primitive ) )
-        return (T)primitive;
+      return (T)GetVisualPrimitive( name );
+    }
 
+    protected Utils.VisualPrimitive GetVisualPrimitive( string name )
+    {
+      Utils.VisualPrimitive primitive = null;
+      if ( m_visualPrimitives.TryGetValue( name, out primitive ) )
+        return primitive;
       return null;
     }
 
@@ -484,7 +488,8 @@ namespace AgXUnityEditor.Tools
 
     protected void RemoveVisualPrimitive( Utils.VisualPrimitive primitive )
     {
-      RemoveVisualPrimitive( m_visualPrimitives.First( kvp => kvp.Value == primitive ).Key );
+      if ( m_visualPrimitives.ContainsValue( primitive ) )
+        RemoveVisualPrimitive( m_visualPrimitives.First( kvp => kvp.Value == primitive ).Key );
     }
 
     protected void AddKeyHandler( string name, Utils.KeyHandler keyHandler )

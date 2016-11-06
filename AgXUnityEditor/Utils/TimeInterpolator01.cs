@@ -48,17 +48,6 @@ namespace AgXUnityEditor.Utils
 
       m_goingUp = Time > 1f || Time < 0f ? !m_goingUp : m_goingUp;
       Time      = Mathf.Clamp01( Time );
-
-      //m_t += Mathf.Max( Mathf.Abs( m_t ), 0.5f ) * m_v * dt;
-
-      //if ( m_t >= 1f ) {
-      //  m_t = 1f;
-      //  m_v = -6f;
-      //}
-      //else if ( m_t <= 0f ) {
-      //  m_t = 0f;
-      //  m_v = 1.5f;
-      //}
     }
   }
 }

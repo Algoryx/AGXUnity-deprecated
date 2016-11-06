@@ -143,9 +143,7 @@ namespace AgXUnityEditor.Tools
         dofTypes = AgXUnity.PickHandler.DofTypes.Translation | AgXUnity.PickHandler.DofTypes.Rotation;
       }
       // Right mouse button = angular lock?
-      else {
-        Debug.Assert( current.button == 1 );
-
+      else if ( current.button == 1 ) {
         current.Use();
 
         removePredicate = ( e ) => { return e.type == EventType.MouseUp && e.button == 1; };

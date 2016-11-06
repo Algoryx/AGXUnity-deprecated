@@ -224,12 +224,15 @@ namespace AgXUnityEditor.Tools
 
     private void HandleConstraintControllerGUI( ElementaryConstraintController controller, GUISkin skin )
     {
-      if ( GUI.Foldout( Selected( SelectedFoldout.Controller, ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( ConstraintUtils.FindName( controller ), true ), skin ) ) {
+      var controllerType = controller.GetControllerType();
+      string dimString = "[" + GUI.AddColorTag( controllerType.ToString().Substring( 0, 1 ),
+                                                controllerType == Constraint.ControllerType.Rotational ?
+                                                  Color.Lerp( UnityEngine.GUI.color, Color.red, 0.75f ) :
+                                                  Color.Lerp( UnityEngine.GUI.color, Color.green, 0.75f ) ) + "] ";
+      if ( GUI.Foldout( Selected( SelectedFoldout.Controller, ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( dimString + ConstraintUtils.FindName( controller ), true ), skin ) ) {
         using ( new GUI.Indent( 12 ) ) {
-          //GUILayout.Toggle( controller.Enable, GUI.MakeLabel( "Enable", controller.Enable ), skin.toggle );
           controller.Enable = GUI.Toggle( GUI.MakeLabel( "Enable", controller.Enable ), controller.Enable, skin.button, skin.label );
-          //using ( new GUI.Indent( 20 ) )
-            BaseEditor<ElementaryConstraint>.Update( controller, skin );
+          BaseEditor<ElementaryConstraint>.Update( controller, skin );
         }
       }
     }

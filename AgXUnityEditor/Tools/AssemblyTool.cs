@@ -1,11 +1,12 @@
 ﻿using System;
-using System.Threading;
+using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using AgXUnity;
 using AgXUnity.Utils;
 using GUI = AgXUnityEditor.Utils.GUI;
+using Assembly = AgXUnity.Assembly;
 
 namespace AgXUnityEditor.Tools
 {
@@ -92,6 +93,16 @@ namespace AgXUnityEditor.Tools
     private Color m_mouseOverColor    = new Color( 0.55f, 0.65f, 0.95f, 0.15f );
     private Color m_mouseOverMaxColor = new Color( 0.15f, 0.25f, 0.25f, 0.15f );
 
+    private ShapeCreateTool ShapeCreateTool
+    {
+      get { return GetChild<ShapeCreateTool>(); }
+      set
+      {
+        RemoveChild( GetChild<ShapeCreateTool>() );
+        AddChild( value );
+      }
+    }
+
     public Assembly Assembly { get; private set; }
 
     public AssemblyTool( Assembly assembly )
@@ -131,7 +142,10 @@ namespace AgXUnityEditor.Tools
                                          m_subMode == SubMode.SelectRigidBody ? new Predicate<GameObject>( obj => { return obj != null && obj.GetComponentInParent<RigidBody>() != null; } ) :
                                                                                 null;
 
-          Debug.Assert( filter != null );
+          if ( filter == null ) {
+            Debug.LogError( "Unknown sub-mode in assembly tool.", Assembly );
+            return;
+          }
 
           var hitResults = Raycast.TestChildren( Assembly.gameObject, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ), 500f, filter );
           if ( hitResults.Count > 0 ) {
@@ -158,22 +172,7 @@ namespace AgXUnityEditor.Tools
         }
       }
       else if ( m_mode == Mode.Shape ) {
-        if ( Manager.HijackLeftMouseClick() ) {
-          var hitResults = Raycast.TestChildren( Assembly.gameObject, HandleUtility.GUIPointToWorldRay( Event.current.mousePosition ) );
-
-          // Find target. Ignoring shapes.
-          GameObject selected = null;
-          for ( int i = 0; selected == null && i < hitResults.Count; ++i ) {
-            if ( hitResults[ i ].Triangle.Target.GetComponent<AgXUnity.Collide.Shape>() == null )
-              selected = hitResults[ i ].Triangle.Target;
-          }
-
-          m_selection.Clear();
-          if ( selected != null )
-            m_selection.Add( new SelectionEntry( selected ) );
-
-          EditorUtility.SetDirty( Assembly );
-        }
+        // ShapeCreateTool on scene view handles this.
       }
       else if ( m_mode == Mode.Constraint ) {
         if ( m_createConstraintData.AttachmentPair == null ) {
@@ -288,93 +287,14 @@ namespace AgXUnityEditor.Tools
 
     private void HandleModeShapeGUI( GUISkin skin )
     {
-      GUI.Separator3D();
-
-      using ( GUI.AlignBlock.Center ) {
-        GUILayout.Label( GUI.MakeLabel( "Select object(s) in scene view.", true ), skin.label );
-      }
-
-      GUI.Separator();
-
-      bool createBoxPressed      = false;
-      bool createCylinderPressed = false;
-      bool createCapsulePressed  = false;
-      bool createSpherePressed   = false;
-      bool createMeshPressed     = false;
-      GUILayout.BeginHorizontal();
-      {
-        GUILayout.Space( 12 );
-        UnityEngine.GUI.enabled = m_selection.Count > 0;
-        using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.red, 0.1f ) ) ) {
-          createBoxPressed      = GUILayout.Button( GUI.MakeLabel( "Box", true, "Create new box as parent of the selected object(s)." ),      skin.button, GUILayout.Width( 36 ), GUI.ToolButtonData.Height );
-          createCylinderPressed = GUILayout.Button( GUI.MakeLabel( "Cyl", true, "Create new cylinder as parent of the selected object(s)." ), skin.button, GUILayout.Width( 36 ), GUI.ToolButtonData.Height );
-          createCapsulePressed  = GUILayout.Button( GUI.MakeLabel( "Cap", true, "Create new capsule as parent of the selected object(s)." ),  skin.button, GUILayout.Width( 36 ), GUI.ToolButtonData.Height );
-          createSpherePressed   = GUILayout.Button( GUI.MakeLabel( "Sph", true, "Create new sphere as parent of the selected object(s)." ),   skin.button, GUILayout.Width( 36 ), GUI.ToolButtonData.Height );
-          createMeshPressed     = GUILayout.Button( GUI.MakeLabel( "Mes", true, "Create new mesh as parent of the selected object(s)." ),     skin.button, GUILayout.Width( 36 ), GUI.ToolButtonData.Height );
-        }
-      }
-      GUILayout.EndHorizontal();
-
-      // Bounds.Encapsulate!
-
-      if ( createBoxPressed ) {
-        CreateShapeFromSelection<AgXUnity.Collide.Box>( m_selection, ( box, data ) =>
-        {
-          box.HalfExtents = data.LocalExtents;
-          data.SetDefaultPositionRotation( box.gameObject );
-        } );
-      }
-      if ( createCylinderPressed ) {
-        CreateShapeFromSelection<AgXUnity.Collide.Cylinder>( m_selection, ( cylinder, data ) =>
-        {
-          // Height is the longest extent.
-          cylinder.Height = 2f * data.LocalExtents.MaxValue();
-          // Radius is the middle (second longest) extent.
-          cylinder.Radius = data.LocalExtents.MiddleValue();
-
-          // Axis along "height" = longest extent (max index).
-          Vector3 axis = Vector3.zero;
-          axis[ data.LocalExtents.MaxIndex() ] = 1f;
-
-          cylinder.transform.position = data.WorldCenter;
-          cylinder.transform.rotation = data.Rotation * Quaternion.FromToRotation( Vector3.up, axis ).Normalize();
-        } );
-      }
-      if ( createCapsulePressed ) {
-        CreateShapeFromSelection<AgXUnity.Collide.Capsule>( m_selection, ( capsule, data ) =>
-        {
-          // Height is the longest extent.
-          capsule.Height = 2f * data.LocalExtents.MaxValue();
-          // Radius is the middle (second longest) extent.
-          capsule.Radius = data.LocalExtents.MiddleValue();
-
-          // Axis along "height" = longest extent (max index).
-          Vector3 axis = Vector3.zero;
-          axis[ data.LocalExtents.MaxIndex() ] = 1f;
-
-          capsule.transform.position = data.WorldCenter;
-          capsule.transform.rotation = data.Rotation * Quaternion.FromToRotation( Vector3.up, axis ).Normalize();
-        } );
-      }
-      if ( createSpherePressed ) {
-        CreateShapeFromSelection<AgXUnity.Collide.Sphere>( m_selection, ( sphere, data ) =>
-        {
-          sphere.Radius = data.LocalExtents.magnitude;
-          data.SetDefaultPositionRotation( sphere.gameObject );
-        } );
-      }
-      if ( createMeshPressed ) {
-        CreateShapeFromSelection<AgXUnity.Collide.Mesh>( m_selection, ( mesh, data ) =>
-        {
-          mesh.SourceObject = data.Filter.sharedMesh;
-          // We don't want to set the position given the center of the bounds
-          // since we're one-to-one with the mesh filter.
-          mesh.transform.position = data.Filter.transform.position;
-          mesh.transform.rotation = data.Filter.transform.rotation;
-        } );
+      if ( ShapeCreateTool == null ) {
+        ChangeMode( Mode.None );
+        return;
       }
 
       GUI.Separator3D();
+
+      ShapeCreateTool.OnInspectorGUI( skin );
     }
 
     private void HandleModeConstraintGUI( GUISkin skin )
@@ -492,57 +412,6 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    struct ShapeInitializationData
-    {
-      public Bounds LocalBounds;
-      public Vector3 LocalExtents;
-      public Vector3 WorldCenter;
-      public Quaternion Rotation;
-      public MeshFilter Filter;
-
-      public void SetDefaultPositionRotation( GameObject gameObject )
-      {
-        gameObject.transform.position = WorldCenter;
-        gameObject.transform.rotation = Rotation;
-      }
-    }
-
-    GameObject CreateShapeFromSelection<T>( List<SelectionEntry> selectionEntries, Action<T, ShapeInitializationData> initializeAction ) where T : AgXUnity.Collide.Shape
-    {
-      Debug.Assert( selectionEntries != null && selectionEntries.Count == 1 );
-
-      MeshFilter filter = selectionEntries[ 0 ].Object.GetComponent<MeshFilter>();
-
-      Debug.Assert( filter != null );
-      Debug.Assert( initializeAction != null );
-
-      GameObject shapeGameObject = Factory.Create<T>();
-
-      Bounds localBounds = filter.sharedMesh.bounds;
-      initializeAction( shapeGameObject.GetComponent<T>(),
-                        new ShapeInitializationData()
-                        {
-                          LocalBounds  = localBounds,
-                          LocalExtents = filter.transform.InverseTransformDirection( filter.transform.TransformVector( localBounds.extents ) ),
-                          WorldCenter  = filter.transform.TransformPoint( localBounds.center ),
-                          Rotation     = filter.transform.rotation,
-                          Filter       = filter
-                        } );
-
-      Undo.RegisterCreatedObjectUndo( shapeGameObject, "New game object with shape component" );
-      if ( AgXUnity.Rendering.DebugRenderManager.HasInstance )
-        Undo.AddComponent<AgXUnity.Rendering.ShapeDebugRenderData>( shapeGameObject );
-
-      Undo.SetTransformParent( shapeGameObject.transform, filter.transform, "Shape as child to visual" );
-
-      // SetTransformParent assigns some scale given the parent. We're in general not
-      // interested in this scale since it will "un-scale" meshes (and the rest of the
-      // shapes doesn't support scale so...).
-      shapeGameObject.transform.localScale = Vector3.one;
-
-      return shapeGameObject;
-    }
-
     private void ChangeMode( Mode mode )
     {
       // Assembly reference may be lost here when called from OnRemove.
@@ -558,6 +427,9 @@ namespace AgXUnityEditor.Tools
 
       m_mode = mode;
       m_subMode = SubMode.None;
+
+      if ( m_mode == Mode.Shape )
+        ShapeCreateTool = new ShapeCreateTool( Assembly.gameObject );
     }
 
     private void ChangeSubMode( SubMode subMode )

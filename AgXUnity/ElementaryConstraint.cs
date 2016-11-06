@@ -163,6 +163,13 @@ namespace AgXUnity
                null;
     }
 
+    public Constraint.ControllerType GetControllerType()
+    {
+      return IsControllerTypeMatch( Constraint.ControllerType.Translational ) ?
+               Constraint.ControllerType.Translational :
+               Constraint.ControllerType.Rotational;
+    }
+
     private bool IsControllerTypeMatch( Constraint.ControllerType controllerType )
     {
       return controllerType == Constraint.ControllerType.Primary ||

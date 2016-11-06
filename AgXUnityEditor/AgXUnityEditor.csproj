@@ -61,6 +61,7 @@
     <Compile Include="Tools\PickHandlerTool.cs" />
     <Compile Include="Tools\RigidBodyTool.cs" />
     <Compile Include="Tools\SelectGameObjectDropdownMenuTool.cs" />
+    <Compile Include="Tools\ShapeCreateTool.cs" />
     <Compile Include="Tools\ShapeTool.cs" />
     <Compile Include="Tools\WireRouteNodeTool.cs" />
     <Compile Include="Tools\SelectGameObjectTool.cs" />
@@ -73,6 +74,7 @@
     <Compile Include="Utils\GUI.cs" />
     <Compile Include="Utils\KeyHandler.cs" />
     <Compile Include="Utils\ObjectsGizmoColorHandler.cs" />
+    <Compile Include="Utils\ShapeCreateButtons.cs" />
     <Compile Include="Utils\TimeInterpolator01.cs" />
     <Compile Include="Utils\VisualPrimitive.cs" />
     <Compile Include="SceneViewWindow.cs" />
