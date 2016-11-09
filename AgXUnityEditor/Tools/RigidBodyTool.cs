@@ -10,25 +10,115 @@ namespace AgXUnityEditor.Tools
   {
     public RigidBody RigidBody { get; private set; }
 
+    public bool FindTransformGivenPointTool
+    {
+      get { return GetChild<FindPointTool>() != null; }
+      set
+      {
+        if ( value && !FindTransformGivenPointTool ) {
+          RemoveAllChildren();
+
+          var pointTool = new FindPointTool();
+          pointTool.OnPointFound = data =>
+          {
+            Undo.RecordObject( RigidBody.transform, "Rigid body transform" );
+
+            RigidBody.transform.position = data.Triangle.Point;
+            RigidBody.transform.rotation = data.Rotation;
+
+            EditorUtility.SetDirty( RigidBody );
+          };
+
+          AddChild( pointTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<FindPointTool>() );
+      }
+    }
+
+    public bool FindTransformGivenEdgeTool
+    {
+      get { return GetChild<EdgeDetectionTool>() != null; }
+      set
+      {
+        if ( value && !FindTransformGivenEdgeTool ) {
+          RemoveAllChildren();
+
+          var edgeTool = new EdgeDetectionTool();
+          edgeTool.OnEdgeFound = data =>
+          {
+            Undo.RecordObject( RigidBody.transform, "Rigid body transform" );
+
+            RigidBody.transform.position = data.Position;
+            RigidBody.transform.rotation = data.Rotation;
+
+            EditorUtility.SetDirty( RigidBody );
+          };
+
+          AddChild( edgeTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<EdgeDetectionTool>() );
+      }
+    }
+
+    public bool ShapeCreateTool
+    {
+      get { return GetChild<ShapeCreateTool>() != null; }
+      set
+      {
+        if ( value && !ShapeCreateTool ) {
+          RemoveAllChildren();
+
+          var shapeCreateTool = new ShapeCreateTool( RigidBody.gameObject );
+          AddChild( shapeCreateTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<ShapeCreateTool>() );
+      }
+    }
+
     public RigidBodyTool( RigidBody rb )
     {
       RigidBody = rb;
     }
 
-    public override void OnAdd()
-    {
-    }
-
-    public override void OnRemove()
-    {
-    }
-
     public override void OnPreTargetMembersGUI( GUISkin skin )
     {
+      bool toggleFindTransformGivenPoint = false;
+      bool toggleFindTransformGivenEdge  = false;
+      bool toggleShapeCreate             = false;
+
+      GUILayout.BeginHorizontal();
+      {
+        GUI.ToolsLabel( skin );
+        using ( GUI.ToolButtonData.ColorBlock ) {
+          toggleFindTransformGivenPoint = GUI.ToolButton( GUI.Symbols.SelectPointTool, FindTransformGivenPointTool, "Find rigid body transform given point on object.", skin );
+          toggleFindTransformGivenEdge  = GUI.ToolButton( GUI.Symbols.SelectEdgeTool, FindTransformGivenEdgeTool, "Find rigid body transform given edge on object.", skin );
+          toggleShapeCreate             = GUI.ToolButton( GUI.Symbols.ShapeCreateTool, ShapeCreateTool, "Create shape from visual objects", skin );
+        }
+      }
+      GUILayout.EndHorizontal();
+
+      if ( ShapeCreateTool ) {
+        GUI.Separator();
+
+        GetChild<ShapeCreateTool>().OnInspectorGUI( skin );
+      }
+
+      GUI.Separator();
+
       GUILayout.Label( GUI.MakeLabel( "Mass properties", true ), skin.label );
       using ( new GUI.Indent( 12 ) )
         BaseEditor<MassProperties>.Update( RigidBody.MassProperties, skin );
       GUI.Separator();
+
+      if ( toggleFindTransformGivenPoint )
+        FindTransformGivenPointTool = !FindTransformGivenPointTool;
+      if ( toggleFindTransformGivenEdge )
+        FindTransformGivenEdgeTool = !FindTransformGivenEdgeTool;
+      if ( toggleShapeCreate )
+        ShapeCreateTool = !ShapeCreateTool;
     }
 
     public override void OnPostTargetMembersGUI( GUISkin skin )

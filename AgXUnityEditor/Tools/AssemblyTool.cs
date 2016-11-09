@@ -42,10 +42,28 @@ namespace AgXUnityEditor.Tools
 
     private class CreateConstraintData
     {
-      public ConstraintType ConstraintType              = ConstraintType.Hinge;
-      public string Name                                = string.Empty;
-      public ConstraintAttachmentPair AttachmentPair    = null;
-      public Constraint.ECollisionsState CollisionState = Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2;
+      public ConstraintType ConstraintType
+      {
+        get { return (ConstraintType)EditorData.Instance.GetStaticData( "CreateConstraintData.ConstraintType" ).Int; }
+        set { EditorData.Instance.GetStaticData( "CreateConstraintData.ConstraintType" ).Int = (int)value; }
+      }
+
+      private Action<EditorDataEntry> m_defaultCollisionState = new Action<EditorDataEntry>( entry => { entry.Int = (int)Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2; } );
+      public Constraint.ECollisionsState CollisionState
+      {
+        get { return (Constraint.ECollisionsState)EditorData.Instance.GetStaticData( "CreateConstraintData.CollisionState", m_defaultCollisionState ).Int; }
+        set { EditorData.Instance.GetStaticData( "CreateConstraintData.CollisionState", m_defaultCollisionState ).Int = (int)value; }
+      }
+
+      private Action<EditorDataEntry> m_defaultSolveType = new Action<EditorDataEntry>( entry => { entry.Int = (int)Constraint.ESolveType.Direct; } );
+      public Constraint.ESolveType SolveType
+      {
+        get { return (Constraint.ESolveType)EditorData.Instance.GetStaticData( "CreateConstraintData.SolveType", m_defaultSolveType ).Int; }
+        set { EditorData.Instance.GetStaticData( "CreateConstraintData.SolveType", m_defaultSolveType ).Int = (int)value; }
+      }
+
+      public string Name                             = string.Empty;
+      public ConstraintAttachmentPair AttachmentPair = null;
 
       public void CreateInitialState( string name )
       {
@@ -246,21 +264,24 @@ namespace AgXUnityEditor.Tools
 
       GUI.Separator();
 
-      bool selectionHasRigidBody = m_selection.Find( entry => entry.Object.GetComponentInParent<RigidBody>() != null ) != null;
-
-      bool createNewRigidBodyPressed = false;
+      bool selectionHasRigidBody         = m_selection.Find( entry => entry.Object.GetComponentInParent<RigidBody>() != null ) != null;
+      bool createNewRigidBodyPressed     = false;
       bool addToExistingRigidBodyPressed = false;
-      bool moveToNewRigidBodyPressed = false;
+      bool moveToNewRigidBodyPressed     = false;
       GUILayout.BeginHorizontal();
       {
         GUILayout.Space( 12 );
-        UnityEngine.GUI.enabled = m_selection.Count > 0 && !selectionHasRigidBody;
-        createNewRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Create new", false, "Create new rigid body with selected objects" ), skin.button, GUILayout.Width( 78 ) );
-        UnityEngine.GUI.enabled = m_selection.Count > 0 && Assembly.GetComponentInChildren<RigidBody>() != null;
-        addToExistingRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Add to existing", false, "Add selected objects to existing rigid body" ), GUI.ConditionalCreateSelectedStyle( m_subMode == SubMode.SelectRigidBody, skin.button ), GUILayout.Width( 100 ) );
-        UnityEngine.GUI.enabled = selectionHasRigidBody;
-        moveToNewRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Move to new", false, "Move objects that already contains a rigid body to a new rigid body" ), skin.button, GUILayout.Width( 85 ) );
-        UnityEngine.GUI.enabled = true;
+        GUILayout.BeginVertical();
+        {
+          UnityEngine.GUI.enabled = m_selection.Count == 0 || !selectionHasRigidBody;
+          createNewRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Create new" + ( m_selection.Count == 0 ? " (empty)" : "" ), false, "Create new rigid body with selected objects" ), skin.button, GUILayout.Width( 128 ) );
+          UnityEngine.GUI.enabled = m_selection.Count > 0 && Assembly.GetComponentInChildren<RigidBody>() != null;
+          addToExistingRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Add to existing", false, "Add selected objects to existing rigid body" ), GUI.ConditionalCreateSelectedStyle( m_subMode == SubMode.SelectRigidBody, skin.button ), GUILayout.Width( 100 ) );
+          UnityEngine.GUI.enabled = selectionHasRigidBody;
+          moveToNewRigidBodyPressed = GUILayout.Button( GUI.MakeLabel( "Move to new", false, "Move objects that already contains a rigid body to a new rigid body" ), skin.button, GUILayout.Width( 85 ) );
+          UnityEngine.GUI.enabled = true;
+        }
+        GUILayout.EndVertical();
       }
       GUILayout.EndHorizontal();
 
@@ -299,6 +320,7 @@ namespace AgXUnityEditor.Tools
 
     private void HandleModeConstraintGUI( GUISkin skin )
     {
+      // TODO: Move to new tool so that it can be used in RigidBodyTool.
       ConstraintAttachmentFrameTool attachmentPairTool = GetChild<ConstraintAttachmentFrameTool>();
       if ( attachmentPairTool == null || m_createConstraintData.AttachmentPair == null )
         return;
@@ -327,6 +349,7 @@ namespace AgXUnityEditor.Tools
       attachmentPairTool.OnPreTargetMembersGUI( skin );
 
       m_createConstraintData.CollisionState = ConstraintTool.ConstraintCollisionsStateGUI( m_createConstraintData.CollisionState, skin );
+      m_createConstraintData.SolveType = ConstraintTool.ConstraintSolveTypeGUI( m_createConstraintData.SolveType, skin );
 
       GUI.Separator3D();
 

@@ -26,6 +26,16 @@ namespace AgXUnity
   public class Constraint : ScriptComponent
   {
     /// <summary>
+    /// Constraint solve types.
+    /// </summary>
+    public enum ESolveType
+    {
+      Direct,
+      Iterative,
+      DirectAndIterative
+    }
+
+    /// <summary>
     /// Controller type used to find controllers in a constraint. 'Primary'
     /// can be used for all constraints with controllers except Cylindrical joint.
     /// The Cylindrical joint has two of each controller. One along the translational
@@ -161,6 +171,26 @@ namespace AgXUnity
     {
       get { return m_collisionsState; }
       set { m_collisionsState = value; }
+    }
+
+    [SerializeField]
+    private ESolveType m_solveType = ESolveType.Direct;
+
+    /// <summary>
+    /// Solve type of this constraint.
+    /// </summary>
+    [HideInInspector]
+    public ESolveType SolveType
+    {
+      get { return m_solveType; }
+      set
+      {
+        m_solveType = value;
+        if ( Native != null )
+          Native.setSolveType( m_solveType == ESolveType.Direct    ? agx.Constraint.SolveType.DIRECT :
+                               m_solveType == ESolveType.Iterative ? agx.Constraint.SolveType.ITERATIVE :
+                                                                     agx.Constraint.SolveType.DIRECT_AND_ITERATIVE );
+      }
     }
 
     /// <summary>

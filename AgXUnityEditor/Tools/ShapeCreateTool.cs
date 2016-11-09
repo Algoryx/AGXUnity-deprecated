@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,8 +7,6 @@ using AgXUnity;
 using AgXUnity.Collide;
 using AgXUnity.Utils;
 using Mesh = AgXUnity.Collide.Mesh;
-using Assembly = AgXUnity.Assembly;
-using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
 {
@@ -24,7 +21,7 @@ namespace AgXUnityEditor.Tools
       Mesh
     }
 
-    public static GameObject CreateShape<T>( ShapeInitializationData data, Action<T> initializeAction ) where T : Shape
+    public static GameObject CreateShape<T>( ShapeInitializationData data, bool shapeAsParent, Action<T> initializeAction ) where T : Shape
     {
       if ( initializeAction == null ) {
         Debug.LogError( "Unable to create shape without an initializeAction." );
@@ -42,7 +39,13 @@ namespace AgXUnityEditor.Tools
 
       initializeAction( shapeGameObject.GetComponent<T>() );
 
-      Undo.SetTransformParent( shapeGameObject.transform, data.Filter.transform, "Shape as child to visual" );
+      if ( shapeAsParent ) {
+        // New parent to shape is filter current parent.
+        Undo.SetTransformParent( shapeGameObject.transform, data.Filter.transform.parent, "Visual parent as parent to shape" );
+        Undo.SetTransformParent( data.Filter.transform, shapeGameObject.transform, "Shape as parent to visual" );
+      }
+      else
+        Undo.SetTransformParent( shapeGameObject.transform, data.Filter.transform, "Shape as child to visual" );
 
       // SetTransformParent assigns some scale given the parent. We're in general not
       // interested in this scale since it will "un-scale" meshes (and the rest of the
@@ -142,14 +145,14 @@ namespace AgXUnityEditor.Tools
 
       if ( m_buttons.Selected.State.CreatePressed ) {
         if ( m_buttons.Selected.State.ShapeType == ShapeType.Box ) {
-          CreateShape<Box>( shapeInitData, box =>
+          CreateShape<Box>( shapeInitData, m_buttons.Selected.State.ShapeAsParent, box =>
           {
             box.HalfExtents = shapeInitData.LocalExtents;
             shapeInitData.SetDefaultPositionRotation( box.gameObject );
           } );
         }
         else if ( m_buttons.Selected.State.ShapeType == ShapeType.Cylinder ) {
-          CreateShape<Cylinder>( shapeInitData, cylinder =>
+          CreateShape<Cylinder>( shapeInitData, m_buttons.Selected.State.ShapeAsParent, cylinder =>
           {
             cylinder.Radius = axisData.Radius;
             cylinder.Height = axisData.Height;
@@ -158,7 +161,7 @@ namespace AgXUnityEditor.Tools
           } );
         }
         else if ( m_buttons.Selected.State.ShapeType == ShapeType.Capsule ) {
-          CreateShape<Capsule>( shapeInitData, capsule =>
+          CreateShape<Capsule>( shapeInitData, m_buttons.Selected.State.ShapeAsParent, capsule =>
           {
             capsule.Radius = axisData.Radius;
             capsule.Height = axisData.Height;
@@ -167,7 +170,7 @@ namespace AgXUnityEditor.Tools
           } );
         }
         else if ( m_buttons.Selected.State.ShapeType == ShapeType.Sphere ) {
-          CreateShape<Sphere>( shapeInitData, sphere =>
+          CreateShape<Sphere>( shapeInitData, m_buttons.Selected.State.ShapeAsParent, sphere =>
           {
             sphere.Radius = axisData.Radius;
 
@@ -175,7 +178,7 @@ namespace AgXUnityEditor.Tools
           } );
         }
         else if ( m_buttons.Selected.State.ShapeType == ShapeType.Mesh ) {
-          CreateShape<Mesh>( shapeInitData, mesh =>
+          CreateShape<Mesh>( shapeInitData, m_buttons.Selected.State.ShapeAsParent, mesh =>
           {
             mesh.SourceObject = shapeInitData.Filter.sharedMesh;
             // We don't want to set the position given the center of the bounds

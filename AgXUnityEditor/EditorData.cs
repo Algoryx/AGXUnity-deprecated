@@ -16,11 +16,13 @@ namespace AgXUnityEditor
 
     public int NumCachedEntries { get { return m_dataCache.Count; } }
 
+    public EditorDataEntry GetStaticData( string identifier, Action<EditorDataEntry> onCreate = null )
+    {
+      return GetData( null, identifier, onCreate );
+    }
+
     public EditorDataEntry GetData( UnityEngine.Object target, string identifier, Action<EditorDataEntry> onCreate = null )
     {
-      if ( target == null )
-        throw new AgXUnity.Exception( "Invalid (null) EditorData target. Target has to be given and has to be valid." );
-
       var key = EditorDataEntry.CalculateKey( target, identifier );
       int dataIndex = -1;
       if ( !m_dataCache.TryGetValue( key, out dataIndex ) ) {
@@ -47,7 +49,7 @@ namespace AgXUnityEditor
       int index = 0;
       while ( index < m_data.Count ) {
         var data = m_data[ index ];
-        if ( data == null || EditorUtility.InstanceIDToObject( data.InstanceId ) == null )
+        if ( data == null || ( !data.IsStatic && EditorUtility.InstanceIDToObject( data.InstanceId ) == null ) )
           m_data.RemoveAt( index );
         else
           ++index;

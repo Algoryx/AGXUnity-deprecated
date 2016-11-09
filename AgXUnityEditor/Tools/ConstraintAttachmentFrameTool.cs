@@ -55,7 +55,7 @@ namespace AgXUnityEditor.Tools
         GUI.HandleFrame( AttachmentPair.ReferenceFrame, skin, 4 + 12 );
         EditorGUILayout.BeginHorizontal();
         GUILayout.Space( 12 );
-        if ( GUILayout.Button( GUI.MakeLabel( "\u2194", false, "Synchronized with reference frame" ),
+        if ( GUILayout.Button( GUI.MakeLabel( GUI.Symbols.Synchronized.ToString(), false, "Synchronized with reference frame" ),
                                GUI.ConditionalCreateSelectedStyle( AttachmentPair.Synchronized, skin.button ),
                                new GUILayoutOption[] { GUILayout.Width( 24 ), GUILayout.Height( 14 ) } ) ) {
           Undo.RecordObject( AttachmentPair, "ConstraintTool" );

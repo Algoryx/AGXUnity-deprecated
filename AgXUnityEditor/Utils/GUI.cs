@@ -10,6 +10,26 @@ namespace AgXUnityEditor.Utils
 {
   public partial class GUI
   {
+    public static class Symbols
+    {
+      public const char ToggleEnabled           = '\u2714';
+      public const char ToggleDisabled          = ' ';
+
+      public const char ShapeResizeTool         = '\u21C4';
+      public const char ShapeCreateTool         = '\u210C';
+
+      public const char SelectInSceneViewTool   = 'p';
+      public const char SelectPointTool         = '\u22A1';
+      public const char SelectEdgeTool          = '\u2196';
+      public const char PositionHandleTool      = 'L';
+
+      public const char ListInsertElementBefore = '\u21B0';
+      public const char ListInsertElementAfter  = '\u21B2';
+      public const char ListEraseElement        = 'x';
+
+      public const char Synchronized            = '\u2194';
+    }
+
     /// <summary>
     /// Indent block.
     /// </summary>
@@ -230,7 +250,7 @@ namespace AgXUnityEditor.Utils
       bool buttonDown = false;
       EditorGUILayout.BeginHorizontal();
       {
-        string buttonText = value ? '\u2714'.ToString() : " ";
+        string buttonText = value ? Symbols.ToggleEnabled.ToString() : Symbols.ToggleDisabled.ToString();
         buttonDown = GUILayout.Button( MakeLabel( buttonText, false, content.tooltip ), ConditionalCreateSelectedStyle( value, buttonStyle ), buttonOptions );
         GUILayout.Label( content, labelStyle, labelOptions );
       }
@@ -305,6 +325,14 @@ namespace AgXUnityEditor.Utils
     public static void ToolsLabel( GUISkin skin )
     {
       GUILayout.Label( GUI.MakeLabel( "Tools:", true ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
+    }
+
+    public static bool ToolButton( char symbol, bool active, string toolTip, GUISkin skin, int fontSize = 18 )
+    {
+      return GUILayout.Button( MakeLabel( symbol.ToString(), false, toolTip ),
+                               ConditionalCreateSelectedStyle( active, ToolButtonData.Style( skin, fontSize ) ),
+                               ToolButtonData.Width,
+                               ToolButtonData.Height );
     }
 
     public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )

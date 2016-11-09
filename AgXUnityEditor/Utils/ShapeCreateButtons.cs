@@ -13,6 +13,17 @@ namespace AgXUnityEditor.Utils
       public ShapeInitializationData.Axes Axis { get; set; }
       public bool ExpandRadius { get; set; }
       public bool DropdownEnabled { get; set; }
+      public bool ShapeAsParent
+      {
+        get
+        {
+          return EditorData.Instance.GetStaticData( "ShapeCreateButton.ShapeAsParent" ).Bool;
+        }
+        set
+        {
+          EditorData.Instance.GetStaticData( "ShapeCreateButton.ShapeAsParent" ).Bool = value;
+        }
+      }
       public bool CreatePressed { get; set; }
     }
 
@@ -58,23 +69,16 @@ namespace AgXUnityEditor.Utils
       if ( !State.DropdownEnabled )
         return State;
 
-      bool hasRadius          = State.ShapeType == Tools.ShapeCreateTool.ShapeType.Cylinder ||
-                                State.ShapeType == Tools.ShapeCreateTool.ShapeType.Capsule ||
-                                State.ShapeType == Tools.ShapeCreateTool.ShapeType.Sphere;
-      float guiStartOffset    = m_buttonRect.position.x;
-      GUIStyle mouseOverStyle = new GUIStyle( skin.button );
-
+      bool hasRadius                  = State.ShapeType == Tools.ShapeCreateTool.ShapeType.Cylinder ||
+                                        State.ShapeType == Tools.ShapeCreateTool.ShapeType.Capsule ||
+                                        State.ShapeType == Tools.ShapeCreateTool.ShapeType.Sphere;
+      float guiStartOffset            = m_buttonRect.position.x - 14;
+      GUIStyle mouseOverStyle         = new GUIStyle( skin.button );
       mouseOverStyle.hover.background = mouseOverStyle.onActive.background;
 
-      // TODO: Choice to add have the graphics or shape as parent.
-      if ( hasRadius ) {
-        GUILayout.BeginHorizontal();
-        {
-          GUILayout.Space( guiStartOffset );
-          State.ExpandRadius = GUI.Toggle( GUI.MakeLabel( "Expand radius" ), State.ExpandRadius, skin.button, skin.label );
-        }
-        GUILayout.EndHorizontal();
+      OnShapeConfigGUI( guiStartOffset, hasRadius, skin );
 
+      if ( hasRadius ) {
         GUILayout.BeginHorizontal();
         {
           GUILayout.Space( guiStartOffset );
@@ -91,6 +95,40 @@ namespace AgXUnityEditor.Utils
       }
 
       return State;
+    }
+
+    private void OnShapeConfigGUI( float guiStartOffset, bool hasRadius, GUISkin skin )
+    {
+      GUIStyle smallLabel = new GUIStyle( skin.label );
+      smallLabel.alignment = TextAnchor.MiddleLeft;
+      smallLabel.fontSize = 11;
+
+      // TODO: Choice to add have the graphics or shape as parent.
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Space( guiStartOffset );
+        State.ShapeAsParent = GUI.Toggle( GUI.MakeLabel( "Shape as parent to graphical object" ),
+                                          State.ShapeAsParent,
+                                          skin.button,
+                                          smallLabel,
+                                          new GUILayoutOption[] { GUILayout.Width( 16 ), GUILayout.Height( 16 ) },
+                                          new GUILayoutOption[] { GUILayout.Height( 16 ) } );
+      }
+      GUILayout.EndHorizontal();
+
+      if ( hasRadius ) {
+        GUILayout.BeginHorizontal();
+        {
+          GUILayout.Space( guiStartOffset );
+          State.ExpandRadius = GUI.Toggle( GUI.MakeLabel( "Expand radius" ),
+                                           State.ExpandRadius,
+                                           skin.button,
+                                           smallLabel,
+                                           new GUILayoutOption[] { GUILayout.Width( 16 ), GUILayout.Height( 16 ) },
+                                           new GUILayoutOption[] { GUILayout.Height( 16 ) } );
+        }
+        GUILayout.EndHorizontal();
+      }
     }
 
     /// <returns>True when button is pressed.</returns>

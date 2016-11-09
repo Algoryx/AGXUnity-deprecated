@@ -44,6 +44,7 @@ namespace AgXUnityEditor.Tools
       GUI.Separator();
 
       Constraint.CollisionsState = ConstraintCollisionsStateGUI( Constraint.CollisionsState, skin );
+      Constraint.SolveType = ConstraintSolveTypeGUI( Constraint.SolveType, skin );
 
       GUI.Separator();
 
@@ -57,19 +58,17 @@ namespace AgXUnityEditor.Tools
       using ( new GUI.Indent( 12 ) ) {
         EditorGUILayout.BeginHorizontal();
         {
-          const char arrowChar = '\u2194';
-
           GUILayout.Label( GUI.MakeLabel( "Disable collisions: ", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 140 ), GUILayout.Height( 25 ) } );
 
           UnityEngine.GUI.enabled = !EditorApplication.isPlaying;
-          if ( GUILayout.Button( GUI.MakeLabel( "Rb " + arrowChar.ToString() + " Rb", false, "Disable all shapes in rigid body 1 against all shapes in rigid body 2." ),
+          if ( GUILayout.Button( GUI.MakeLabel( "Rb " + GUI.Symbols.Synchronized.ToString() + " Rb", false, "Disable all shapes in rigid body 1 against all shapes in rigid body 2." ),
                                  GUI.ConditionalCreateSelectedStyle( state == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2, skin.button ),
                                  new GUILayoutOption[] { GUILayout.Width( 76 ), GUILayout.Height( 25 ) } ) )
             state = state == Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2 ?
                       Constraint.ECollisionsState.KeepExternalState :
                       Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2;
 
-          if ( GUILayout.Button( GUI.MakeLabel( "Ref " + arrowChar.ToString() + " Con", false, "Disable Reference object vs. Connected object." ),
+          if ( GUILayout.Button( GUI.MakeLabel( "Ref " + GUI.Symbols.Synchronized.ToString() + " Con", false, "Disable Reference object vs. Connected object." ),
                                  GUI.ConditionalCreateSelectedStyle( state == Constraint.ECollisionsState.DisableReferenceVsConnected, skin.button ),
                                  new GUILayoutOption[] { GUILayout.Width( 76 ), GUILayout.Height( 25 ) } ) )
             state = state == Constraint.ECollisionsState.DisableReferenceVsConnected ?
@@ -81,6 +80,19 @@ namespace AgXUnityEditor.Tools
       }
 
       return state;
+    }
+
+    public static Constraint.ESolveType ConstraintSolveTypeGUI( Constraint.ESolveType solveType, GUISkin skin )
+    {
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Space( 12 );
+        GUILayout.Label( GUI.MakeLabel( "Solve Type", true ), skin.label, GUILayout.Width( 140 ) );
+        solveType = (Constraint.ESolveType)EditorGUILayout.EnumPopup( solveType, skin.button, GUILayout.ExpandWidth( true ), GUILayout.Height( 18 ), GUILayout.Width( 2 * 76 + 4 ) );
+      }
+      GUILayout.EndHorizontal();
+
+      return solveType;
     }
 
     public void ConstraintRowsGUI( GUISkin skin )
@@ -204,7 +216,7 @@ namespace AgXUnityEditor.Tools
         value = EditorGUILayout.FloatField( wrapper.Get<float>( rowData ) );
       else if ( wrapper.IsType<RangeReal>() ) {
         RangeReal currValue = wrapper.Get<RangeReal>( rowData );
-        if ( value == null )
+        if ( currValue == null )
           currValue = new RangeReal();
 
         currValue.Min = EditorGUILayout.FloatField( currValue.Min, GUILayout.MaxWidth( 128 ) );
@@ -224,12 +236,13 @@ namespace AgXUnityEditor.Tools
 
     private void HandleConstraintControllerGUI( ElementaryConstraintController controller, GUISkin skin )
     {
-      var controllerType = controller.GetControllerType();
-      string dimString = "[" + GUI.AddColorTag( controllerType.ToString().Substring( 0, 1 ),
-                                                controllerType == Constraint.ControllerType.Rotational ?
-                                                  Color.Lerp( UnityEngine.GUI.color, Color.red, 0.75f ) :
-                                                  Color.Lerp( UnityEngine.GUI.color, Color.green, 0.75f ) ) + "] ";
-      if ( GUI.Foldout( Selected( SelectedFoldout.Controller, ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( dimString + ConstraintUtils.FindName( controller ), true ), skin ) ) {
+      var controllerType    = controller.GetControllerType();
+      var controllerTypeTag = controllerType.ToString().Substring( 0, 1 );
+      string dimString      = "[" + GUI.AddColorTag( controllerTypeTag,
+                                                     controllerType == Constraint.ControllerType.Rotational ?
+                                                       Color.Lerp( UnityEngine.GUI.color, Color.red, 0.75f ) :
+                                                       Color.Lerp( UnityEngine.GUI.color, Color.green, 0.75f ) ) + "] ";
+      if ( GUI.Foldout( Selected( SelectedFoldout.Controller, controllerTypeTag + ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( dimString + ConstraintUtils.FindName( controller ), true ), skin ) ) {
         using ( new GUI.Indent( 12 ) ) {
           controller.Enable = GUI.Toggle( GUI.MakeLabel( "Enable", controller.Enable ), controller.Enable, skin.button, skin.label );
           BaseEditor<ElementaryConstraint>.Update( controller, skin );

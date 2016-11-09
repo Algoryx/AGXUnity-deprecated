@@ -10,13 +10,15 @@ namespace AgXUnityEditor
   {
     public static uint CalculateKey( UnityEngine.Object target, string identifier )
     {
-      return ( target.GetInstanceID().ToString() + "_" + identifier ).To32BitFnv1aHash();
+      return ( ( target == null ? "0" : target.GetInstanceID().ToString() ) + "_" + identifier ).To32BitFnv1aHash();
     }
 
     [SerializeField]
     private uint m_key = uint.MaxValue;
     [SerializeField]
     private int m_instanceId = int.MaxValue;
+    [SerializeField]
+    private bool m_isStatic = false;
 
     [SerializeField]
     private bool m_bool = false;
@@ -87,16 +89,24 @@ namespace AgXUnityEditor
 
     public int InstanceId { get { return m_instanceId; } private set { m_instanceId = value; } }
 
+    public bool IsStatic { get { return m_isStatic; } }
+
     public EditorDataEntry( UnityEngine.Object target, uint key )
     {
       Key = key;
-      InstanceId = target.GetInstanceID();
+      if ( target != null )
+        InstanceId = target.GetInstanceID();
+      else
+        m_isStatic = true;
     }
 
     private void OnValueChanged()
     {
       // Saves our data file.
       EditorUtility.SetDirty( EditorData.Instance );
+
+      if ( IsStatic )
+        return;
 
       // This is to trigger an update of the target GUI when the value has been changed.
       // E.g., clicking expand/collapse on a foldout we'd like the GUI to instantly respond.

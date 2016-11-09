@@ -322,11 +322,11 @@ namespace AgXUnityEditor
                 EditorGUILayout.EndHorizontal();
 
                 using ( Tools.WireTool.NodeListButtonColor ) {
-                  if ( GUILayout.Button( Utils.GUI.MakeLabel( '\u21B0'.ToString(), false, "Insert new element before this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementBefore.ToString(), false, "Insert new element before this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     insertElementBefore = obj;
-                  if ( GUILayout.Button( Utils.GUI.MakeLabel( '\u21B2'.ToString(), false, "Insert new element after this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Insert new element after this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     insertElementAfter = obj;
-                  if ( GUILayout.Button( Utils.GUI.MakeLabel( 'x'.ToString(), false, "Erase this element" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListEraseElement.ToString(), false, "Erase this element" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     eraseElement = obj;
                 }
               }
@@ -345,7 +345,7 @@ namespace AgXUnityEditor
         {
           GUILayout.FlexibleSpace();
           using ( Tools.WireTool.NodeListButtonColor )
-            addElementToList = GUILayout.Button( Utils.GUI.MakeLabel( '\u21B2'.ToString(), false, "Add new element to list" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
+            addElementToList = GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Add new element to list" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
         }
         EditorGUILayout.EndHorizontal();
 
