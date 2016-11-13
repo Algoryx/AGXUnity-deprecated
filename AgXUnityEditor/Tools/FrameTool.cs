@@ -201,7 +201,7 @@ namespace AgXUnityEditor.Tools
       bool toggleSelectEdge     = false;
       bool togglePositionHandle = false;
 
-      EditorGUILayout.BeginHorizontal();
+      GUILayout.BeginHorizontal();
       {
         UnityEngine.GUI.enabled = true;
         GUI.ToolsLabel( skin );
@@ -216,7 +216,7 @@ namespace AgXUnityEditor.Tools
           togglePositionHandle    = GUI.ToolButton( GUI.Symbols.PositionHandleTool, TransformHandleActive, "Position/rotation handle", skin );
         }              
       }
-      EditorGUILayout.EndHorizontal();
+      GUILayout.EndHorizontal();
 
       if ( toggleSelectParent )
         SelectParent = !SelectParent;

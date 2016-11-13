@@ -47,15 +47,15 @@ namespace AgXUnityEditor.Utils
     {
       public Indent( float numPixels )
       {
-        EditorGUILayout.BeginHorizontal();
+        GUILayout.BeginHorizontal();
         GUILayout.Space( numPixels );
-        EditorGUILayout.BeginVertical();
+        GUILayout.BeginVertical();
       }
 
       public void Dispose()
       {
-        EditorGUILayout.EndVertical();
-        EditorGUILayout.EndHorizontal();
+        GUILayout.EndVertical();
+        GUILayout.EndHorizontal();
       }
     }
 
@@ -233,10 +233,10 @@ namespace AgXUnityEditor.Utils
 
     public static Vector3 Vector3Field( GUIContent content, Vector3 value, GUIStyle style = null )
     {
-      EditorGUILayout.BeginHorizontal();
+      GUILayout.BeginHorizontal();
       GUILayout.Label( content, style ?? Skin.label );
       value = EditorGUILayout.Vector3Field( "", value );
-      EditorGUILayout.EndHorizontal();
+      GUILayout.EndHorizontal();
 
       return value;
     }
@@ -252,13 +252,13 @@ namespace AgXUnityEditor.Utils
         labelOptions = DefaultToggleLabelOptions;
 
       bool buttonDown = false;
-      EditorGUILayout.BeginHorizontal();
+      GUILayout.BeginHorizontal();
       {
         string buttonText = value ? Symbols.ToggleEnabled.ToString() : Symbols.ToggleDisabled.ToString();
         buttonDown = GUILayout.Button( MakeLabel( buttonText, false, content.tooltip ), ConditionalCreateSelectedStyle( value, buttonStyle ), buttonOptions );
         GUILayout.Label( content, labelStyle, labelOptions );
       }
-      EditorGUILayout.EndHorizontal();
+      GUILayout.EndHorizontal();
       
       return buttonDown ? !value : value;
     }
@@ -279,7 +279,7 @@ namespace AgXUnityEditor.Utils
 
       bool useDefaultToggled = false;
       bool updateDefaultValue = false;
-      EditorGUILayout.BeginHorizontal();
+      GUILayout.BeginHorizontal();
       {
         // Note that we're checking if the value has changed!
         useDefaultToggled = Toggle( MakeLabel( name.SplitCamelCase(), false, "If checked - value will be default. Uncheck to manually enter value." ),
@@ -295,7 +295,7 @@ namespace AgXUnityEditor.Utils
         updateDefaultValue = GUILayout.Button( MakeLabel( "Update", false, "Update default value" ), skin.button, GUILayout.Width( 52 ) );
         UnityEngine.GUI.enabled = guiWasEnabled;
       }
-      EditorGUILayout.EndHorizontal();
+      GUILayout.EndHorizontal();
 
       if ( useDefaultToggled ) {
         valInField.UseDefault = !valInField.UseDefault;
@@ -372,7 +372,7 @@ namespace AgXUnityEditor.Utils
 
     public static bool Foldout( EditorDataEntry state, GUIContent label, GUISkin skin )
     {
-      EditorGUILayout.BeginHorizontal();
+      GUILayout.BeginHorizontal();
       {
         state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !state.Bool : state.Bool;
         GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
@@ -381,7 +381,7 @@ namespace AgXUnityEditor.Utils
           GUIUtility.ExitGUI();
         }
       }
-      EditorGUILayout.EndHorizontal();
+      GUILayout.EndHorizontal();
 
       return state.Bool;
     }

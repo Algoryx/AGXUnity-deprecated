@@ -56,7 +56,7 @@ namespace AgXUnityEditor.Tools
       bool guiWasEnabled = UnityEngine.GUI.enabled;
 
       using ( new GUI.Indent( 12 ) ) {
-        EditorGUILayout.BeginHorizontal();
+        GUILayout.BeginHorizontal();
         {
           GUILayout.Label( GUI.MakeLabel( "Disable collisions: ", true ), GUI.Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 140 ), GUILayout.Height( 25 ) } );
 
@@ -76,7 +76,7 @@ namespace AgXUnityEditor.Tools
                       Constraint.ECollisionsState.DisableReferenceVsConnected;
           UnityEngine.GUI.enabled = guiWasEnabled;
         }
-        EditorGUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();
       }
 
       return state;
@@ -182,25 +182,25 @@ namespace AgXUnityEditor.Tools
         if ( wrapper.HasAttribute<HideInInspector>() )
           continue;
 
-        EditorGUILayout.BeginHorizontal();
+        GUILayout.BeginHorizontal();
         {
           GUILayout.Label( GUI.MakeLabel( wrapper.Member.Name ), skin.label, GUILayout.MinWidth( 74 ) );
           GUILayout.FlexibleSpace();
-          EditorGUILayout.BeginVertical();
+          GUILayout.BeginVertical();
           {
             for ( int i = 0; i < 3; ++i ) {
               using ( new BeginConstraintRowGUI( rows[ i ], wrapper ) ) {
-                EditorGUILayout.BeginHorizontal();
+                GUILayout.BeginHorizontal();
                 {
                   HandleConstraintRowType( rows[ i ], i, wrapper, skin );
                 }
-                EditorGUILayout.EndHorizontal();
+                GUILayout.EndHorizontal();
               }
             }
           }
-          EditorGUILayout.EndVertical();
+          GUILayout.EndVertical();
         }
-        EditorGUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();
 
         GUI.Separator();
       }

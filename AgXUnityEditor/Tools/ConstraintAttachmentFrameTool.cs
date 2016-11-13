@@ -53,7 +53,7 @@ namespace AgXUnityEditor.Tools
       using ( new GUI.Indent( 12 ) ) {
         GUILayout.Label( GUI.MakeLabel( "Reference frame", true ) );
         GUI.HandleFrame( AttachmentPair.ReferenceFrame, skin, 4 + 12 );
-        EditorGUILayout.BeginHorizontal();
+        GUILayout.BeginHorizontal();
         GUILayout.Space( 12 );
         if ( GUILayout.Button( GUI.MakeLabel( GUI.Symbols.Synchronized.ToString(), false, "Synchronized with reference frame" ),
                                GUI.ConditionalCreateSelectedStyle( AttachmentPair.Synchronized, skin.button ),
@@ -65,7 +65,7 @@ namespace AgXUnityEditor.Tools
             ConnectedFrameTool.TransformHandleActive = false;
         }
         GUILayout.Label( GUI.MakeLabel( "Connected frame", true ) );
-        EditorGUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();
         UnityEngine.GUI.enabled = !AttachmentPair.Synchronized;
         GUI.HandleFrame( AttachmentPair.ConnectedFrame, skin, 4 + 12 );
         UnityEngine.GUI.enabled = guiWasEnabled;

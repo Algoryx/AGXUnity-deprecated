@@ -151,7 +151,12 @@ namespace AgXUnityEditor
       }
       else if ( type == typeof( Vector3 ) && wrapper.CanRead() ) {
         Vector3 valInField = wrapper.Get<Vector3>();
-        value = EditorGUILayout.Vector3Field( MakeLabel( wrapper.Member ).text, valInField );
+        GUILayout.BeginHorizontal();
+        {
+          GUILayout.Label( MakeLabel( wrapper.Member ) );
+          value = EditorGUILayout.Vector3Field( "", valInField );
+        }
+        GUILayout.EndHorizontal();
       }
       else if ( type == typeof( Vector2 ) && wrapper.CanRead() ) {
         Vector2 valInField = wrapper.Get<Vector2>();
@@ -162,8 +167,14 @@ namespace AgXUnityEditor
         FloatSliderInInspector slider = wrapper.GetAttribute<FloatSliderInInspector>();
         if ( slider != null )
           value = EditorGUILayout.Slider( MakeLabel( wrapper.Member ), valInField, slider.Min, slider.Max );
-        else
-          value = EditorGUILayout.FloatField( MakeLabel( wrapper.Member ), valInField, CurrentSkin.textField );
+        else {
+          GUILayout.BeginHorizontal();
+          {
+            GUILayout.Label( MakeLabel( wrapper.Member ) );
+            value = EditorGUILayout.FloatField( valInField, CurrentSkin.textField );
+          }
+          GUILayout.EndHorizontal();
+        }
       }
       else if ( type == typeof( int ) && wrapper.CanRead() ) {
         int valInField = wrapper.Get<int>();

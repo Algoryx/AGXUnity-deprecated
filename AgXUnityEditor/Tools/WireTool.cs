@@ -139,9 +139,9 @@ namespace AgXUnityEditor.Tools
           WireRouteNodeTool rnTool = GetOrCreateNodeTool( node );
 
           if ( validatedNode.Valid )
-            EditorGUILayout.BeginHorizontal();
+            GUILayout.BeginHorizontal();
           else
-            EditorGUILayout.BeginHorizontal( invalidNodeStyle );
+            GUILayout.BeginHorizontal( invalidNodeStyle );
           {
             rnTool.Selected = GUILayout.Button( GUI.MakeLabel( rnTool.Selected ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !rnTool.Selected : rnTool.Selected;
             GUILayout.Label( GUI.MakeLabel( node.Type.ToString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Frame.Parent ).text, false, validatedNode.ErrorString ), skin.label, GUILayout.ExpandWidth( true ) );
@@ -161,7 +161,7 @@ namespace AgXUnityEditor.Tools
               }
             }
           }
-          EditorGUILayout.EndHorizontal();
+          GUILayout.EndHorizontal();
 
           if ( rnTool.Selected ) {
             GUI.Separator();
@@ -193,7 +193,7 @@ namespace AgXUnityEditor.Tools
           GUILayout.Label( GUI.MakeLabel( "Empty", true ) );
       }
 
-      EditorGUILayout.BeginHorizontal();
+      GUILayout.BeginHorizontal();
       {
         GUILayout.FlexibleSpace();
         bool addNewNodeToList = false;
@@ -205,7 +205,7 @@ namespace AgXUnityEditor.Tools
         else if ( addNewNodeToList )
           Wire.Route.Add( WireRouteNode.Create( Wire.NodeType.FreeNode ) );
       }
-      EditorGUILayout.EndHorizontal();
+      GUILayout.EndHorizontal();
 
       if ( eraseNode != null )
         Wire.Route.Remove( eraseNode );
