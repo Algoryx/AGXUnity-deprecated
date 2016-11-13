@@ -16,11 +16,13 @@ namespace AgXUnityEditor
 
     public int NumCachedEntries { get { return m_dataCache.Count; } }
 
+    public EditorDataEntry GetStaticData( string identifier, Action<EditorDataEntry> onCreate = null )
+    {
+      return GetData( null, identifier, onCreate );
+    }
+
     public EditorDataEntry GetData( UnityEngine.Object target, string identifier, Action<EditorDataEntry> onCreate = null )
     {
-      if ( target == null )
-        throw new AgXUnity.Exception( "Invalid (null) EditorData target. Target has to be given and has to be valid." );
-
       var key = EditorDataEntry.CalculateKey( target, identifier );
       int dataIndex = -1;
       if ( !m_dataCache.TryGetValue( key, out dataIndex ) ) {
@@ -47,7 +49,7 @@ namespace AgXUnityEditor
       int index = 0;
       while ( index < m_data.Count ) {
         var data = m_data[ index ];
-        if ( data == null || EditorUtility.InstanceIDToObject( data.InstanceId ) == null )
+        if ( data == null || ( !data.IsStatic && EditorUtility.InstanceIDToObject( data.InstanceId ) == null ) )
           m_data.RemoveAt( index );
         else
           ++index;
@@ -78,7 +80,7 @@ namespace AgXUnityEditor
   {
     protected override bool OverrideOnInspectorGUI( EditorData target, GUISkin skin )
     {
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) )
+      using ( GUI.AlignBlock.Center )
         GUILayout.Label( GUI.MakeLabel( "Editor data", 18, true ), skin.label );
 
       GUI.Separator3D();
@@ -109,7 +111,7 @@ namespace AgXUnityEditor
 
       GUI.Separator();
       using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.25f ) ) )
-      using ( new GUI.AlignBlock( GUI.AlignBlock.Alignment.Center ) ) {
+      using ( GUI.AlignBlock.Center ) {
         if ( GUILayout.Button( GUI.MakeLabel( "Collect garbage" ), skin.button, GUILayout.Width( 110 ) ) )
           target.GC();
       }

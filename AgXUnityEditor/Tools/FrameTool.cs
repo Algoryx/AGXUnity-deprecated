@@ -192,14 +192,9 @@ namespace AgXUnityEditor.Tools
         DirtyTarget();
     }
 
-    public override void OnInspectorGUI( GUISkin skin )
+    public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       bool guiWasEnabled = UnityEngine.GUI.enabled;
-
-      const char selectInSceneViewSymbol = 'p';//'\u2714';
-      const char selectPointSymbol       = '\u22A1';
-      const char selectEdgeSymbol        = '\u2196';
-      const char positionHandleSymbol    = 'L';
 
       bool toggleSelectParent   = false;
       bool toggleFindGivenPoint = false;
@@ -212,20 +207,13 @@ namespace AgXUnityEditor.Tools
         GUI.ToolsLabel( skin );
 
         using ( GUI.ToolButtonData.ColorBlock ) {
-          toggleSelectParent = GUILayout.Button( GUI.MakeLabel( selectInSceneViewSymbol.ToString(), false, "Select parent object by selecting object in scene view" ),
-                                                 GUI.ConditionalCreateSelectedStyle( SelectParent, GUI.ToolButtonData.Style( skin ) ),
-                                                 GUI.ToolButtonData.Width, GUI.ToolButtonData.Height );
+          toggleSelectParent      = GUI.ToolButton( GUI.Symbols.SelectInSceneViewTool, SelectParent, "Select parent object by selecting object in scene view", skin );
+
           UnityEngine.GUI.enabled = guiWasEnabled;
 
-          toggleFindGivenPoint = GUILayout.Button( GUI.MakeLabel( selectPointSymbol.ToString(), false, "Find position and rotation given point and direction on an objects surface" ),
-                                                   GUI.ConditionalCreateSelectedStyle( FindTransformGivenPointOnSurface, GUI.ToolButtonData.Style( skin ) ),
-                                                   GUI.ToolButtonData.Width, GUI.ToolButtonData.Height );
-          toggleSelectEdge = GUILayout.Button( GUI.MakeLabel( selectEdgeSymbol.ToString(), false, "Find position and rotation given a triangle or principal edge" ),
-                                               GUI.ConditionalCreateSelectedStyle( FindTransformGivenEdge, GUI.ToolButtonData.Style( skin ) ),
-                                               GUI.ToolButtonData.Width, GUI.ToolButtonData.Height );
-          togglePositionHandle = GUILayout.Button( GUI.MakeLabel( positionHandleSymbol.ToString(), false, "Position/rotation handle" ),
-                                                   GUI.ConditionalCreateSelectedStyle( TransformHandleActive, GUI.ToolButtonData.Style( skin ) ),
-                                                   GUI.ToolButtonData.Width, GUI.ToolButtonData.Height );
+          toggleFindGivenPoint    = GUI.ToolButton( GUI.Symbols.SelectPointTool, FindTransformGivenPointOnSurface, "Find position and rotation given point and direction on an objects surface", skin );
+          toggleSelectEdge        = GUI.ToolButton( GUI.Symbols.SelectEdgeTool, FindTransformGivenEdge, "Find position and rotation given a triangle or principal edge", skin );
+          togglePositionHandle    = GUI.ToolButton( GUI.Symbols.PositionHandleTool, TransformHandleActive, "Position/rotation handle", skin );
         }              
       }
       EditorGUILayout.EndHorizontal();

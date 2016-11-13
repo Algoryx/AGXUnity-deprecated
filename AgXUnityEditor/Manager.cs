@@ -132,6 +132,19 @@ namespace AgXUnityEditor
     }
 
     /// <summary>
+    /// Call this method to reset key escape flag, i.e, KeyEscapeDown == false after the call.
+    /// </summary>
+    public static void UseKeyEscapeDown()
+    {
+      KeyEscapeDown = false;
+    }
+
+    public static bool IsKeyEscapeDown( Event current )
+    {
+      return current != null && current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
+    }
+
+    /// <summary>
     /// Request focus of the scene view window. E.g., when a button is pressed
     /// in the inspector tab and objects in the scene view should respond.
     /// </summary>
@@ -224,7 +237,7 @@ namespace AgXUnityEditor
 
       Event current   = Event.current;
       LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
-      KeyEscapeDown   = current.isKey && current.keyCode == KeyCode.Escape && current.type == EventType.KeyUp;
+      KeyEscapeDown   = IsKeyEscapeDown( current );
       RightMouseClick = current.type == EventType.MouseDown && current.button == 1;
 
       if ( RightMouseClick )
@@ -317,6 +330,18 @@ namespace AgXUnityEditor
         EditorData.Instance.GC();
 
         m_currentSceneName = scene.name;
+
+        // Verifies so that our shapes doesn't have multiple debug rendering components.
+        AgXUnity.Collide.Shape[] shapes = UnityEngine.Object.FindObjectsOfType<AgXUnity.Collide.Shape>();
+        foreach ( var shape in shapes ) {
+          AgXUnity.Rendering.ShapeDebugRenderData[] data = shape.GetComponents<AgXUnity.Rendering.ShapeDebugRenderData>();
+          if ( data.Length > 1 ) {
+            Debug.Log( "Shape has several ShapeDebugRenderData. Removing/resetting.", shape );
+            foreach ( var instance in data )
+              Component.DestroyImmediate( instance );
+            data = null;
+          }
+        }
 
         // There shouldn't be any MassProperties components since we've
         // changed them to be ScriptAssets.

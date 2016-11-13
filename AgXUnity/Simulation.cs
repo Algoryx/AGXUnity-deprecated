@@ -94,12 +94,13 @@ namespace AgXUnity
       }
     }
 
-    protected void OnGUI()
-    {
-      GUILayout.Label( "Step forward time: " + m_stepForwardTime + " ms." );
-      GUILayout.Label( "Step forward FPS:  " + (int)( 1000.0 / m_stepForwardTime + 0.5 ) );
-      GUILayout.Label( "Update frequencey: " + (int)( 1.0f / Time.fixedDeltaTime ) );
-    }
+    // TODO: Add scene view window (editor) with stats.
+    //protected void OnGUI()
+    //{
+    //  GUILayout.Label( "Step forward time: " + m_stepForwardTime + " ms." );
+    //  GUILayout.Label( "Step forward FPS:  " + (int)( 1000.0 / m_stepForwardTime + 0.5 ) );
+    //  GUILayout.Label( "Update frequencey: " + (int)( 1.0f / Time.fixedDeltaTime ) );
+    //}
 
     protected override void OnApplicationQuit()
     {

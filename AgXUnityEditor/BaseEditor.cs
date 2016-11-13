@@ -29,6 +29,8 @@ namespace AgXUnityEditor
       guiSkin.label.richText = true;
       guiSkin.toggle.richText = true;
       guiSkin.button.richText = true;
+      guiSkin.textArea.richText = true;
+      guiSkin.textField.richText = true;
 
       Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
 
@@ -107,6 +109,9 @@ namespace AgXUnityEditor
                       ShouldBeShownInInspector( methodInfo )
                     select methodInfo;
       methods.ToList().ForEach( methodInfo => changed = HandleMethod( methodInfo, target ) || changed );
+
+      if ( obj == target )
+        Utils.GUI.PostTargetMembers( target, CurrentSkin );
 
       return changed;
     }
@@ -196,13 +201,13 @@ namespace AgXUnityEditor
       else if ( type == typeof( RangeReal ) ) {
         RangeReal valInField = wrapper.Get<RangeReal>();
 
-        EditorGUILayout.BeginHorizontal();
+        GUILayout.BeginHorizontal();
         {
           GUILayout.Label( MakeLabel( wrapper.Member ), CurrentSkin.label );
           valInField.Min = EditorGUILayout.FloatField( "", (float)valInField.Min, CurrentSkin.textField, GUILayout.MaxWidth( 64 ) );
           valInField.Max = EditorGUILayout.FloatField( "", (float)valInField.Max, CurrentSkin.textField, GUILayout.MaxWidth( 64 ) );
         }
-        EditorGUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();
 
         if ( valInField.Min > valInField.Max )
           valInField.Min = valInField.Max;
@@ -222,12 +227,12 @@ namespace AgXUnityEditor
       else if ( type.IsArray && wrapper.CanRead() ) {
         Array array = wrapper.Get<Array>();
         if ( array.Length == 0 ) {
-          EditorGUILayout.BeginHorizontal();
+          GUILayout.BeginHorizontal();
           {
             GUILayout.Label( MakeLabel( wrapper.Member ), CurrentSkin.label );
             GUILayout.Label( Utils.GUI.MakeLabel( "Empty array", true ) );
           }
-          EditorGUILayout.EndHorizontal();
+          GUILayout.EndHorizontal();
         }
         else {
           Utils.GUI.Separator();
@@ -250,9 +255,9 @@ namespace AgXUnityEditor
 
         UnityEngine.Object valInField = wrapper.Get<UnityEngine.Object>();
 
-        EditorGUILayout.BeginHorizontal();
+        GUILayout.BeginHorizontal();
         value = EditorGUILayout.ObjectField( MakeLabel( wrapper.Member ), valInField, type, allowSceneObject, new GUILayoutOption[] { } );
-        EditorGUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();
 
         isNullable = true;
       }
@@ -276,10 +281,12 @@ namespace AgXUnityEditor
       if ( collisionGroupPair == null )
         return false;
 
-      EditorGUILayout.BeginHorizontal();
-      collisionGroupPair.First.Tag = EditorGUILayout.TextField( "", collisionGroupPair.First.Tag, CurrentSkin.textField );
-      collisionGroupPair.Second.Tag = EditorGUILayout.TextField( "", collisionGroupPair.Second.Tag, CurrentSkin.textField );
-      EditorGUILayout.EndHorizontal();
+      GUILayout.BeginHorizontal();
+      {
+        collisionGroupPair.First.Tag = GUILayout.TextField( collisionGroupPair.First.Tag, CurrentSkin.textField, GUILayout.Height( 19 ) );
+        collisionGroupPair.Second.Tag = GUILayout.TextField( collisionGroupPair.Second.Tag, CurrentSkin.textField, GUILayout.Height( 19 ) );
+      }
+      GUILayout.EndHorizontal();
 
       return true;
     }
@@ -310,24 +317,24 @@ namespace AgXUnityEditor
           foreach ( var obj in list ) {
             Utils.GUI.Separator();
             using ( new Utils.GUI.Indent( 12 ) ) {
-              EditorGUILayout.BeginHorizontal();
+              GUILayout.BeginHorizontal();
               {
-                EditorGUILayout.BeginVertical();
+                GUILayout.BeginVertical();
                 {
                   DrawMembersGUI( obj, target, CurrentSkin );
                 }
-                EditorGUILayout.EndHorizontal();
+                GUILayout.EndHorizontal();
 
                 using ( Tools.WireTool.NodeListButtonColor ) {
-                  if ( GUILayout.Button( Utils.GUI.MakeLabel( '\u21B0'.ToString(), false, "Insert new element before this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementBefore.ToString(), false, "Insert new element before this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     insertElementBefore = obj;
-                  if ( GUILayout.Button( Utils.GUI.MakeLabel( '\u21B2'.ToString(), false, "Insert new element after this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Insert new element after this" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     insertElementAfter = obj;
-                  if ( GUILayout.Button( Utils.GUI.MakeLabel( 'x'.ToString(), false, "Erase this element" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
+                  if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListEraseElement.ToString(), false, "Erase this element" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     eraseElement = obj;
                 }
               }
-              EditorGUILayout.EndHorizontal();
+              GUILayout.EndHorizontal();
             }
           }
 
@@ -338,13 +345,13 @@ namespace AgXUnityEditor
         }
 
         bool addElementToList = false;
-        EditorGUILayout.BeginHorizontal();
+        GUILayout.BeginHorizontal();
         {
           GUILayout.FlexibleSpace();
           using ( Tools.WireTool.NodeListButtonColor )
-            addElementToList = GUILayout.Button( Utils.GUI.MakeLabel( '\u21B2'.ToString(), false, "Add new element to list" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
+            addElementToList = GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Add new element to list" ), CurrentSkin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
         }
-        EditorGUILayout.EndHorizontal();
+        GUILayout.EndHorizontal();
 
         object newObject = null;
         if ( addElementToList || insertElementBefore != null || insertElementAfter != null )

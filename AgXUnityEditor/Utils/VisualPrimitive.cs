@@ -14,9 +14,12 @@ namespace AgXUnityEditor.Utils
 
     private bool m_visible = false;
     private AgXUnity.Rendering.Spawner.Primitive m_primitiveType = AgXUnity.Rendering.Spawner.Primitive.Cylinder;
+    private bool m_isMesh = false;
     private string m_shaderName = "";
 
     public GameObject Node { get; private set; }
+
+    public string ShaderName { get { return m_shaderName; } }
 
     public bool Visible
     {
@@ -121,20 +124,56 @@ namespace AgXUnityEditor.Utils
       m_shaderName = shader;
     }
 
+    protected VisualPrimitive( bool dummy_IsMeshSetToTrue, string shader = "Unlit/Color" )
+    {
+      m_isMesh = true;
+      m_shaderName = shader;
+    }
+
+    protected void UpdateColor()
+    {
+      AgXUnity.Rendering.Spawner.Utils.SetColor( Node, m_mouseOverNode ? MouseOverColor : Color );
+    }
+
     private GameObject CreateNode()
     {
+      if ( m_isMesh ) {
+        GameObject meshGameObject = new GameObject();
+        meshGameObject.hideFlags = HideFlags.HideAndDontSave;
+        return meshGameObject;
+      }
+
       string name = ( GetType().Namespace != null ? GetType().Namespace : "" ) + "." + GetType().Name;
       return AgXUnity.Rendering.Spawner.Create( m_primitiveType, name, HideFlags.HideAndDontSave, m_shaderName );
     }
+  }
 
-    private void UpdateColor()
+  public class VisualPrimitiveBox : VisualPrimitive
+  {
+    public void SetSize( Vector3 halfExtents )
     {
-      AgXUnity.Rendering.Spawner.Utils.SetColor( Node, m_mouseOverNode ? MouseOverColor : Color );
+      if ( Node == null )
+        return;
+
+      Node.transform.localScale = 2f * halfExtents;
+    }
+
+    public VisualPrimitiveBox( string shader = "Unlit/Color" )
+      : base( AgXUnity.Rendering.Spawner.Primitive.Box, shader )
+    {
     }
   }
 
   public class VisualPrimitiveCylinder : VisualPrimitive
   {
+    public void SetSize( float radius, float height )
+    {
+      if ( Node == null )
+        return;
+
+      Node.transform.localScale = new Vector3( 2f * radius, 0.5f * height, 2f * radius );
+    }
+
     public void SetTransform( Vector3 start, Vector3 end, float radius, bool constantScreenSize = true )
     {
       AgXUnity.Rendering.Spawner.Utils.SetCylinderTransform( Node, start, end, radius, constantScreenSize );
@@ -146,8 +185,29 @@ namespace AgXUnityEditor.Utils
     }
   }
 
+  public class VisualPrimitiveCapsule : VisualPrimitive
+  {
+    public void SetSize( float radius, float height )
+    {
+      AgXUnity.Rendering.ShapeDebugRenderData.SetCapsuleSize( Node, radius, height );
+    }
+
+    public VisualPrimitiveCapsule( string shader = "Unlit/Color" )
+      : base( AgXUnity.Rendering.Spawner.Primitive.Capsule, shader )
+    {
+    }
+  }
+
   public class VisualPrimitiveSphere : VisualPrimitive
   {
+    public void SetSize( float radius )
+    {
+      if ( Node == null )
+        return;
+
+      Node.transform.localScale = 2f * radius * Vector3.one;
+    }
+
     public void SetTransform( Vector3 position, Quaternion rotation, float radius, bool constantScreenSize = true, float minRadius = 0f, float maxRadius = float.MaxValue )
     {
       AgXUnity.Rendering.Spawner.Utils.SetSphereTransform( Node, position, rotation, radius, constantScreenSize, minRadius, maxRadius );
@@ -155,6 +215,35 @@ namespace AgXUnityEditor.Utils
 
     public VisualPrimitiveSphere( string shader = "Unlit/Color" )
       : base( AgXUnity.Rendering.Spawner.Primitive.Sphere, shader )
+    {
+    }
+  }
+
+  public class VisualPrimitiveMesh : VisualPrimitive
+  {
+    public void SetSourceObject( UnityEngine.Mesh mesh )
+    {
+      if ( Node == null )
+        return;
+
+      MeshFilter filter = Node.GetComponent<MeshFilter>();
+      if ( filter == null ) {
+        MeshRenderer renderer = Node.AddComponent<MeshRenderer>();
+        filter = Node.AddComponent<MeshFilter>();
+        filter.sharedMesh = mesh;
+
+        renderer.sortingOrder = 10;
+
+        AgXUnity.Rendering.Spawner.Utils.SetMaterial( Node, ShaderName );
+      }
+      else
+        filter.sharedMesh = mesh;
+
+      UpdateColor();
+    }
+
+    public VisualPrimitiveMesh( string shader = "Unlit/Color" )
+      : base( true, shader )
     {
     }
   }

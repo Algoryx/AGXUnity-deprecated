@@ -26,6 +26,36 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
+    /// Sets scale to capsule debug rendering prefab, assuming three children:
+    ///   1: (half) sphere upper
+    ///   2: cylinder
+    ///   3: (half) sphere lower
+    /// </summary>
+    /// <param name="node">Capsule prefab node with three children.</param>
+    /// <param name="radius">Radius of the capsule.</param>
+    /// <param name="height">Height of the capsule.</param>
+    public static void SetCapsuleSize( GameObject node, float radius, float height )
+    {
+      if ( node == null )
+        return;
+
+      if ( node.transform.childCount != 3 )
+        throw new Exception( "Capsule debug rendering node doesn't contain three children." );
+
+      Transform sphereUpper = node.transform.GetChild( 0 );
+      Transform cylinder = node.transform.GetChild( 1 );
+      Transform sphereLower = node.transform.GetChild( 2 );
+
+      cylinder.localScale = new Vector3( 2.0f * radius, height, 2.0f * radius );
+
+      sphereUpper.localScale = 2.0f * radius * Vector3.one;
+      sphereUpper.localPosition = 0.5f * height * Vector3.up;
+
+      sphereLower.localScale = 2.0f * radius * Vector3.one;
+      sphereLower.localPosition = 0.5f * height * Vector3.down;
+    }
+
+    /// <summary>
     /// Type name is shape type - prefabs in Resources folder has been
     /// named to fit these names.
     /// </summary>
@@ -100,21 +130,8 @@ namespace AgXUnity.Rendering
         }
       }
       else if ( shape is Capsule ) {
-        if ( Node.transform.childCount != 3 )
-          throw new Exception( "Capsule debug rendering node doesn't contain three children." );
-
-        Capsule capsule           = shape as Capsule;
-        Transform sphereUpper     = Node.transform.GetChild( 0 );
-        Transform cylinder        = Node.transform.GetChild( 1 );
-        Transform sphereLower     = Node.transform.GetChild( 2 );
-
-        cylinder.localScale       = new Vector3( 2.0f * capsule.Radius, capsule.Height, 2.0f * capsule.Radius );
-
-        sphereUpper.localScale    = 2.0f * capsule.Radius * Vector3.one;
-        sphereUpper.localPosition = 0.5f * capsule.Height * Vector3.up;
-
-        sphereLower.localScale    = 2.0f * capsule.Radius * Vector3.one;
-        sphereLower.localPosition = 0.5f * capsule.Height * Vector3.down;
+        Capsule capsule = shape as Capsule;
+        SetCapsuleSize( Node, capsule.Radius, capsule.Height );
       }
     }
 

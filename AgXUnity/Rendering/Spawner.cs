@@ -45,15 +45,7 @@ namespace AgXUnity.Rendering
       gameObject.name = name;
 
       gameObject.hideFlags = hideFlags;
-      Shader shader = Shader.Find( shaderName ) ?? Shader.Find( "Diffuse" );
-      if ( shader == null )
-        throw new AgXUnity.Exception( "Enable to load shader: " + shaderName );
-
-      MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
-      foreach ( var renderer in renderers ) {
-        renderer.sharedMaterial = new Material( shader );
-        renderer.sharedMaterial.color = Color.yellow;
-      }
+      Utils.SetMaterial( gameObject, shaderName );
       
       return gameObject;
     }

@@ -10,6 +10,30 @@ namespace AgXUnityEditor.Utils
 {
   public partial class GUI
   {
+    public static class Symbols
+    {
+      public const char ToggleEnabled           = '\u2714';
+      public const char ToggleDisabled          = ' ';
+
+      public const char ShapeResizeTool         = '\u21C4';
+      public const char ShapeCreateTool         = '\u210C';
+
+      public const char SelectInSceneViewTool   = 'p';
+      public const char SelectPointTool         = '\u22A1';
+      public const char SelectEdgeTool          = '\u2196';
+      public const char PositionHandleTool      = 'L';
+
+      public const char ConstraintCreateTool    = '\u2102';
+
+      public const char DisableCollisionsTool   = '\u2229';
+
+      public const char ListInsertElementBefore = '\u21B0';
+      public const char ListInsertElementAfter  = '\u21B2';
+      public const char ListEraseElement        = 'x';
+
+      public const char Synchronized            = '\u2194';
+    }
+
     /// <summary>
     /// Indent block.
     /// </summary>
@@ -39,9 +63,13 @@ namespace AgXUnityEditor.Utils
     {
       public enum Alignment { Left, Center, Right };
 
+      public static AlignBlock Left { get { return new AlignBlock( Alignment.Left ); } }
+      public static AlignBlock Center { get { return new AlignBlock( Alignment.Center ); } }
+      public static AlignBlock Right { get { return new AlignBlock( Alignment.Right ); } }
+
       private Alignment m_alignment = Alignment.Center;
 
-      public AlignBlock( Alignment alignment )
+      private AlignBlock( Alignment alignment )
       {
         m_alignment = alignment;
 
@@ -141,11 +169,20 @@ namespace AgXUnityEditor.Utils
         Tools.Tool.RemoveActiveTool();
     }
 
+    private enum TargetToolGUICallbackType
+    {
+      Pre,
+      Post
+    }
+
     public static void PreTargetMembers<T>( T target, GUISkin skin ) where T : class
     {
-      var targetTool = Tools.Tool.GetActiveTool( target );
-      if ( targetTool != null )
-        OnToolInspectorGUI( targetTool, target, skin );
+      OnToolInspectorGUI( target, skin, TargetToolGUICallbackType.Pre );
+    }
+
+    public static void PostTargetMembers<T>( T target, GUISkin skin ) where T : class
+    {
+      OnToolInspectorGUI( target, skin, TargetToolGUICallbackType.Post );
     }
 
     public static string AddColorTag( string str, Color color )
@@ -217,7 +254,7 @@ namespace AgXUnityEditor.Utils
       bool buttonDown = false;
       EditorGUILayout.BeginHorizontal();
       {
-        string buttonText = value ? '\u2714'.ToString() : " ";
+        string buttonText = value ? Symbols.ToggleEnabled.ToString() : Symbols.ToggleDisabled.ToString();
         buttonDown = GUILayout.Button( MakeLabel( buttonText, false, content.tooltip ), ConditionalCreateSelectedStyle( value, buttonStyle ), buttonOptions );
         GUILayout.Label( content, labelStyle, labelOptions );
       }
@@ -294,6 +331,14 @@ namespace AgXUnityEditor.Utils
       GUILayout.Label( GUI.MakeLabel( "Tools:", true ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
     }
 
+    public static bool ToolButton( char symbol, bool active, string toolTip, GUISkin skin, int fontSize = 18 )
+    {
+      return GUILayout.Button( MakeLabel( symbol.ToString(), false, toolTip ),
+                               ConditionalCreateSelectedStyle( active, ToolButtonData.Style( skin, fontSize ) ),
+                               ToolButtonData.Width,
+                               ToolButtonData.Height );
+    }
+
     public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )
     {
       bool guiWasEnabled = UnityEngine.GUI.enabled;
@@ -321,7 +366,7 @@ namespace AgXUnityEditor.Utils
         Tools.FrameTool frameTool = null;
         if ( includeFrameToolIfPresent && ( frameTool = Tools.FrameTool.FindActive( frame ) ) != null )
           using ( new Indent( 12 ) )
-            frameTool.OnInspectorGUI( skin );
+            frameTool.OnPreTargetMembersGUI( skin );
       }
     }
 
@@ -432,13 +477,16 @@ namespace AgXUnityEditor.Utils
       return selected ? CreateSelectedStyle( orgStyle ) : orgStyle;
     }
 
-    public static void OnToolInspectorGUI( Tools.Tool tool, object target, GUISkin skin )
+    private static void OnToolInspectorGUI( object target, GUISkin skin, TargetToolGUICallbackType callbackType )
     {
-      if ( tool != null ) {
-        tool.OnInspectorGUI( skin );
-        //if ( target is UnityEngine.Object )
-        //  EditorUtility.SetDirty( target as UnityEngine.Object );
-      }
+      var targetTool = Tools.Tool.GetActiveTool( target );
+      if ( targetTool == null )
+        return;
+
+      if ( callbackType == TargetToolGUICallbackType.Pre )
+        targetTool.OnPreTargetMembersGUI( skin );
+      else if ( callbackType == TargetToolGUICallbackType.Post )
+        targetTool.OnPostTargetMembersGUI( skin );
     }
   }
 }

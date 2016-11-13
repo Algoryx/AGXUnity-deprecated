@@ -1,4 +1,4 @@
-﻿using System;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 
@@ -26,6 +26,30 @@ namespace AgXUnity.Rendering
         return 20f;
       }
 
+      public static void SetMaterial( GameObject gameObject, string shaderName )
+      {
+        if ( gameObject == null )
+          return;
+
+        Shader shader = Shader.Find( shaderName ) ?? Shader.Find( "Diffuse" );
+        if ( shader == null )
+          throw new AgXUnity.Exception( "Enable to load shader: " + shaderName );
+
+        MeshRenderer[] renderers = gameObject.GetComponentsInChildren<MeshRenderer>();
+        foreach ( var renderer in renderers ) {
+          MeshFilter filter = renderer.GetComponent<MeshFilter>();
+          int numMaterials = filter == null || filter.sharedMesh == null ? 1 : filter.sharedMesh.subMeshCount;
+          var materials = new List<Material>();
+          for ( int i = 0; i < numMaterials; ++i ) {
+            var material = new Material( shader );
+            material.color = Color.yellow;
+            materials.Add( material );
+          }
+
+          renderer.sharedMaterials = materials.ToArray();
+        }
+      }
+
       public static void SetColor( GameObject gameObject, Color color )
       {
         if ( gameObject == null )
@@ -33,7 +57,8 @@ namespace AgXUnity.Rendering
 
         var renderers = gameObject.GetComponentsInChildren<Renderer>();
         foreach ( var renderer in renderers )
-          renderer.sharedMaterial.color = color;
+          foreach ( var material in renderer.sharedMaterials )
+            material.color = color;
       }
 
       public static float ConditionalConstantScreenSize( bool constantScreenSize, float size, Vector3 position )
