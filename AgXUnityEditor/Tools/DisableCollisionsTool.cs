@@ -111,9 +111,9 @@ namespace AgXUnityEditor.Tools
         for ( int i = 0; i < m_selected.Count; ++i )
           mainObjectGroupName += m_selected[ i ].GetInstanceID().ToString() + ( i != m_selected.Count - 1 ? "_" : "" );
 
-        m_mainObject.GetOrCreateComponent<CollisionGroups>().AddGroup( mainObjectGroupName, false );
+        m_mainObject.GetOrCreateComponent<CollisionGroups>().AddGroup( mainObjectGroupName, ShouldPropagateToChildren( m_mainObject ) );
         foreach ( var selected in m_selected )
-          selected.GetOrCreateComponent<CollisionGroups>().AddGroup( selectedGroupName, false );
+          selected.GetOrCreateComponent<CollisionGroups>().AddGroup( selectedGroupName, ShouldPropagateToChildren( selected ) );
 
         CollisionGroupsManager.Instance.SetEnablePair( mainObjectGroupName, selectedGroupName, false );
 
@@ -132,6 +132,13 @@ namespace AgXUnityEditor.Tools
         m_selected.Add( selected );
 
       EditorUtility.SetDirty( m_mainObject );
+    }
+
+    private bool ShouldPropagateToChildren( GameObject go )
+    {
+      return go.GetComponent<RigidBody>() == null &&
+             go.GetComponent<AgXUnity.Collide.Shape>() == null &&
+             go.GetComponent<Wire>() == null;
     }
   }
 }
