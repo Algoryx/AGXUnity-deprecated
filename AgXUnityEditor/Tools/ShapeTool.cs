@@ -30,6 +30,22 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    public bool DisableCollisionsTool
+    {
+      get { return GetChild<DisableCollisionsTool>() != null; }
+      set
+      {
+        if ( value && !DisableCollisionsTool ) {
+          RemoveAllChildren();
+
+          var disableCollisionsTool = new DisableCollisionsTool( Shape.gameObject );
+          AddChild( disableCollisionsTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<DisableCollisionsTool>() );
+      }
+    }
+
     public bool ShapeCreateTool
     {
       get { return GetChild<ShapeCreateTool>() != null; }
@@ -53,11 +69,12 @@ namespace AgXUnityEditor.Tools
 
     public override void OnPreTargetMembersGUI( GUISkin skin )
     {
-      bool guiWasEnabled = UnityEngine.GUI.enabled;
-      bool toggleShapeResizeTool = false;
-      bool toggleShapeCreate = false;
+      bool guiWasEnabled           = UnityEngine.GUI.enabled;
+      bool toggleShapeResizeTool   = false;
+      bool toggleShapeCreate       = false;
+      bool toggleDisableCollisions = false;
 
-      EditorGUILayout.BeginHorizontal();
+      GUILayout.BeginHorizontal();
       {
         GUI.ToolsLabel( skin );
 
@@ -66,15 +83,21 @@ namespace AgXUnityEditor.Tools
           toggleShapeResizeTool   = GUI.ToolButton( GUI.Symbols.ShapeResizeTool, ShapeResizeTool, "Shape resize tool", skin, 24 );
           UnityEngine.GUI.enabled = guiWasEnabled;
 
-          toggleShapeCreate = GUI.ToolButton( GUI.Symbols.ShapeCreateTool, ShapeCreateTool, "Create shape from visual objects", skin );
+          toggleShapeCreate       = GUI.ToolButton( GUI.Symbols.ShapeCreateTool, ShapeCreateTool, "Create shape from visual objects", skin );
+          toggleDisableCollisions = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool, DisableCollisionsTool, "Disable collisions against other objects", skin );
         }
       }
-      EditorGUILayout.EndHorizontal();
+      GUILayout.EndHorizontal();
+
+      GUI.Separator();
 
       if ( ShapeCreateTool ) {
-        GUI.Separator();
-
         GetChild<ShapeCreateTool>().OnInspectorGUI( skin );
+
+        GUI.Separator();
+      }
+      if ( DisableCollisionsTool ) {
+        GetChild<DisableCollisionsTool>().OnInspectorGUI( skin );
 
         GUI.Separator();
       }
@@ -83,6 +106,8 @@ namespace AgXUnityEditor.Tools
         ShapeResizeTool = !ShapeResizeTool;
       if ( toggleShapeCreate )
         ShapeCreateTool = !ShapeCreateTool;
+      if ( toggleDisableCollisions )
+        DisableCollisionsTool = !DisableCollisionsTool;
     }
   }
 }

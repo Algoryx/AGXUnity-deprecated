@@ -31,6 +31,9 @@ namespace AgXUnity
     {
       get
       {
+        if ( m_destroyed && !Application.isPlaying )
+          ResetDestroyedState();
+
         if ( !m_destroyed && m_instance == null && ( m_instance = FindObjectOfType( typeof( T ) ) as T ) == null ) {
           string name = ( typeof( T ).Namespace != null ? typeof( T ).Namespace + "." : "" ) + typeof( T ).Name;
           m_instance = ( new GameObject( name ) ).AddComponent<T>();

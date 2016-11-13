@@ -40,50 +40,6 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    private class CreateConstraintData
-    {
-      public ConstraintType ConstraintType
-      {
-        get { return (ConstraintType)EditorData.Instance.GetStaticData( "CreateConstraintData.ConstraintType" ).Int; }
-        set { EditorData.Instance.GetStaticData( "CreateConstraintData.ConstraintType" ).Int = (int)value; }
-      }
-
-      private Action<EditorDataEntry> m_defaultCollisionState = new Action<EditorDataEntry>( entry => { entry.Int = (int)Constraint.ECollisionsState.DisableRigidBody1VsRigidBody2; } );
-      public Constraint.ECollisionsState CollisionState
-      {
-        get { return (Constraint.ECollisionsState)EditorData.Instance.GetStaticData( "CreateConstraintData.CollisionState", m_defaultCollisionState ).Int; }
-        set { EditorData.Instance.GetStaticData( "CreateConstraintData.CollisionState", m_defaultCollisionState ).Int = (int)value; }
-      }
-
-      private Action<EditorDataEntry> m_defaultSolveType = new Action<EditorDataEntry>( entry => { entry.Int = (int)Constraint.ESolveType.Direct; } );
-      public Constraint.ESolveType SolveType
-      {
-        get { return (Constraint.ESolveType)EditorData.Instance.GetStaticData( "CreateConstraintData.SolveType", m_defaultSolveType ).Int; }
-        set { EditorData.Instance.GetStaticData( "CreateConstraintData.SolveType", m_defaultSolveType ).Int = (int)value; }
-      }
-
-      public string Name                             = string.Empty;
-      public ConstraintAttachmentPair AttachmentPair = null;
-
-      public void CreateInitialState( string name )
-      {
-        if ( AttachmentPair != null ) {
-          Debug.LogError( "Attachment pair already created. Make sure to clean any previous state before initializing a new one.", AttachmentPair );
-          return;
-        }
-
-        AttachmentPair = ConstraintAttachmentPair.Create<ConstraintAttachmentPair>();
-        Name           = Factory.CreateName( name + "_constraint" );
-      }
-
-      public void Reset( bool deleteAttachmentPair )
-      {
-        if ( AttachmentPair != null && deleteAttachmentPair )
-          ScriptComponent.DestroyImmediate( AttachmentPair );
-        AttachmentPair = null;
-      }
-    }
-
     private enum Mode
     {
       None,
@@ -101,8 +57,6 @@ namespace AgXUnityEditor.Tools
     private Mode m_mode       = Mode.None;
     private SubMode m_subMode = SubMode.None;
 
-    private CreateConstraintData m_createConstraintData = new CreateConstraintData();
-
     private List<SelectionEntry> m_selection = new List<SelectionEntry>();
     private RigidBodySelection m_rbSelection = null;
 
@@ -117,6 +71,16 @@ namespace AgXUnityEditor.Tools
       set
       {
         RemoveChild( GetChild<ShapeCreateTool>() );
+        AddChild( value );
+      }
+    }
+
+    private ConstraintCreateTool ConstraintCreateTool
+    {
+      get { return GetChild<ConstraintCreateTool>(); }
+      set
+      {
+        RemoveChild( ConstraintCreateTool );
         AddChild( value );
       }
     }
@@ -193,10 +157,7 @@ namespace AgXUnityEditor.Tools
         // ShapeCreateTool on scene view handles this.
       }
       else if ( m_mode == Mode.Constraint ) {
-        if ( m_createConstraintData.AttachmentPair == null ) {
-          m_createConstraintData.CreateInitialState( Assembly.name );
-          AddChild( new ConstraintAttachmentFrameTool( m_createConstraintData.AttachmentPair, Assembly ) );
-        }
+        // ConstraintCreateTool on scene view handles this.
       }
     }
 
@@ -320,74 +281,14 @@ namespace AgXUnityEditor.Tools
 
     private void HandleModeConstraintGUI( GUISkin skin )
     {
-      // TODO: Move to new tool so that it can be used in RigidBodyTool.
-      ConstraintAttachmentFrameTool attachmentPairTool = GetChild<ConstraintAttachmentFrameTool>();
-      if ( attachmentPairTool == null || m_createConstraintData.AttachmentPair == null )
-        return;
-
-      GUI.Separator3D();
-
-      using ( new GUI.Indent( 16 ) ) {
-        GUILayout.BeginHorizontal();
-        {
-          GUILayout.Label( GUI.MakeLabel( "Name", true ), skin.label, GUILayout.Width( 64 ) );
-          m_createConstraintData.Name = GUILayout.TextField( m_createConstraintData.Name, skin.textField, GUILayout.ExpandWidth( true ) );
-        }
-        GUILayout.EndHorizontal();
-
-        GUILayout.BeginHorizontal();
-        {
-          GUILayout.Label( GUI.MakeLabel( "Type", true ), skin.label, GUILayout.Width( 64 ) );
-          using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.yellow, 0.1f ) ) )
-            m_createConstraintData.ConstraintType = (ConstraintType)EditorGUILayout.EnumPopup( m_createConstraintData.ConstraintType, skin.button, GUILayout.ExpandWidth( true ), GUILayout.Height( 18 ) );
-        }
-        GUILayout.EndHorizontal();
-      }
-
-      GUI.Separator3D();
-
-      attachmentPairTool.OnPreTargetMembersGUI( skin );
-
-      m_createConstraintData.CollisionState = ConstraintTool.ConstraintCollisionsStateGUI( m_createConstraintData.CollisionState, skin );
-      m_createConstraintData.SolveType = ConstraintTool.ConstraintSolveTypeGUI( m_createConstraintData.SolveType, skin );
-
-      GUI.Separator3D();
-
-      bool createConstraintPressed = false;
-      bool cancelPressed = false;
-      GUILayout.BeginHorizontal();
-      {
-        GUILayout.Space( 12 );
-
-        using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
-          createConstraintPressed = GUILayout.Button( GUI.MakeLabel( "Create", true, "Create the constraint" ), skin.button, GUILayout.Width( 120 ), GUILayout.Height( 26 ) );
-
-        GUILayout.BeginVertical();
-        {
-          GUILayout.Space( 13 );
-          using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.red, 0.1f ) ) )
-            cancelPressed = GUILayout.Button( GUI.MakeLabel( "Cancel", false ), skin.button, GUILayout.Width( 96 ), GUILayout.Height( 16 ) );
-          GUILayout.EndVertical();
-        }
-      }
-      GUILayout.EndHorizontal();
-
-      GUI.Separator3D();
-
-      if ( createConstraintPressed ) {
-        GameObject constraintGameObject                                 = Factory.Create( m_createConstraintData.ConstraintType, m_createConstraintData.AttachmentPair );
-        constraintGameObject.name                                       = m_createConstraintData.Name;
-        constraintGameObject.GetComponent<Constraint>().CollisionsState = m_createConstraintData.CollisionState;
-
-        constraintGameObject.transform.SetParent( Assembly.transform );
-
-        Undo.RegisterCreatedObjectUndo( constraintGameObject, "New assembly constraint '" + constraintGameObject.name + "' created" );
-
-        m_createConstraintData.Reset( false );
-      }
-
-      if ( cancelPressed || createConstraintPressed )
+      if ( ConstraintCreateTool == null ) {
         ChangeMode( Mode.None );
+        return;
+      }
+
+      GUI.Separator3D();
+
+      ConstraintCreateTool.OnInspectorGUI( skin );
     }
 
     private void CreateOrMoveToRigidBodyFromSelectionEntries( List<SelectionEntry> selectionEntries, GameObject rbGameObject = null )
@@ -446,13 +347,13 @@ namespace AgXUnityEditor.Tools
       m_selection.Clear();
       RemoveAllChildren();
 
-      m_createConstraintData.Reset( true );
-
       m_mode = mode;
       m_subMode = SubMode.None;
 
       if ( m_mode == Mode.Shape )
         ShapeCreateTool = new ShapeCreateTool( Assembly.gameObject );
+      else if ( m_mode == Mode.Constraint )
+        ConstraintCreateTool = new ConstraintCreateTool( Assembly.gameObject, true );
     }
 
     private void ChangeSubMode( SubMode subMode )

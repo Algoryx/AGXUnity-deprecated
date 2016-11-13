@@ -21,6 +21,20 @@ namespace AgXUnityEditor.Tools
 
     public Wire Wire { get; private set; }
 
+    public bool DisableCollisionsTool
+    {
+      get { return GetChild<DisableCollisionsTool>() != null; }
+      set
+      {
+        if ( value && !DisableCollisionsTool ) {
+          var disableCollisionsTool = new DisableCollisionsTool( Wire.gameObject );
+          AddChild( disableCollisionsTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<DisableCollisionsTool>() );
+      }
+    }
+
     public WireTool( Wire wire )
     {
       Wire = wire;
@@ -56,14 +70,32 @@ namespace AgXUnityEditor.Tools
 
     public override void OnPreTargetMembersGUI( GUISkin skin )
     {
-      //const char addNodesToolSymbol = '\u260D';
+      bool toggleDisableCollisions = false;
+
+      GUILayout.BeginHorizontal();
+      {
+        GUI.ToolsLabel( skin );
+
+        using ( GUI.ToolButtonData.ColorBlock ) {
+          toggleDisableCollisions = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool, DisableCollisionsTool, "Disable collisions against other objects", skin );
+        }
+      }
+      GUILayout.EndHorizontal();
+
+      GUI.Separator();
+
+      if ( DisableCollisionsTool ) {
+        GetChild<DisableCollisionsTool>().OnInspectorGUI( skin );
+
+        GUI.Separator();
+      }
 
       if ( !EditorApplication.isPlaying ) {
         using ( new GUI.Indent( 12 ) )
           RouteGUI( skin );
-      }
 
-      GUI.Separator();
+        GUI.Separator();
+      }
 
       if ( Wire.BeginWinch != null ) {
         GUILayout.Label( GUI.MakeLabel( "Begin winch", true ), skin.label );
@@ -77,6 +109,9 @@ namespace AgXUnityEditor.Tools
           BaseEditor<WireWinch>.Update( Wire.EndWinch, skin );
         GUI.Separator();
       }
+
+      if ( toggleDisableCollisions )
+        DisableCollisionsTool = !DisableCollisionsTool;
     }
 
     public static GUI.ColorBlock NodeListButtonColor { get { return new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }

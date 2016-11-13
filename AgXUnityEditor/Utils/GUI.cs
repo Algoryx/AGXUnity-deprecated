@@ -23,6 +23,10 @@ namespace AgXUnityEditor.Utils
       public const char SelectEdgeTool          = '\u2196';
       public const char PositionHandleTool      = 'L';
 
+      public const char ConstraintCreateTool    = '\u2102';
+
+      public const char DisableCollisionsTool   = '\u2229';
+
       public const char ListInsertElementBefore = '\u21B0';
       public const char ListInsertElementAfter  = '\u21B2';
       public const char ListEraseElement        = 'x';

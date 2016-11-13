@@ -78,6 +78,38 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    public bool ConstraintCreateTool
+    {
+      get { return GetChild<ConstraintCreateTool>() != null; }
+      set
+      {
+        if ( value && !ConstraintCreateTool ) {
+          RemoveAllChildren();
+
+          var constraintCreateTool = new ConstraintCreateTool( RigidBody.gameObject, false );
+          AddChild( constraintCreateTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<ConstraintCreateTool>() );
+      }
+    }
+
+    public bool DisableCollisionsTool
+    {
+      get { return GetChild<DisableCollisionsTool>() != null; }
+      set
+      {
+        if ( value && !DisableCollisionsTool ) {
+          RemoveAllChildren();
+
+          var disableCollisionsTool = new DisableCollisionsTool( RigidBody.gameObject );
+          AddChild( disableCollisionsTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<DisableCollisionsTool>() );
+      }
+    }
+
     public RigidBodyTool( RigidBody rb )
     {
       RigidBody = rb;
@@ -88,6 +120,8 @@ namespace AgXUnityEditor.Tools
       bool toggleFindTransformGivenPoint = false;
       bool toggleFindTransformGivenEdge  = false;
       bool toggleShapeCreate             = false;
+      bool toggleConstraintCreate        = false;
+      bool toggleDisableCollisions       = false;
 
       GUILayout.BeginHorizontal();
       {
@@ -96,6 +130,8 @@ namespace AgXUnityEditor.Tools
           toggleFindTransformGivenPoint = GUI.ToolButton( GUI.Symbols.SelectPointTool, FindTransformGivenPointTool, "Find rigid body transform given point on object.", skin );
           toggleFindTransformGivenEdge  = GUI.ToolButton( GUI.Symbols.SelectEdgeTool, FindTransformGivenEdgeTool, "Find rigid body transform given edge on object.", skin );
           toggleShapeCreate             = GUI.ToolButton( GUI.Symbols.ShapeCreateTool, ShapeCreateTool, "Create shape from visual objects", skin );
+          toggleConstraintCreate        = GUI.ToolButton( GUI.Symbols.ConstraintCreateTool, ConstraintCreateTool, "Create constraint to this rigid body", skin );
+          toggleDisableCollisions       = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool, DisableCollisionsTool, "Disable collisions against other objects", skin );
         }
       }
       GUILayout.EndHorizontal();
@@ -104,6 +140,16 @@ namespace AgXUnityEditor.Tools
         GUI.Separator();
 
         GetChild<ShapeCreateTool>().OnInspectorGUI( skin );
+      }
+      if ( ConstraintCreateTool ) {
+        GUI.Separator();
+
+        GetChild<ConstraintCreateTool>().OnInspectorGUI( skin );
+      }
+      if ( DisableCollisionsTool ) {
+        GUI.Separator();
+
+        GetChild<DisableCollisionsTool>().OnInspectorGUI( skin );
       }
 
       GUI.Separator();
@@ -119,6 +165,10 @@ namespace AgXUnityEditor.Tools
         FindTransformGivenEdgeTool = !FindTransformGivenEdgeTool;
       if ( toggleShapeCreate )
         ShapeCreateTool = !ShapeCreateTool;
+      if ( toggleConstraintCreate )
+        ConstraintCreateTool = !ConstraintCreateTool;
+      if ( toggleDisableCollisions )
+        DisableCollisionsTool = !DisableCollisionsTool;
     }
 
     public override void OnPostTargetMembersGUI( GUISkin skin )
