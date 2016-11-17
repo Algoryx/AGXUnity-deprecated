@@ -163,8 +163,15 @@ namespace AgXUnity.Rendering
         OnSelectionProxy proxy = node.GetComponent<OnSelectionProxy>();
         if ( proxy != null && proxy.Target == null )
           gameObjectsToDestroy.Add( node );
-        else
+        else {
+          // TODO: Disabled script components/RigidBody isn't propagated correctly.
+          //       Click to disable a RigidBody with shape(s) in editor and press play.
+          //RigidBody rb = proxy.Target.GetComponentInParent<RigidBody>();
+          //bool isActive = proxy.Target.activeInHierarchy && ( rb == null || rb.isActiveAndEnabled );
+          //node.SetActive( isActive );
+
           node.SetActive( proxy.Target.activeInHierarchy );
+        }
       }
 
       while ( gameObjectsToDestroy.Count > 0 ) {
