@@ -163,6 +163,8 @@ namespace AgXUnity.Rendering
         OnSelectionProxy proxy = node.GetComponent<OnSelectionProxy>();
         if ( proxy != null && proxy.Target == null )
           gameObjectsToDestroy.Add( node );
+        else
+          node.SetActive( proxy.Target.activeInHierarchy );
       }
 
       while ( gameObjectsToDestroy.Count > 0 ) {

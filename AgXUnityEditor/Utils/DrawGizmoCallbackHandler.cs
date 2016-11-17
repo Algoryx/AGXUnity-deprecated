@@ -40,7 +40,7 @@ namespace AgXUnityEditor.Utils
       bool selectionActive = ( highlightMouseOverObject && Manager.MouseOverObject != null ) ||
                              toolsSelections.Count > 0 ||
                              ( assemblyTool != null && assemblyTool.HasActiveSelections() ) ||
-                             Array.Exists( Selection.gameObjects, go => { return go.GetComponent<Shape>() != null || go.GetComponent<RigidBody>() != null; } );
+                             Array.Exists( Selection.gameObjects, go => { return go.activeInHierarchy && ( go.GetComponent<Shape>() != null || go.GetComponent<RigidBody>() != null ); } );
       if ( !selectionActive )
         m_colorHandler.TimeInterpolator.Reset();
 
