@@ -92,9 +92,9 @@ namespace AgXUnity.Rendering
         // Node created - set properties and extra components.
         if ( nodeCreated ) {
           Node.hideFlags = HideFlags.DontSave;
-          Node.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
+          Node.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
           foreach ( Transform child in Node.transform )
-            child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Target = shape.gameObject;
+            child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
         }
 
         // Forcing the debug render node to be parent to the static DebugRenderManger.

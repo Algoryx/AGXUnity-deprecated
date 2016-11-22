@@ -3,15 +3,21 @@
 namespace AgXUnity.Utils
 {
   [AddComponentMenu( "" )]
+  [DisallowMultipleComponent]
   public class OnSelectionProxy : ScriptComponent
   {
     [SerializeField]
-    private GameObject m_target = null;
+    private ScriptComponent m_component = null;
 
     public GameObject Target
     {
-      get { return m_target; }
-      set { m_target = value; }
+      get { return m_component != null ? m_component.gameObject : null; }
+    }
+
+    public ScriptComponent Component
+    {
+      get { return m_component; }
+      set { m_component = value; }
     }
   }
 }

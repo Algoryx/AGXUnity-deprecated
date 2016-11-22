@@ -10,11 +10,13 @@ namespace AgXUnity.Rendering
   [ExecuteInEditMode]
   public class WireRenderer : ScriptComponent
   {
-    [HideInInspector]
     [SerializeField]
     private SegmentSpawner m_segmentSpawner = null;
 
     public float NumberOfSegmentsPerMeter = 2.0f;
+
+    [HideInInspector]
+    public SegmentSpawner SegmentSpawner { get { return m_segmentSpawner; } }
 
     public void OnPostStepForward( Wire wire )
     {
@@ -79,7 +81,7 @@ namespace AgXUnity.Rendering
         m_segmentSpawner = null;
       }
 
-      m_segmentSpawner = new SegmentSpawner( @"Wire/WireSegment", @"Wire/WireSegmentBegin" );
+      m_segmentSpawner = new SegmentSpawner( GetComponent<Wire>(),  @"Wire/WireSegment", @"Wire/WireSegmentBegin" );
       m_segmentSpawner.Initialize( gameObject );
     }
 

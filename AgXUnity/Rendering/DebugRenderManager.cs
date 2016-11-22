@@ -33,7 +33,7 @@ namespace AgXUnity.Rendering
       }
 
       while ( gameObjectsToDestroy.Count > 0 ) {
-        GameObject.DestroyImmediate( gameObjectsToDestroy[ gameObjectsToDestroy.Count - 1 ] );
+        DestroyImmediate( gameObjectsToDestroy[ gameObjectsToDestroy.Count - 1 ] );
         gameObjectsToDestroy.RemoveAt( gameObjectsToDestroy.Count - 1 );
       }
     }
@@ -83,6 +83,20 @@ namespace AgXUnity.Rendering
       Collide.Shape[] shapes = rb.GetComponentsInChildren<Collide.Shape>();
       foreach ( Collide.Shape shape in shapes )
         Instance.SynchronizeShape( shape );
+    }
+
+    /// <summary>
+    /// Checks if <paramref name="gameObject"/> is active in hierarchy that any
+    /// shape and rigid body component present are enabled.
+    /// </summary>
+    public static bool IsActiveShape( GameObject gameObject )
+    {
+      if ( gameObject == null || !gameObject.activeInHierarchy )
+        return false;
+
+      var rb    = gameObject.GetComponentInParent<RigidBody>();
+      var shape = gameObject.GetComponent<Collide.Shape>();
+      return shape != null && shape.enabled && ( rb == null || rb.enabled );
     }
 
     /// <summary>
@@ -149,33 +163,29 @@ namespace AgXUnity.Rendering
       if ( Application.isPlaying )
         return;
 
-      UnityEngine.Object.FindObjectsOfType<Collide.Shape>().ToList().ForEach(
+      FindObjectsOfType<Collide.Shape>().ToList().ForEach(
         shape => SynchronizeShape( shape )
       );
 
-      UnityEngine.Object.FindObjectsOfType<Constraint>().ToList().ForEach(
+      FindObjectsOfType<Constraint>().ToList().ForEach(
         constraint => constraint.AttachmentPair.Update()
       );
 
       List<GameObject> gameObjectsToDestroy = new List<GameObject>();
       foreach ( Transform child in gameObject.transform ) {
-        GameObject node = child.gameObject;
+        GameObject node        = child.gameObject;
         OnSelectionProxy proxy = node.GetComponent<OnSelectionProxy>();
-        if ( proxy != null && proxy.Target == null )
-          gameObjectsToDestroy.Add( node );
-        else {
-          // TODO: Disabled script components/RigidBody isn't propagated correctly.
-          //       Click to disable a RigidBody with shape(s) in editor and press play.
-          //RigidBody rb = proxy.Target.GetComponentInParent<RigidBody>();
-          //bool isActive = proxy.Target.activeInHierarchy && ( rb == null || rb.isActiveAndEnabled );
-          //node.SetActive( isActive );
+        if ( proxy == null )
+          continue;
 
-          node.SetActive( proxy.Target.activeInHierarchy );
-        }
+        if ( proxy.Target == null )
+          gameObjectsToDestroy.Add( node );
+        else if ( IsActiveShape( proxy.Target ) != node.activeSelf )
+          node.SetActive( !node.activeSelf );
       }
 
       while ( gameObjectsToDestroy.Count > 0 ) {
-        GameObject.DestroyImmediate( gameObjectsToDestroy.Last() );
+        DestroyImmediate( gameObjectsToDestroy.Last() );
         gameObjectsToDestroy.RemoveAt( gameObjectsToDestroy.Count - 1 );
       }
     }

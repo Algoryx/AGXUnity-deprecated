@@ -331,9 +331,14 @@ namespace AgXUnityEditor
 
         m_currentSceneName = scene.name;
 
-        // Verifies so that our shapes doesn't have multiple debug rendering components.
+        // - Verifies so that our shapes doesn't have multiple debug rendering components.
+        // - Verifies version of OnSelectionProxy and patches it if Target == null.
         AgXUnity.Collide.Shape[] shapes = UnityEngine.Object.FindObjectsOfType<AgXUnity.Collide.Shape>();
         foreach ( var shape in shapes ) {
+          OnSelectionProxy selectionProxy = shape.GetComponent<OnSelectionProxy>();
+          if ( selectionProxy != null && selectionProxy.Target == null )
+            selectionProxy.Component = shape;
+
           AgXUnity.Rendering.ShapeDebugRenderData[] data = shape.GetComponents<AgXUnity.Rendering.ShapeDebugRenderData>();
           if ( data.Length > 1 ) {
             Debug.Log( "Shape has several ShapeDebugRenderData. Removing/resetting.", shape );
@@ -397,6 +402,21 @@ namespace AgXUnityEditor
             Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+          }
+        }
+
+        // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
+        AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+        foreach ( var wire in wires ) {
+          AgXUnity.Rendering.SegmentSpawner ss = wire.GetComponent<AgXUnity.Rendering.WireRenderer>().SegmentSpawner;
+          if ( ss == null )
+            continue;
+
+          var segments = ss.Segments;
+          foreach ( var segment in segments ) {
+            OnSelectionProxy selectionProxy = segment.GetComponent<OnSelectionProxy>();
+            if ( selectionProxy != null && selectionProxy.Target == null )
+              selectionProxy.Component = wire;
           }
         }
       }
