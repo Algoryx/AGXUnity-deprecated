@@ -86,20 +86,6 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
-    /// Checks if <paramref name="gameObject"/> is active in hierarchy that any
-    /// shape and rigid body component present are enabled.
-    /// </summary>
-    public static bool IsActiveShape( GameObject gameObject )
-    {
-      if ( gameObject == null || !gameObject.activeInHierarchy )
-        return false;
-
-      var rb    = gameObject.GetComponentInParent<RigidBody>();
-      var shape = gameObject.GetComponent<Collide.Shape>();
-      return shape != null && shape.enabled && ( rb == null || rb.enabled );
-    }
-
-    /// <summary>
     /// Visualizes shapes and visuals in bodies with different colors (wire frame gizmos).
     /// </summary>
     public bool ColorizeBodies = false;
@@ -163,6 +149,8 @@ namespace AgXUnity.Rendering
       if ( Application.isPlaying )
         return;
 
+      // Shapes with inactive game objects will be updated below when we're
+      // traversing all children.
       FindObjectsOfType<Collide.Shape>().ToList().ForEach(
         shape => SynchronizeShape( shape )
       );
@@ -175,13 +163,16 @@ namespace AgXUnity.Rendering
       foreach ( Transform child in gameObject.transform ) {
         GameObject node        = child.gameObject;
         OnSelectionProxy proxy = node.GetComponent<OnSelectionProxy>();
+
         if ( proxy == null )
           continue;
 
         if ( proxy.Target == null )
           gameObjectsToDestroy.Add( node );
-        else if ( IsActiveShape( proxy.Target ) != node.activeSelf )
-          node.SetActive( !node.activeSelf );
+        // FindObjectsOfType will not include the Shape if its game object is inactive.
+        // We're handling that shape here instead.
+        else if ( !proxy.Target.activeSelf && proxy.Component is Collide.Shape )
+          SynchronizeShape( proxy.Component as Collide.Shape );
       }
 
       while ( gameObjectsToDestroy.Count > 0 ) {
@@ -190,12 +181,19 @@ namespace AgXUnity.Rendering
       }
     }
 
-    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy && Instance.isActiveAndEnabled; } }
+    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy && Instance.enabled; } }
 
     private void SynchronizeShape( Collide.Shape shape )
     {
       var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
+      bool shapeEnabled = shape.IsEnabled;
+      // Do not create debug render data if the shape is inactive.
+      if ( !shapeEnabled && data.Node == null )
+        return;
+
       data.Synchronize( this );
+      if ( shapeEnabled != data.Node.activeSelf )
+        data.Node.SetActive( shapeEnabled );
     }
 
     private void SynchronizeScaleIfNodeExist( Collide.Shape shape )

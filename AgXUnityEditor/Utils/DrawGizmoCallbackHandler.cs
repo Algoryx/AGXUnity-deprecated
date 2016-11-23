@@ -112,7 +112,7 @@ namespace AgXUnityEditor.Utils
       if ( ( rb = selected.GetComponent<RigidBody>() ) != null && rb.enabled ) {
         m_colorHandler.Highlight( rb, selectionType );
       }
-      else if ( ( shape = selected.GetComponent<Shape>() ) != null && shape.enabled ) {
+      else if ( ( shape = selected.GetComponent<Shape>() ) != null && shape.IsEnabled ) {
         m_colorHandler.Highlight( shape, selectionType );
       }
       else if ( ( filter = selected.GetComponent<MeshFilter>() ) != null ) {

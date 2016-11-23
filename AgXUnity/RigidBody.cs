@@ -5,6 +5,23 @@ using UnityEngine;
 
 namespace AgXUnity
 {
+  //[DoNotGenerateCustomEditor]
+  //[AddComponentMenu( "AgXUnity/Hello world" )]
+  //public class HelloWorld : ScriptComponent
+  //{
+  //  protected override void OnEnable()
+  //  {
+  //    Debug.Log( "OnEnable: " + gameObject.activeInHierarchy + ", " + enabled );
+  //    Debug.Log( "  State: " + State.ToString() );
+  //  }
+
+  //  protected override void OnDisable()
+  //  {
+  //    Debug.Log( "OnDisable: " + gameObject.activeInHierarchy + ", " + enabled );
+  //    Debug.Log( "  State: " + State.ToString() );
+  //  }
+  //}
+
   /// <summary>
   /// Rigid body object. Dynamic, kinematic or static, carrying mass and
   /// inertia. Possible to constrain and contains in general shapes.
@@ -213,6 +230,9 @@ namespace AgXUnity
             agxCollide.Shape nativeShape = shape.CreateTemporaryNative();
             if ( nativeShape != null ) {
               agxCollide.Geometry geometry = new agxCollide.Geometry( nativeShape );
+
+              geometry.setEnable( shape.IsEnabled );
+
               if ( shape.Material != null )
                 geometry.setMaterial( shape.Material.CreateTemporaryNative() );
               rb.add( geometry, shape.GetNativeRigidBodyOffset( this ) );

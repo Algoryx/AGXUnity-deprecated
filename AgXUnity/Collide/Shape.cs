@@ -63,6 +63,20 @@ namespace AgXUnity.Collide
     public agxCollide.Shape NativeShape { get { return m_shape; } }
 
     /// <summary>
+    /// True if this shape component is enabled, active in hierarchy and if part of a rigid body,
+    /// the rigid body is enabled.
+    /// </summary>
+    [HideInInspector]
+    public bool IsEnabled
+    {
+      get
+      {
+        RigidBody rb = GetComponentInParent<RigidBody>();
+        return enabled && gameObject.activeInHierarchy && ( rb == null || rb.enabled );
+      }
+    }
+
+    /// <summary>
     /// Abstract scale. Mainly used in debug rendering which uses unit size
     /// and scale. E.g., a sphere with radius 0.3 m should return (0.6, 0.6, 0.6).
     /// </summary>
@@ -127,6 +141,8 @@ namespace AgXUnity.Collide
       if ( !rb.gameObject.HasChild( gameObject ) )
         throw new Exception( "RigidBody not parent to Shape." );
 
+      m_geometry.setEnable( IsEnabled );
+
       rb.Native.add( m_geometry, GetNativeRigidBodyOffset( rb ) );
     }
 
@@ -161,10 +177,6 @@ namespace AgXUnity.Collide
     /// <returns></returns>
     protected override bool Initialize()
     {
-      RigidBody rb = GetComponentInParent<RigidBody>();
-      if ( rb != null && !rb.enabled )
-        return false;
-
       m_shape = CreateNative();
 
       if ( m_shape == null )
@@ -172,6 +184,7 @@ namespace AgXUnity.Collide
 
       m_geometry = new agxCollide.Geometry( m_shape, GetNativeGeometryOffset() );
       m_geometry.setName( name );
+      m_geometry.setEnable( IsEnabled );
 
       if ( Material != null )
         m_geometry.setMaterial( m_material.GetInitialized<ShapeMaterial>().Native );
