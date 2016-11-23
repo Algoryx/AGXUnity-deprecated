@@ -7,8 +7,8 @@ namespace AgXUnity
   /// In general UnityEngine objects are ignored in our custom inspector.
   /// This attribute enables UnityEngine objects to be shown in the editor.
   /// </summary>
-  [System.AttributeUsage( System.AttributeTargets.Field | System.AttributeTargets.Property, AllowMultiple = false )]
-  public class ShowInInspector : System.Attribute
+  [AttributeUsage( AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false )]
+  public class ShowInInspector : Attribute
   {
     public ShowInInspector() { }
   }
@@ -16,8 +16,8 @@ namespace AgXUnity
   /// <summary>
   /// Ignore synchronization of properties during initialize of a ScriptComponent/Asset.
   /// </summary>
-  [System.AttributeUsage( System.AttributeTargets.Property )]
-  public class IgnoreSynchronization : System.Attribute
+  [AttributeUsage( AttributeTargets.Property )]
+  public class IgnoreSynchronization : Attribute
   {
     public IgnoreSynchronization() { }
   }
@@ -25,8 +25,8 @@ namespace AgXUnity
   /// <summary>
   /// Slider in inspector for float with given min and max value.
   /// </summary>
-  [System.AttributeUsage( System.AttributeTargets.Field | System.AttributeTargets.Property, AllowMultiple = false )]
-  public class FloatSliderInInspector : System.Attribute
+  [AttributeUsage( AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false )]
+  public class FloatSliderInInspector : Attribute
   {
     private float m_min = 0.0f;
     private float m_max = 0.0f;
@@ -44,8 +44,8 @@ namespace AgXUnity
   /// <summary>
   /// Attribute for method to be executed from a button in the editor.
   /// </summary>
-  [System.AttributeUsage( System.AttributeTargets.Method, AllowMultiple = false )]
-  public class InvokableInInspector : System.Attribute
+  [AttributeUsage( AttributeTargets.Method, AllowMultiple = false )]
+  public class InvokableInInspector : Attribute
   {
     public InvokableInInspector( string label = "" ) { Label = label; }
 
@@ -57,8 +57,8 @@ namespace AgXUnity
   /// less than (or equal to) zero. It's possible to receive exact
   /// zeros though this is not the default behavior.
   /// </summary>
-  [System.AttributeUsage( System.AttributeTargets.Field | System.AttributeTargets.Property, AllowMultiple = false )]
-  public class ClampAboveZeroInInspector : System.Attribute
+  [AttributeUsage( AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false )]
+  public class ClampAboveZeroInInspector : Attribute
   {
     private bool m_acceptZero = false;
     public ClampAboveZeroInInspector( bool acceptZero = false ) { m_acceptZero = acceptZero; }
@@ -116,7 +116,7 @@ namespace AgXUnity
     }
   }
 
-  [System.AttributeUsage( AttributeTargets.Class, AllowMultiple = false )]
+  [AttributeUsage( AttributeTargets.Class, AllowMultiple = false )]
   public class CustomTool : Attribute
   {
     public string ClassName = "";
@@ -124,6 +124,14 @@ namespace AgXUnity
     public CustomTool( string className )
     {
       ClassName = className;
+    }
+  }
+
+  [AttributeUsage( AttributeTargets.Class, AllowMultiple = false)]
+  public class DoNotGenerateCustomEditor : Attribute
+  {
+    public DoNotGenerateCustomEditor()
+    {
     }
   }
 }
