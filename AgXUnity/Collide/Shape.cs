@@ -71,10 +71,15 @@ namespace AgXUnity.Collide
     {
       get
       {
-        RigidBody rb = GetComponentInParent<RigidBody>();
+        RigidBody rb = RigidBody;
         return enabled && gameObject.activeInHierarchy && ( rb == null || rb.enabled );
       }
     }
+
+    /// <summary>
+    /// Rigid body parent to this shape. Null if 'free' shape.
+    /// </summary>
+    public RigidBody RigidBody { get { return GetComponentInParent<RigidBody>(); } }
 
     /// <summary>
     /// Abstract scale. Mainly used in debug rendering which uses unit size
@@ -205,6 +210,44 @@ namespace AgXUnity.Collide
       Simulation.Instance.StepCallbacks.PostSynchronizeTransforms += OnPostSynchronizeTransformsCallback;
 
       return base.Initialize();
+    }
+
+    /// <summary>
+    /// When enabled and native instance isn't enabled, enable shape/geometry
+    /// and update mass properties (if rigid body is present).
+    /// </summary>
+    /// <remarks>
+    /// This callback is executed when pressing 'Play' or starting an application.
+    /// </remarks>
+    protected override void OnEnable()
+    {
+      if ( m_geometry != null && !m_geometry.getEnable() ) {
+        m_geometry.setEnable( true );
+
+        var rb = RigidBody;
+        if ( rb != null && rb.Native != null )
+          rb.UpdateMassProperties();
+      }
+    }
+
+    /// <summary>
+    /// When disabled and native instance is enabled, disable shape/geometry
+    /// and update mass properties (if rigid body is present).
+    /// </summary>
+    /// <remarks>
+    /// This callback is executed when pressing 'Stop' or when exiting an application.
+    /// </remarks>
+    protected override void OnDisable()
+    {
+      if ( m_geometry != null && m_geometry.getEnable() ) {
+        m_geometry.setEnable( false );
+
+        var rb = RigidBody;
+        if ( rb != null && rb.Native != null )
+          rb.UpdateMassProperties();
+
+        Rendering.DebugRenderManager.OnShapeDisable( this );
+      }
     }
 
     /// <summary>

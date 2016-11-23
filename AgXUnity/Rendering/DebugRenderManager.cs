@@ -73,6 +73,20 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
+    /// Callback from Shape.OnDisable to catch and find disabled shapes,
+    /// disabling debug render node.
+    /// </summary>
+    public static void OnShapeDisable( Collide.Shape shape )
+    {
+      if ( !ActiveForSynchronize )
+        return;
+
+      var data = shape.GetComponent<ShapeDebugRenderData>();
+      if ( data.Node != null )
+        data.Node.SetActive( false );
+    }
+
+    /// <summary>
     /// Called after Simulation.StepForward from bodies to synchronize debug rendering of the shapes.
     /// </summary>
     public static void OnPostSynchronizeTransforms( RigidBody rb )
@@ -187,6 +201,10 @@ namespace AgXUnity.Rendering
     {
       var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
       bool shapeEnabled = shape.IsEnabled;
+
+      if ( data.hideFlags != HideFlags.HideInInspector )
+        data.hideFlags = HideFlags.HideInInspector;
+
       // Do not create debug render data if the shape is inactive.
       if ( !shapeEnabled && data.Node == null )
         return;
