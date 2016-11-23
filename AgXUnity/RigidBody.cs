@@ -190,7 +190,14 @@ namespace AgXUnity
     /// <summary>
     /// Get native instance, if initialized.
     /// </summary>
+    [HideInInspector]
     public agx.RigidBody Native { get { return m_rb; } }
+
+    /// <summary>
+    /// True if the game object is active in hierarchy and this component is enabled.
+    /// </summary>
+    [HideInInspector]
+    public bool IsEnabled { get { return gameObject.activeInHierarchy && enabled; } }
     #endregion
 
     #region Public Methods
@@ -265,6 +272,7 @@ namespace AgXUnity
 
       m_rb = new agx.RigidBody();
       m_rb.setName( name );
+      m_rb.setEnable( IsEnabled );
 
       SyncNativeTransform( m_rb );
 
@@ -277,6 +285,18 @@ namespace AgXUnity
       Simulation.Instance.StepCallbacks.PostSynchronizeTransforms += OnPostSynchronizeTransformsCallback;
 
       return base.Initialize();
+    }
+
+    protected override void OnEnable()
+    {
+      if ( Native != null && !Native.getEnable() )
+        Native.setEnable( true );
+    }
+
+    protected override void OnDisable()
+    {
+      if ( Native != null && Native.getEnable() )
+        Native.setEnable( false );
     }
 
     protected override void OnDestroy()
