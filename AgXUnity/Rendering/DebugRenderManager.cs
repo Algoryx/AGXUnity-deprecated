@@ -185,7 +185,7 @@ namespace AgXUnity.Rendering
           gameObjectsToDestroy.Add( node );
         // FindObjectsOfType will not include the Shape if its game object is inactive.
         // We're handling that shape here instead.
-        else if ( !proxy.Target.activeSelf && proxy.Component is Collide.Shape )
+        else if ( !proxy.Target.activeInHierarchy && proxy.Component is Collide.Shape )
           SynchronizeShape( proxy.Component as Collide.Shape );
       }
 
