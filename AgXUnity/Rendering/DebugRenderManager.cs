@@ -200,7 +200,7 @@ namespace AgXUnity.Rendering
     private void SynchronizeShape( Collide.Shape shape )
     {
       var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
-      bool shapeEnabled = shape.IsEnabled;
+      bool shapeEnabled = shape.IsEnabledInHierarchy;
 
       if ( data.hideFlags != HideFlags.HideInInspector )
         data.hideFlags = HideFlags.HideInInspector;

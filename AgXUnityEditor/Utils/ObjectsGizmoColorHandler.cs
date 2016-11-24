@@ -85,7 +85,7 @@ namespace AgXUnityEditor.Utils
 
       var shapes = rb.GetComponentsInChildren<Shape>();
       foreach ( var shape in shapes ) {
-        if ( !shape.IsEnabled )
+        if ( !shape.IsEnabledInHierarchy )
           continue;
 
         var shapeFilters = ShapeDebugRenderData.GetMeshFilters( shape );
@@ -126,7 +126,7 @@ namespace AgXUnityEditor.Utils
       Color rbColor = Colorize( rb );
       var shapes = rb.GetComponentsInChildren<Shape>();
       foreach ( var shape in shapes ) {
-        if ( !shape.IsEnabled )
+        if ( !shape.IsEnabledInHierarchy )
           continue;
 
         var shapeFilters = ShapeDebugRenderData.GetMeshFilters( shape );

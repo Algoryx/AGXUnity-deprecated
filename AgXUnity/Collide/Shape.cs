@@ -67,7 +67,7 @@ namespace AgXUnity.Collide
     /// the rigid body is enabled.
     /// </summary>
     [HideInInspector]
-    public bool IsEnabled
+    public bool IsEnabledInHierarchy
     {
       get
       {
@@ -77,8 +77,21 @@ namespace AgXUnity.Collide
     }
 
     /// <summary>
+    /// True if the game object this active and this component is enabled.
+    /// </summary>
+    [HideInInspector]
+    public bool IsEnabled
+    {
+      get
+      {
+        return gameObject.activeSelf && enabled;
+      }
+    }
+
+    /// <summary>
     /// Rigid body parent to this shape. Null if 'free' shape.
     /// </summary>
+    [HideInInspector]
     public RigidBody RigidBody { get { return GetComponentInParent<RigidBody>(); } }
 
     /// <summary>
