@@ -22,8 +22,14 @@ namespace AgXUnity.Rendering
     [SerializeField]
     private GameObject m_firstSegmentInstance = null;
 
-    public SegmentSpawner( string prefabObjectPath, string separateFirstObjectPath = "" )
+    [SerializeField]
+    private ScriptComponent m_parentComponent = null;
+
+    public GameObject[] Segments { get { return ( from segmentTransform in m_segments.GetComponentsInChildren<Transform>() where segmentTransform != m_segments.transform select segmentTransform.gameObject ).ToArray(); } }
+
+    public SegmentSpawner( ScriptComponent parentComponent, string prefabObjectPath, string separateFirstObjectPath = "" )
     {
+      m_parentComponent = parentComponent;
       m_prefabObjectPath = prefabObjectPath;
       if ( separateFirstObjectPath != "" )
         m_separateFirstObjectPrefabPath = separateFirstObjectPath;
@@ -139,9 +145,15 @@ namespace AgXUnity.Rendering
 
     private void AddSelectionProxy( GameObject instance )
     {
-      instance.AddComponent<OnSelectionProxy>().Target = m_segments.transform.parent.gameObject;
+      // Handling old version where this object was used by the Wire only and
+      // m_parentComponent wasn't present. I.e., if m_parenComponent == null
+      // it has to be a Wire present.
+      if ( m_parentComponent == null )
+        m_parentComponent = m_segments.transform.parent.GetComponent<Wire>();
+
+      instance.GetOrCreateComponent<OnSelectionProxy>().Component = m_parentComponent;
       foreach ( Transform child in instance.transform )
-        child.gameObject.AddComponent<OnSelectionProxy>().Target = m_segments.transform.parent.gameObject;
+        child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Component = m_parentComponent;
     }
   }
 }

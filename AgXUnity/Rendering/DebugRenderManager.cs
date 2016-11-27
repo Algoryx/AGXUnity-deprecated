@@ -33,7 +33,7 @@ namespace AgXUnity.Rendering
       }
 
       while ( gameObjectsToDestroy.Count > 0 ) {
-        GameObject.DestroyImmediate( gameObjectsToDestroy[ gameObjectsToDestroy.Count - 1 ] );
+        DestroyImmediate( gameObjectsToDestroy[ gameObjectsToDestroy.Count - 1 ] );
         gameObjectsToDestroy.RemoveAt( gameObjectsToDestroy.Count - 1 );
       }
     }
@@ -70,6 +70,20 @@ namespace AgXUnity.Rendering
         return;
 
       Instance.SynchronizeShape( shape );
+    }
+
+    /// <summary>
+    /// Callback from Shape.OnDisable to catch and find disabled shapes,
+    /// disabling debug render node.
+    /// </summary>
+    public static void OnShapeDisable( Collide.Shape shape )
+    {
+      if ( !ActiveForSynchronize )
+        return;
+
+      var data = shape.GetComponent<ShapeDebugRenderData>();
+      if ( data.Node != null )
+        data.Node.SetActive( false );
     }
 
     /// <summary>
@@ -149,34 +163,55 @@ namespace AgXUnity.Rendering
       if ( Application.isPlaying )
         return;
 
-      UnityEngine.Object.FindObjectsOfType<Collide.Shape>().ToList().ForEach(
+      // Shapes with inactive game objects will be updated below when we're
+      // traversing all children.
+      FindObjectsOfType<Collide.Shape>().ToList().ForEach(
         shape => SynchronizeShape( shape )
       );
 
-      UnityEngine.Object.FindObjectsOfType<Constraint>().ToList().ForEach(
+      FindObjectsOfType<Constraint>().ToList().ForEach(
         constraint => constraint.AttachmentPair.Update()
       );
 
       List<GameObject> gameObjectsToDestroy = new List<GameObject>();
       foreach ( Transform child in gameObject.transform ) {
-        GameObject node = child.gameObject;
+        GameObject node        = child.gameObject;
         OnSelectionProxy proxy = node.GetComponent<OnSelectionProxy>();
-        if ( proxy != null && proxy.Target == null )
+
+        if ( proxy == null )
+          continue;
+
+        if ( proxy.Target == null )
           gameObjectsToDestroy.Add( node );
+        // FindObjectsOfType will not include the Shape if its game object is inactive.
+        // We're handling that shape here instead.
+        else if ( !proxy.Target.activeInHierarchy && proxy.Component is Collide.Shape )
+          SynchronizeShape( proxy.Component as Collide.Shape );
       }
 
       while ( gameObjectsToDestroy.Count > 0 ) {
-        GameObject.DestroyImmediate( gameObjectsToDestroy.Last() );
+        DestroyImmediate( gameObjectsToDestroy.Last() );
         gameObjectsToDestroy.RemoveAt( gameObjectsToDestroy.Count - 1 );
       }
     }
 
-    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy && Instance.isActiveAndEnabled; } }
+    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy && Instance.enabled; } }
 
     private void SynchronizeShape( Collide.Shape shape )
     {
       var data = shape.gameObject.GetOrCreateComponent<ShapeDebugRenderData>();
+      bool shapeEnabled = shape.IsEnabledInHierarchy;
+
+      if ( data.hideFlags != HideFlags.HideInInspector )
+        data.hideFlags = HideFlags.HideInInspector;
+
+      // Do not create debug render data if the shape is inactive.
+      if ( !shapeEnabled && data.Node == null )
+        return;
+
       data.Synchronize( this );
+      if ( shapeEnabled != data.Node.activeSelf )
+        data.Node.SetActive( shapeEnabled );
     }
 
     private void SynchronizeScaleIfNodeExist( Collide.Shape shape )

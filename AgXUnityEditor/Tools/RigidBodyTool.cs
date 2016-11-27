@@ -240,8 +240,11 @@ namespace AgXUnityEditor.Tools
             continue;
 
           GUI.Separator();
-          using ( new GUI.Indent( 12 ) )
+          using ( new GUI.Indent( 12 ) ) {
+            shape.enabled = GUI.Toggle( GUI.MakeLabel( "Enable" ), shape.enabled, skin.button, skin.label );
+            GUI.Separator();
             BaseEditor<Shape>.Update( shape, skin );
+          }
         }
       }
     }

@@ -5,6 +5,23 @@ using UnityEngine;
 
 namespace AgXUnity
 {
+  //[DoNotGenerateCustomEditor]
+  //[AddComponentMenu( "AgXUnity/Hello world" )]
+  //public class HelloWorld : ScriptComponent
+  //{
+  //  protected override void OnEnable()
+  //  {
+  //    Debug.Log( "OnEnable: " + gameObject.activeInHierarchy + ", " + enabled );
+  //    Debug.Log( "  State: " + State.ToString() );
+  //  }
+
+  //  protected override void OnDisable()
+  //  {
+  //    Debug.Log( "OnDisable: " + gameObject.activeInHierarchy + ", " + enabled );
+  //    Debug.Log( "  State: " + State.ToString() );
+  //  }
+  //}
+
   /// <summary>
   /// Rigid body object. Dynamic, kinematic or static, carrying mass and
   /// inertia. Possible to constrain and contains in general shapes.
@@ -173,7 +190,14 @@ namespace AgXUnity
     /// <summary>
     /// Get native instance, if initialized.
     /// </summary>
+    [HideInInspector]
     public agx.RigidBody Native { get { return m_rb; } }
+
+    /// <summary>
+    /// True if the game object is active in hierarchy and this component is enabled.
+    /// </summary>
+    [HideInInspector]
+    public bool IsEnabled { get { return gameObject.activeInHierarchy && enabled; } }
     #endregion
 
     #region Public Methods
@@ -213,6 +237,9 @@ namespace AgXUnity
             agxCollide.Shape nativeShape = shape.CreateTemporaryNative();
             if ( nativeShape != null ) {
               agxCollide.Geometry geometry = new agxCollide.Geometry( nativeShape );
+
+              geometry.setEnable( shape.IsEnabled );
+
               if ( shape.Material != null )
                 geometry.setMaterial( shape.Material.CreateTemporaryNative() );
               rb.add( geometry, shape.GetNativeRigidBodyOffset( this ) );
@@ -245,6 +272,7 @@ namespace AgXUnity
 
       m_rb = new agx.RigidBody();
       m_rb.setName( name );
+      m_rb.setEnable( IsEnabled );
 
       SyncNativeTransform( m_rb );
 
@@ -257,6 +285,18 @@ namespace AgXUnity
       Simulation.Instance.StepCallbacks.PostSynchronizeTransforms += OnPostSynchronizeTransformsCallback;
 
       return base.Initialize();
+    }
+
+    protected override void OnEnable()
+    {
+      if ( Native != null && !Native.getEnable() )
+        Native.setEnable( true );
+    }
+
+    protected override void OnDisable()
+    {
+      if ( Native != null && Native.getEnable() )
+        Native.setEnable( false );
     }
 
     protected override void OnDestroy()

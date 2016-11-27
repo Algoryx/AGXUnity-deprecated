@@ -168,12 +168,15 @@ namespace AgXUnityEditor
         if ( slider != null )
           value = EditorGUILayout.Slider( MakeLabel( wrapper.Member ), valInField, slider.Min, slider.Max );
         else {
-          GUILayout.BeginHorizontal();
-          {
-            GUILayout.Label( MakeLabel( wrapper.Member ) );
-            value = EditorGUILayout.FloatField( valInField, CurrentSkin.textField );
-          }
-          GUILayout.EndHorizontal();
+          value = EditorGUILayout.FloatField( MakeLabel( wrapper.Member ), valInField, CurrentSkin.textField );
+
+          // I can't remember why I tested this approach.
+          //GUILayout.BeginHorizontal();
+          //{
+          //  GUILayout.Label( MakeLabel( wrapper.Member ) );
+          //  value = EditorGUILayout.FloatField( valInField, CurrentSkin.textField );
+          //}
+          //GUILayout.EndHorizontal();
         }
       }
       else if ( type == typeof( int ) && wrapper.CanRead() ) {

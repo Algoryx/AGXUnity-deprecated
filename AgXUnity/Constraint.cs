@@ -216,6 +216,12 @@ namespace AgXUnity
     public agx.Constraint Native { get; private set; }
 
     /// <summary>
+    /// True if game object is active in hierarchy and this component is enabled.
+    /// </summary>
+    [HideInInspector]
+    public bool IsEnabled { get { return gameObject.activeInHierarchy && enabled; } }
+
+    /// <summary>
     /// List of elementary constraints in this constraint - controllers and ordinary.
     /// </summary>
     [SerializeField]
@@ -282,6 +288,11 @@ namespace AgXUnity
       // Synchronize frames to make sure connected frame is up to date.
       AttachmentPair.Update();
 
+      // TODO: Disabling rigid body game object (activeSelf == false) and will not be
+      //       able to create native body (since State == Constructed and not Awake).
+      //       Do: GetComponentInParent<RigidBody>( true <- include inactive ) and wait
+      //           for the body to become active?
+      //       E.g., rb.AwaitInitialize += ThisConstraintInitialize.
       RigidBody rb1 = m_attachmentPair.ReferenceObject.GetInitializedComponentInParent<RigidBody>();
       if ( rb1 == null ) {
         Debug.LogError( "Unable to initialize constraint. Reference object must contain a rigid body component.", m_attachmentPair.ReferenceObject );
@@ -318,6 +329,7 @@ namespace AgXUnity
             throw new Exception( "Unable to initialize elementary constraint: " + ec.NativeName + " (not present in native constraint)." );
 
         bool added = GetSimulation().add( Native );
+        Native.setEnable( IsEnabled );
 
         // Not possible to handle collisions if connected frame parent is null/world.
         if ( CollisionsState != ECollisionsState.KeepExternalState && m_attachmentPair.ConnectedObject != null ) {
@@ -343,8 +355,7 @@ namespace AgXUnity
         }
 
         bool valid = added && Native.getValid();
-        if ( valid )
-          Simulation.Instance.StepCallbacks.PreSynchronizeTransforms += OnPreStepForwardUpdate;
+        Simulation.Instance.StepCallbacks.PreSynchronizeTransforms += OnPreStepForwardUpdate;
 
         return valid;
       }
@@ -352,6 +363,18 @@ namespace AgXUnity
         Debug.LogException( e, gameObject );
         return false;
       }
+    }
+
+    protected override void OnEnable()
+    {
+      if ( Native != null && !Native.getEnable() )
+        Native.setEnable( true );
+    }
+
+    protected override void OnDisable()
+    {
+      if ( Native != null && Native.getEnable() )
+        Native.setEnable( false );
     }
 
     protected override void OnDestroy()
@@ -368,7 +391,7 @@ namespace AgXUnity
 
     private void OnPreStepForwardUpdate()
     {
-      if ( Native == null )
+      if ( Native == null || !Native.getValid() )
         return;
 
       RigidBody rb1 = AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>();
@@ -433,7 +456,7 @@ namespace AgXUnity
 
     private void OnDrawGizmos()
     {
-      if ( !DrawGizmosEnable )
+      if ( !DrawGizmosEnable || !IsEnabled )
         return;
 
       DrawGizmos( Color.blue, AttachmentPair );
@@ -441,7 +464,7 @@ namespace AgXUnity
 
     private void OnDrawGizmosSelected()
     {
-      if ( !DrawGizmosEnable )
+      if ( !DrawGizmosEnable || !IsEnabled )
         return;
 
       DrawGizmos( Color.green, AttachmentPair );

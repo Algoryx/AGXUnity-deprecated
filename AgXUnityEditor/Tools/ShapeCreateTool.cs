@@ -50,7 +50,15 @@ namespace AgXUnityEditor.Tools
       // SetTransformParent assigns some scale given the parent. We're in general not
       // interested in this scale since it will "un-scale" meshes (and the rest of the
       // shapes doesn't support scale so...).
-      shapeGameObject.transform.localScale = Vector3.one;
+
+      // If mesh and the mesh should be parent to the filter we have to move the
+      // localScale to the shape game object.
+      if ( shapeAsParent && typeof( T ) == typeof( Mesh ) ) {
+        shapeGameObject.transform.localScale = data.Filter.transform.localScale;
+        data.Filter.transform.localScale = Vector3.one;
+      }
+      else
+        shapeGameObject.transform.localScale = Vector3.one;
 
       return shapeGameObject;
     }
@@ -275,12 +283,14 @@ namespace AgXUnityEditor.Tools
         return;
 
       if ( vp is Utils.VisualPrimitiveMesh ) {
-        vp.Node.transform.position = shapeInitData.Filter.transform.position;
-        vp.Node.transform.rotation = shapeInitData.Filter.transform.rotation;
+        vp.Node.transform.localScale = shapeInitData.Filter.transform.localScale;
+        vp.Node.transform.position   = shapeInitData.Filter.transform.position;
+        vp.Node.transform.rotation   = shapeInitData.Filter.transform.rotation;
       }
       else {
-        vp.Node.transform.position = shapeInitData.WorldCenter;
-        vp.Node.transform.rotation = shapeInitData.Rotation * Quaternion.FromToRotation( Vector3.up, axisData.Direction ).Normalize();
+        vp.Node.transform.localScale = Vector3.one;
+        vp.Node.transform.position   = shapeInitData.WorldCenter;
+        vp.Node.transform.rotation   = shapeInitData.Rotation * Quaternion.FromToRotation( Vector3.up, axisData.Direction ).Normalize();
       }
 
       if ( vp is Utils.VisualPrimitiveBox )

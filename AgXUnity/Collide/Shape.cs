@@ -63,6 +63,38 @@ namespace AgXUnity.Collide
     public agxCollide.Shape NativeShape { get { return m_shape; } }
 
     /// <summary>
+    /// True if this shape component is enabled, active in hierarchy and if part of a rigid body,
+    /// the rigid body is enabled.
+    /// </summary>
+    [HideInInspector]
+    public bool IsEnabledInHierarchy
+    {
+      get
+      {
+        RigidBody rb = RigidBody;
+        return enabled && gameObject.activeInHierarchy && ( rb == null || rb.enabled );
+      }
+    }
+
+    /// <summary>
+    /// True if the game object this active and this component is enabled.
+    /// </summary>
+    [HideInInspector]
+    public bool IsEnabled
+    {
+      get
+      {
+        return gameObject.activeSelf && enabled;
+      }
+    }
+
+    /// <summary>
+    /// Rigid body parent to this shape. Null if 'free' shape.
+    /// </summary>
+    [HideInInspector]
+    public RigidBody RigidBody { get { return GetComponentInParent<RigidBody>(); } }
+
+    /// <summary>
     /// Abstract scale. Mainly used in debug rendering which uses unit size
     /// and scale. E.g., a sphere with radius 0.3 m should return (0.6, 0.6, 0.6).
     /// </summary>
@@ -127,6 +159,8 @@ namespace AgXUnity.Collide
       if ( !rb.gameObject.HasChild( gameObject ) )
         throw new Exception( "RigidBody not parent to Shape." );
 
+      m_geometry.setEnable( IsEnabled );
+
       rb.Native.add( m_geometry, GetNativeRigidBodyOffset( rb ) );
     }
 
@@ -161,10 +195,6 @@ namespace AgXUnity.Collide
     /// <returns></returns>
     protected override bool Initialize()
     {
-      RigidBody rb = GetComponentInParent<RigidBody>();
-      if ( rb != null && !rb.enabled )
-        return false;
-
       m_shape = CreateNative();
 
       if ( m_shape == null )
@@ -172,6 +202,7 @@ namespace AgXUnity.Collide
 
       m_geometry = new agxCollide.Geometry( m_shape, GetNativeGeometryOffset() );
       m_geometry.setName( name );
+      m_geometry.setEnable( IsEnabled );
 
       if ( Material != null )
         m_geometry.setMaterial( m_material.GetInitialized<ShapeMaterial>().Native );
@@ -192,6 +223,44 @@ namespace AgXUnity.Collide
       Simulation.Instance.StepCallbacks.PostSynchronizeTransforms += OnPostSynchronizeTransformsCallback;
 
       return base.Initialize();
+    }
+
+    /// <summary>
+    /// When enabled and native instance isn't enabled, enable shape/geometry
+    /// and update mass properties (if rigid body is present).
+    /// </summary>
+    /// <remarks>
+    /// This callback is executed when pressing 'Play' or starting an application.
+    /// </remarks>
+    protected override void OnEnable()
+    {
+      if ( m_geometry != null && !m_geometry.getEnable() ) {
+        m_geometry.setEnable( true );
+
+        var rb = RigidBody;
+        if ( rb != null && rb.Native != null )
+          rb.UpdateMassProperties();
+      }
+    }
+
+    /// <summary>
+    /// When disabled and native instance is enabled, disable shape/geometry
+    /// and update mass properties (if rigid body is present).
+    /// </summary>
+    /// <remarks>
+    /// This callback is executed when pressing 'Stop' or when exiting an application.
+    /// </remarks>
+    protected override void OnDisable()
+    {
+      if ( m_geometry != null && m_geometry.getEnable() ) {
+        m_geometry.setEnable( false );
+
+        var rb = RigidBody;
+        if ( rb != null && rb.Native != null )
+          rb.UpdateMassProperties();
+
+        Rendering.DebugRenderManager.OnShapeDisable( this );
+      }
     }
 
     /// <summary>

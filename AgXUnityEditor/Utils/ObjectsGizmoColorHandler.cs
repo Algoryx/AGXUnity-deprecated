@@ -85,6 +85,9 @@ namespace AgXUnityEditor.Utils
 
       var shapes = rb.GetComponentsInChildren<Shape>();
       foreach ( var shape in shapes ) {
+        if ( !shape.IsEnabledInHierarchy )
+          continue;
+
         var shapeFilters = ShapeDebugRenderData.GetMeshFilters( shape );
         foreach ( var shapeFilter in shapeFilters )
           m_meshColors.Add( shapeFilter, colorData.Color );
@@ -123,6 +126,9 @@ namespace AgXUnityEditor.Utils
       Color rbColor = Colorize( rb );
       var shapes = rb.GetComponentsInChildren<Shape>();
       foreach ( var shape in shapes ) {
+        if ( !shape.IsEnabledInHierarchy )
+          continue;
+
         var shapeFilters = ShapeDebugRenderData.GetMeshFilters( shape );
         foreach ( var shapeFilter in shapeFilters )
           m_meshColors[ shapeFilter ] = selectionType == SelectionType.ConstantColor ?

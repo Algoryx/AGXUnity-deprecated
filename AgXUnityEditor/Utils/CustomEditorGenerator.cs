@@ -69,7 +69,8 @@ namespace AgXUnityEditor.Utils
       return !type.IsAbstract &&
              !type.ContainsGenericParameters &&
             ( type.IsSubclassOf( typeof( ScriptComponent ) ) ||
-              type.IsSubclassOf( typeof( ScriptAsset ) ) );
+              type.IsSubclassOf( typeof( ScriptAsset ) ) ) &&
+              type.GetCustomAttributes( typeof( DoNotGenerateCustomEditor ), false ).Length == 0;
     }
 
     private static string GetClassName( Type type )

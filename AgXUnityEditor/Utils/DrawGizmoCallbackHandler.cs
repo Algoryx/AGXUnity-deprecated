@@ -40,7 +40,10 @@ namespace AgXUnityEditor.Utils
       bool selectionActive = ( highlightMouseOverObject && Manager.MouseOverObject != null ) ||
                              toolsSelections.Count > 0 ||
                              ( assemblyTool != null && assemblyTool.HasActiveSelections() ) ||
-                             Array.Exists( Selection.gameObjects, go => { return go.GetComponent<Shape>() != null || go.GetComponent<RigidBody>() != null; } );
+                             Array.Exists( Selection.gameObjects, go =>
+                                                                  {
+                                                                    return go.GetComponent<Shape>() != null || go.GetComponent<RigidBody>() != null;
+                                                                  } );
       if ( !selectionActive )
         m_colorHandler.TimeInterpolator.Reset();
 
@@ -60,7 +63,7 @@ namespace AgXUnityEditor.Utils
               // Create the color for all bodies for the colors to be consistent.
               m_colorHandler.GetOrCreateColor( body );
 
-              if ( manager.ColorizeBodies )
+              if ( manager.ColorizeBodies && body.enabled && body.gameObject.activeInHierarchy )
                 m_colorHandler.Colorize( body );
             }
           }
@@ -100,17 +103,19 @@ namespace AgXUnityEditor.Utils
 
     private static void HandleSelectedGameObject( GameObject selected, ObjectsGizmoColorHandler.SelectionType selectionType )
     {
-      if ( selected == null )
+      if ( selected == null || !selected.activeInHierarchy )
         return;
 
       RigidBody rb      = null;
       Shape shape       = null;
       MeshFilter filter = null;
       if ( ( rb = selected.GetComponent<RigidBody>() ) != null ) {
-        m_colorHandler.Highlight( rb, selectionType );
+        if ( rb.IsEnabled )
+          m_colorHandler.Highlight( rb, selectionType );
       }
       else if ( ( shape = selected.GetComponent<Shape>() ) != null ) {
-        m_colorHandler.Highlight( shape, selectionType );
+        if ( shape.IsEnabledInHierarchy )
+          m_colorHandler.Highlight( shape, selectionType );
       }
       else if ( ( filter = selected.GetComponent<MeshFilter>() ) != null ) {
         m_colorHandler.Highlight( filter, selectionType );
