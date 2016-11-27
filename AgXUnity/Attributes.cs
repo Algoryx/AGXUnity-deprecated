@@ -116,17 +116,6 @@ namespace AgXUnity
     }
   }
 
-  [AttributeUsage( AttributeTargets.Class, AllowMultiple = false )]
-  public class CustomTool : Attribute
-  {
-    public string ClassName = "";
-
-    public CustomTool( string className )
-    {
-      ClassName = className;
-    }
-  }
-
   [AttributeUsage( AttributeTargets.Class, AllowMultiple = false)]
   public class DoNotGenerateCustomEditor : Attribute
   {

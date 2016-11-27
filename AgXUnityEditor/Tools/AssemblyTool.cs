@@ -9,6 +9,7 @@ using Assembly = AgXUnity.Assembly;
 
 namespace AgXUnityEditor.Tools
 {
+  [CustomTool( typeof( Assembly ) )]
   public class AssemblyTool : Tool
   {
     private class SelectionEntry

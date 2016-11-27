@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using AgXUnity;
@@ -7,6 +6,7 @@ using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
 {
+  [CustomTool( typeof( Wire ) )]
   public class WireTool : Tool
   {
     public static WireRouteNodeTool FindSelectedRouteNode()

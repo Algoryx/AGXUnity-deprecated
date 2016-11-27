@@ -7,6 +7,7 @@ using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
 {
+  [CustomTool( typeof( Constraint ) )]
   public class ConstraintTool : ConstraintAttachmentFrameTool
   {
     public Constraint Constraint { get; private set; }
