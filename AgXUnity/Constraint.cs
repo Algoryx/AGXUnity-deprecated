@@ -22,7 +22,6 @@ namespace AgXUnity
   }
 
   [AddComponentMenu( "" )]
-  [CustomTool( "AgXUnityEditor.Tools.ConstraintTool" )]
   public class Constraint : ScriptComponent
   {
     /// <summary>

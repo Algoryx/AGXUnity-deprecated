@@ -6,6 +6,7 @@ using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
 {
+  [CustomTool( typeof( RigidBody ) )]
   public class RigidBodyTool : Tool
   {
     public RigidBody RigidBody { get; private set; }

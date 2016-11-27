@@ -42,6 +42,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Attributes.cs" />
     <Compile Include="BaseEditor.cs" />
     <Compile Include="EditorData.cs" />
     <Compile Include="EditorDataEntry.cs" />

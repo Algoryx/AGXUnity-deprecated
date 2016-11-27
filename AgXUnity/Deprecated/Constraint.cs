@@ -6,7 +6,6 @@ using AgXUnity.Utils;
 namespace AgXUnity.Deprecated
 {
   [AddComponentMenu( "" )]
-  [CustomTool( "AgXUnityEditor.Tools.ConstraintTool" )]
   public class Constraint : ScriptComponent
   {
     public static Constraint Create( ConstraintType type, GameObject givenGameObject = null )

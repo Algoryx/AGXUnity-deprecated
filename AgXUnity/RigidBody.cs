@@ -5,29 +5,11 @@ using UnityEngine;
 
 namespace AgXUnity
 {
-  //[DoNotGenerateCustomEditor]
-  //[AddComponentMenu( "AgXUnity/Hello world" )]
-  //public class HelloWorld : ScriptComponent
-  //{
-  //  protected override void OnEnable()
-  //  {
-  //    Debug.Log( "OnEnable: " + gameObject.activeInHierarchy + ", " + enabled );
-  //    Debug.Log( "  State: " + State.ToString() );
-  //  }
-
-  //  protected override void OnDisable()
-  //  {
-  //    Debug.Log( "OnDisable: " + gameObject.activeInHierarchy + ", " + enabled );
-  //    Debug.Log( "  State: " + State.ToString() );
-  //  }
-  //}
-
   /// <summary>
   /// Rigid body object. Dynamic, kinematic or static, carrying mass and
   /// inertia. Possible to constrain and contains in general shapes.
   /// </summary>
   [AddComponentMenu( "AgXUnity/Rigid Body" )]
-  [CustomTool( "AgXUnityEditor.Tools.RigidBodyTool" )]
   [DisallowMultipleComponent]
   public class RigidBody : ScriptComponent
   {

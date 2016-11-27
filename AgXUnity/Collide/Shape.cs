@@ -8,7 +8,6 @@ namespace AgXUnity.Collide
   /// and agxCollide.Shape. I.e., this object contains both an instance
   /// to a native agxCollide::Geometry and an agxCollide::Shape.
   /// </summary>
-  [CustomTool( "AgXUnityEditor.Tools.ShapeTool" )]
   [DisallowMultipleComponent]
   public abstract class Shape : ScriptComponent
   {

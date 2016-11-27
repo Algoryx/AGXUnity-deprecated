@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -159,20 +160,23 @@ namespace AgXUnityEditor.Tools
     }
 
     /// <summary>
-    /// Searches CustomTool attribute and returns type of that tool - if present.
+    /// Searches types in AgXUnityEditor for CustomTool attribute which matches the type of <paramref name="obj"/>.
     /// </summary>
-    /// <param name="obj">Object with optional attribute AgXUnity.CustomTool.</param>
-    /// <returns>Type of tool.</returns>
+    /// <param name="obj">Object with potential custom tool.</param>
+    /// <returns>Type of custom tool of given object.</returns>
     public static Type FindToolType( object obj )
     {
       if ( obj == null )
         return null;
 
-      AgXUnity.CustomTool customToolAttribute = obj.GetType().GetCustomAttributes( typeof( AgXUnity.CustomTool ), true ).FirstOrDefault() as AgXUnity.CustomTool;
-      if ( customToolAttribute == null )
-        return null;
+      var types = Assembly.Load( "AgXUnityEditor" ).GetTypes();
+      foreach ( var type in types ) {
+        object[] customToolAttributes = type.GetCustomAttributes( typeof( CustomTool ), false );
+        if ( customToolAttributes.Length > 0 && ( customToolAttributes[ 0 ] as CustomTool ).Type.IsAssignableFrom( obj.GetType() ) )
+          return type;
+      }
 
-      return Type.GetType( customToolAttribute.ClassName );
+      return null;
     }
 
     /// <summary>

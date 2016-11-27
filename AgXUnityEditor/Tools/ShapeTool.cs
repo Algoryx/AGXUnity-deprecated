@@ -1,11 +1,10 @@
 ﻿using UnityEngine;
-using UnityEditor;
-using AgXUnity;
 using AgXUnity.Collide;
 using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
 {
+  [CustomTool( typeof( Shape ) )]
   public class ShapeTool : Tool
   {
     public Shape Shape { get; private set; }
