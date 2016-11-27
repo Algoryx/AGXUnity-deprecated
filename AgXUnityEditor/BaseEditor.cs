@@ -92,8 +92,8 @@ namespace AgXUnityEditor
 
       if ( obj.GetType() == typeof( CollisionGroupEntryPair ) )
         return HandleCollisionGroupEntryPair( obj as CollisionGroupEntryPair );
-      else if ( obj.GetType() == typeof( ContactMaterialEntry ) )
-        return HandleContactMaterialEntry( obj as ContactMaterialEntry );
+      //else if ( obj.GetType() == typeof( ContactMaterialEntry ) )
+      //  return HandleContactMaterialEntry( obj as ContactMaterialEntry );
 
       if ( obj == target )
         Utils.GUI.PreTargetMembers( target, CurrentSkin );
@@ -305,15 +305,15 @@ namespace AgXUnityEditor
       return true;
     }
 
-    public static bool HandleContactMaterialEntry( ContactMaterialEntry contactMaterialEntry )
-    {
-      if ( contactMaterialEntry == null )
-        return false;
+    //public static bool HandleContactMaterialEntry( ContactMaterialEntry contactMaterialEntry )
+    //{
+    //  if ( contactMaterialEntry == null )
+    //    return false;
 
-      contactMaterialEntry.ContactMaterial = EditorGUILayout.ObjectField( contactMaterialEntry.ContactMaterial, typeof( ContactMaterial ), false ) as ContactMaterial;
+    //  contactMaterialEntry.ContactMaterial = EditorGUILayout.ObjectField( contactMaterialEntry.ContactMaterial, typeof( ContactMaterial ), false ) as ContactMaterial;
 
-      return true;
-    }
+    //  return true;
+    //}
 
     public static void HandleList( InvokeWrapper wrapper, T target )
     {

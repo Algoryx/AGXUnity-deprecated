@@ -24,10 +24,29 @@ namespace AgXUnity
   {
     [SerializeField]
     private List<ContactMaterialEntry> m_contactMaterials = new List<ContactMaterialEntry>();
-    public List<ContactMaterialEntry> ContactMaterials
+
+    [HideInInspector]
+    public ContactMaterial[] ContactMaterials
     {
-      get { return m_contactMaterials; }
-      set { m_contactMaterials = value; }
+      get
+      {
+        return ( from entry in m_contactMaterials where entry.ContactMaterial != null select entry.ContactMaterial ).ToArray();
+      }
+    }
+
+    public void Add( ContactMaterial contactMaterial )
+    {
+      if ( contactMaterial == null || ContactMaterials.Contains( contactMaterial ) )
+        return;
+
+      m_contactMaterials.Add( new ContactMaterialEntry() { ContactMaterial = contactMaterial } );
+    }
+
+    public void Remove( ContactMaterial contactMaterial )
+    {
+      int index = -1;
+      while ( ( index = Array.FindIndex( ContactMaterials, cm => { return cm == contactMaterial; } ) ) >= 0 )
+        m_contactMaterials.RemoveAt( index );
     }
 
     protected override bool Initialize()
