@@ -246,7 +246,7 @@ namespace AgXUnityEditor.Tools
       if ( GUI.Foldout( Selected( SelectedFoldout.Controller, controllerTypeTag + ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( dimString + ConstraintUtils.FindName( controller ), true ), skin ) ) {
         using ( new GUI.Indent( 12 ) ) {
           controller.Enable = GUI.Toggle( GUI.MakeLabel( "Enable", controller.Enable ), controller.Enable, skin.button, skin.label );
-          BaseEditor<ElementaryConstraint>.Update( controller, skin );
+          BaseEditor<ElementaryConstraint>.Update( controller, controller, skin );
         }
       }
     }

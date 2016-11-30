@@ -31,11 +31,8 @@ namespace AgXUnityEditor.Tools
           GUI.Separator();
 
           if ( GUI.Foldout( EditorData.Instance.GetData( Manager, contactMaterial.name ), GUI.MakeLabel( contactMaterial.name ), skin ) ) {
-            using ( new GUI.Indent( 12 ) ) {
-              bool hej = BaseEditor<ContactMaterial>.Update( contactMaterial, skin );
-              if ( hej )
-                Debug.Log( "Changed" );
-            }
+            using ( new GUI.Indent( 12 ) )
+              BaseEditor<ContactMaterial>.Update( contactMaterial, contactMaterial, skin );
           }
         }
 

@@ -64,6 +64,8 @@ namespace AgXUnityEditor
 
       MouseOverObject = null;
 
+      Undo.undoRedoPerformed += UndoRedoPerformedCallback;
+
       // Focus on scene view for events to be properly handled. E.g.,
       // holding one key and click in scene view is not working until
       // scene view is focused since some other event is taking the
@@ -226,6 +228,17 @@ namespace AgXUnityEditor
 
         return m_visualsParent;
       }
+    }
+
+    /// <summary>
+    /// Callback when undo or redo has been performed. There's a significant
+    /// delay to e.g., Inspector update when this happens so we're explicitly
+    /// telling Unity to update selected object (if ScriptComponent).
+    /// </summary>
+    private static void UndoRedoPerformedCallback()
+    {
+      if ( Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<AgXUnity.ScriptComponent>() != null )
+        EditorUtility.SetDirty( Selection.activeGameObject.GetComponent<AgXUnity.ScriptComponent>() );
     }
 
     private static void OnSceneView( SceneView sceneView )
