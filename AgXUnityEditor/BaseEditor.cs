@@ -10,8 +10,15 @@ using UnityEditor;
 
 namespace AgXUnityEditor
 {
-  public class BaseEditor<T> : UnityEditor.Editor where T : class
+  public class BaseEditor<T> : Editor where T : class
   {
+    public static GUISkin CurrentSkin { get { return EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector ); } }
+
+    public static bool Update( T obj, GUISkin skin = null )
+    {
+      return DrawMembersGUI( obj, obj, skin ?? CurrentSkin );
+    }
+
     public override sealed void OnInspectorGUI()
     {
       if ( Utils.GUI.TargetEditorOnInspectorGUI<T>( target as T, CurrentSkin ) )
@@ -39,8 +46,6 @@ namespace AgXUnityEditor
       //  Debug.Log( "Create!" );
     }
 
-    protected virtual bool OverrideOnInspectorGUI( T target, GUISkin skin ) { return false; }
-
     public void OnDestroy()
     {
       Utils.GUI.TargetEditorDisable<T>( target as T );
@@ -51,10 +56,7 @@ namespace AgXUnityEditor
         AgXUnity.Rendering.DebugRenderManager.OnEditorDestroy();
     }
 
-    public static bool Update( T obj, GUISkin skin = null )
-    {
-      return DrawMembersGUI( obj, obj, skin ?? EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector ) );
-    }
+    protected virtual bool OverrideOnInspectorGUI( T target, GUISkin skin ) { return false; }
 
     private static bool ShouldBeShownInInspector( MemberInfo memberInfo )
     {
@@ -83,8 +85,6 @@ namespace AgXUnityEditor
       return false;
     }
 
-    public static GUISkin CurrentSkin { get { return EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector ); } }
-
     private static bool DrawMembersGUI( object obj, T target, GUISkin skin )
     {
       if ( obj == null )
@@ -92,8 +92,6 @@ namespace AgXUnityEditor
 
       if ( obj.GetType() == typeof( CollisionGroupEntryPair ) )
         return HandleCollisionGroupEntryPair( obj as CollisionGroupEntryPair );
-      //else if ( obj.GetType() == typeof( ContactMaterialEntry ) )
-      //  return HandleContactMaterialEntry( obj as ContactMaterialEntry );
 
       if ( obj == target )
         Utils.GUI.PreTargetMembers( target, CurrentSkin );
@@ -231,9 +229,6 @@ namespace AgXUnityEditor
       else if ( type == typeof( string ) && wrapper.CanRead() ) {
         value = EditorGUILayout.TextField( MakeLabel( wrapper.Member ), wrapper.Get<string>(), CurrentSkin.textField );
       }
-      else if ( type == typeof( System.String ) && wrapper.CanRead() ) {
-        Debug.Log( "System: " + wrapper.Get<System.String>() );
-      }
       else if ( type.IsEnum && type.IsVisible && wrapper.CanRead() ) {
         Enum valInField = wrapper.Get<System.Enum>();
         value = EditorGUILayout.EnumPopup( MakeLabel( wrapper.Member ), valInField, CurrentSkin.button );
@@ -269,9 +264,22 @@ namespace AgXUnityEditor
 
         UnityEngine.Object valInField = wrapper.Get<UnityEngine.Object>();
 
-        GUILayout.BeginHorizontal();
         value = EditorGUILayout.ObjectField( MakeLabel( wrapper.Member ), valInField, type, allowSceneObject, new GUILayoutOption[] { } );
-        GUILayout.EndHorizontal();
+
+        if ( value != null && wrapper.HasAttribute<AllowRecursiveEditing>() ) {
+          using ( new Utils.GUI.Indent( 12 ) ) {
+            if ( Utils.GUI.Foldout( EditorData.Instance.GetData( target as UnityEngine.Object, wrapper.Member.Name ), MakeLabel( wrapper.Member ), CurrentSkin ) ) {
+              var updateMethod = typeof( BaseEditor<> ).MakeGenericType( type ).GetMethod( "Update", BindingFlags.Public | BindingFlags.Static );
+
+              // TODO: GUI isn't responsive. Make sure 'target' is ContactMaterialManager when calling Update from here and from the tool.
+
+              Utils.GUI.Separator();
+              using ( new Utils.GUI.Indent( 12 ) )
+                updateMethod.Invoke( null, new object[] { Convert.ChangeType( value, type ), CurrentSkin } );
+              Utils.GUI.Separator();
+            }
+          }
+        }
 
         isNullable = true;
       }
@@ -304,16 +312,6 @@ namespace AgXUnityEditor
 
       return true;
     }
-
-    //public static bool HandleContactMaterialEntry( ContactMaterialEntry contactMaterialEntry )
-    //{
-    //  if ( contactMaterialEntry == null )
-    //    return false;
-
-    //  contactMaterialEntry.ContactMaterial = EditorGUILayout.ObjectField( contactMaterialEntry.ContactMaterial, typeof( ContactMaterial ), false ) as ContactMaterial;
-
-    //  return true;
-    //}
 
     public static void HandleList( InvokeWrapper wrapper, T target )
     {
@@ -387,12 +385,9 @@ namespace AgXUnityEditor
       }
     }
 
-    public static bool IgnoreMakeLabelCalls = false;
     public static GUIContent MakeLabel( MemberInfo field )
     {
       GUIContent guiContent = new GUIContent();
-      if ( IgnoreMakeLabelCalls )
-        return guiContent;
 
       guiContent.text = field.Name.SplitCamelCase();
       object[] descriptions = field.GetCustomAttributes( typeof( DescriptionAttribute ), true );

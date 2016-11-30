@@ -123,4 +123,12 @@ namespace AgXUnity
     {
     }
   }
+
+  [AttributeUsage( AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false )]
+  public class AllowRecursiveEditing : Attribute
+  {
+    public AllowRecursiveEditing()
+    {
+    }
+  }
 }

@@ -28,6 +28,7 @@ namespace AgXUnity
     /// Note that it's not possible to change shape material instance after
     /// this contact material has been initialized.
     /// </summary>
+    [AllowRecursiveEditing]
     public ShapeMaterial Material1
     {
       get { return m_material1; }
@@ -48,6 +49,7 @@ namespace AgXUnity
     /// Note that it's not possible to change shape material instance after
     /// this contact material has been initialized.
     /// </summary>
+    [AllowRecursiveEditing]
     public ShapeMaterial Material2
     {
       get { return m_material2; }
@@ -66,6 +68,7 @@ namespace AgXUnity
     /// <summary>
     /// Get or set friction model coupled to this contact material.
     /// </summary>
+    [AllowRecursiveEditing]
     public FrictionModel FrictionModel
     {
       get { return m_frictionModel; }
