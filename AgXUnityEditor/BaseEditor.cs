@@ -285,7 +285,13 @@ namespace AgXUnityEditor
           GUILayout.BeginHorizontal();
           {
             GUI.enabled = valInField != null;
-            foldoutData.Bool = GUILayout.Button( Utils.GUI.MakeLabel( foldoutData.Bool ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !foldoutData.Bool : valInField != null && foldoutData.Bool;
+            foldoutData.Bool = GUILayout.Button( Utils.GUI.MakeLabel( foldoutData.Bool ? "-" : "+" ),
+                                                 skin.button,
+                                                 new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ?
+                                 // Button clicked - toggle current value.
+                                 !foldoutData.Bool :
+                                 // If foldout were enabled but valInField has changed to null - foldout will become disabled.
+                                 valInField != null && foldoutData.Bool;
             GUI.enabled = true;
             value = EditorGUILayout.ObjectField( MakeLabel( wrapper.Member ), valInField, type, allowSceneObject, new GUILayoutOption[] { } );
           }
@@ -302,7 +308,10 @@ namespace AgXUnityEditor
 
               GUILayout.Space( 6 );
 
-              GUILayout.Label( Utils.GUI.MakeLabel( "Changes made to this object will affect all objects referencing this asset.", Color.Lerp( Color.red, Color.white, 0.25f ), true ), new GUIStyle( skin.textArea ) { alignment = TextAnchor.MiddleCenter } );
+              GUILayout.Label( Utils.GUI.MakeLabel( "Changes made to this object will affect all objects referencing this asset.",
+                                                    Color.Lerp( Color.red, Color.white, 0.25f ),
+                                                    true ),
+                               new GUIStyle( skin.textArea ) { alignment = TextAnchor.MiddleCenter } );
 
               GUILayout.Space( 6 );
 
