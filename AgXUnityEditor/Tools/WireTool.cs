@@ -118,6 +118,8 @@ namespace AgXUnityEditor.Tools
 
     private void RouteGUI( GUISkin skin )
     {
+      // TODO: Refactor wire route list.
+
       if ( !GUI.Prefs.SetBool( Wire.Route, EditorGUILayout.Foldout( GUI.Prefs.GetOrCreateBool( Wire.Route, true ), GUI.MakeLabel( "Route" ) ) ) )
         return;
 

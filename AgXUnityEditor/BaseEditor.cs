@@ -322,22 +322,8 @@ namespace AgXUnityEditor
             }
           }
         }
-        else {
+        else
           value = EditorGUILayout.ObjectField( MakeLabel( wrapper.Member ), valInField, type, allowSceneObject, new GUILayoutOption[] { } );
-        }
-
-        //if ( value != null && wrapper.HasAttribute<AllowRecursiveEditing>() ) {
-        //  using ( new Utils.GUI.Indent( 12 ) ) {
-        //    if ( Utils.GUI.Foldout( EditorData.Instance.GetData( target as UnityEngine.Object, wrapper.Member.Name ), MakeLabel( wrapper.Member ), skin ) ) {
-        //      var updateMethod = typeof( BaseEditor<> ).MakeGenericType( typeof( T ) ).GetMethod( "Update", BindingFlags.Public | BindingFlags.Static );
-
-        //      Utils.GUI.Separator();
-        //      using ( new Utils.GUI.Indent( 12 ) )
-        //        updateMethod.Invoke( null, new object[] { value, target, skin } );
-        //      Utils.GUI.Separator();
-        //    }
-        //  }
-        //}
 
         isNullable = true;
       }

@@ -26,6 +26,9 @@ namespace AgXUnity
     private List<ContactMaterialEntry> m_contactMaterials = new List<ContactMaterialEntry>();
 
     [HideInInspector]
+    public ContactMaterialEntry[] ContactMaterialEntries { get { return m_contactMaterials.ToArray(); } }
+
+    [HideInInspector]
     public ContactMaterial[] ContactMaterials
     {
       get
@@ -49,12 +52,22 @@ namespace AgXUnity
         m_contactMaterials.RemoveAt( index );
     }
 
+    public void RemoveNullEntries()
+    {
+      int index = 0;
+      while ( index < m_contactMaterials.Count ) {
+        if ( m_contactMaterials[ index ].ContactMaterial == null )
+          m_contactMaterials.RemoveAt( index );
+        else
+          ++index;
+      }
+    }
+
     protected override bool Initialize()
     {
-      foreach ( var entry in m_contactMaterials ) {
-        if ( entry.ContactMaterial == null )
-          continue;
+      RemoveNullEntries();
 
+      foreach ( var entry in m_contactMaterials ) {
         ContactMaterial contactMaterial = entry.ContactMaterial.GetInitialized<ContactMaterial>();
         if ( contactMaterial != null && contactMaterial.Native != null )
           GetSimulation().getMaterialManager().add( contactMaterial.Native );

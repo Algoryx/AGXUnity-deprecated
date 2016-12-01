@@ -386,6 +386,37 @@ namespace AgXUnityEditor.Utils
       return state.Bool;
     }
 
+    /// <summary>
+    /// Handles drag and drop over given area.
+    /// </summary>
+    /// <example>
+    /// GUILayout.Label( "Drag and drop asset here to apply the stuff" );
+    /// Utils.GUI.HandleDragDrop&lt; MyAsset &gt;( GUILayoutUtility.GetLastRect(),
+    ///                                            Event.current,
+    ///                                            ( myAsset ) => { ApplyStuff( myAsset ); } );
+    /// </example>
+    /// <typeparam name="T">Expected dropped object type.</typeparam>
+    /// <param name="dropArea">Drop rect.</param>
+    /// <param name="current">Current event.</param>
+    /// <param name="onDrop">Callback when an object has been dropped.</param>
+    public static void HandleDragDrop<T>( Rect dropArea, Event current, Action<T> onDrop ) where T : UnityEngine.Object
+    {
+      bool isDragDropEventInDropArea = ( current.type == EventType.DragPerform || current.type == EventType.DragUpdated ) && dropArea.Contains( current.mousePosition );
+      if ( !isDragDropEventInDropArea )
+        return;
+
+      bool validObject = DragAndDrop.objectReferences.Length == 1 && DragAndDrop.objectReferences[ 0 ] is T;
+      DragAndDrop.visualMode = validObject ?
+                                  DragAndDropVisualMode.Copy :
+                                  DragAndDropVisualMode.Rejected;
+
+      if ( Event.current.type == EventType.DragPerform && validObject ) {
+        DragAndDrop.AcceptDrag();
+
+        onDrop( DragAndDrop.objectReferences[ 0 ] as T );
+      }
+    }
+
     private static GUISkin m_editorGUISkin = null;
     public static GUISkin Skin
     {

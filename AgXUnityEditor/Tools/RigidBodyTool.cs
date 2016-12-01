@@ -201,18 +201,19 @@ namespace AgXUnityEditor.Tools
       }
       GUILayout.EndHorizontal();
 
-      if ( ( Event.current.type == EventType.DragPerform || Event.current.type == EventType.DragUpdated ) && dropArea.Contains( Event.current.mousePosition ) ) {
-        bool validObject = DragAndDrop.objectReferences.Length == 1 && DragAndDrop.objectReferences[ 0 ] is ShapeMaterial;
-        DragAndDrop.visualMode = validObject ?
-                                   DragAndDropVisualMode.Copy :
-                                   DragAndDropVisualMode.Rejected;
+      GUI.HandleDragDrop<ShapeMaterial>( dropArea, Event.current, ( shapeMaterial ) => { AssignShapeMaterialToAllShapes( shapeMaterial ); } );
+      //if ( ( Event.current.type == EventType.DragPerform || Event.current.type == EventType.DragUpdated ) && dropArea.Contains( Event.current.mousePosition ) ) {
+      //  bool validObject = DragAndDrop.objectReferences.Length == 1 && DragAndDrop.objectReferences[ 0 ] is ShapeMaterial;
+      //  DragAndDrop.visualMode = validObject ?
+      //                             DragAndDropVisualMode.Copy :
+      //                             DragAndDropVisualMode.Rejected;
 
-        if ( Event.current.type == EventType.DragPerform && validObject ) {
-          DragAndDrop.AcceptDrag();
+      //  if ( Event.current.type == EventType.DragPerform && validObject ) {
+      //    DragAndDrop.AcceptDrag();
 
-          AssignShapeMaterialToAllShapes( DragAndDrop.objectReferences[ 0 ] as ShapeMaterial );
-        }
-      }
+      //    AssignShapeMaterialToAllShapes( DragAndDrop.objectReferences[ 0 ] as ShapeMaterial );
+      //  }
+      //}
 
       GUI.Separator();
 

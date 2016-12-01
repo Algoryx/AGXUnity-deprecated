@@ -13,6 +13,7 @@ namespace AgXUnityEditor.Tools
     public ContactMaterialManagerTool( ContactMaterialManager manager )
     {
       Manager = manager;
+      Manager.RemoveNullEntries();
     }
 
     public override void OnPreTargetMembersGUI( GUISkin skin )
@@ -20,25 +21,59 @@ namespace AgXUnityEditor.Tools
       OnContactMaterialsList( skin );
     }
 
+    private EditorDataEntry FoldoutDataEntry { get { return EditorData.Instance.GetData( Manager, "ContactMaterials" ); } }
+
     private void OnContactMaterialsList( GUISkin skin )
     {
-      if ( !GUI.Foldout( EditorData.Instance.GetData( Manager, "ContactMaterials" ), GUI.MakeLabel( "Contact Materials" ), skin ) )
-        return;
+      ContactMaterial contactMaterialToRemove = null;
 
-      var contactMaterials = Manager.ContactMaterials;
-      using ( new GUI.Indent( 12 ) ) {
-        foreach ( var contactMaterial in contactMaterials ) {
-          GUI.Separator();
+      GUILayout.BeginVertical();
+      {
+        if ( GUI.Foldout( FoldoutDataEntry, GUI.MakeLabel( "Contact Materials [" + Manager.ContactMaterialEntries.Length + "]" ), skin ) ) {
+          var contactMaterials = Manager.ContactMaterials;
+          using ( new GUI.Indent( 12 ) ) {
+            foreach ( var contactMaterial in contactMaterials ) {
+              GUI.Separator();
 
-          if ( GUI.Foldout( EditorData.Instance.GetData( Manager, contactMaterial.name ), GUI.MakeLabel( contactMaterial.name ), skin ) ) {
-            using ( new GUI.Indent( 12 ) )
-              BaseEditor<ContactMaterial>.Update( contactMaterial, contactMaterial, skin );
+              bool foldoutActive = false;
+
+              GUILayout.BeginHorizontal();
+              {
+                foldoutActive = GUI.Foldout( EditorData.Instance.GetData( Manager, contactMaterial.name ), GUI.MakeLabel( contactMaterial.name ), skin );
+                using ( WireTool.NodeListButtonColor )
+                  if ( GUILayout.Button( GUI.MakeLabel( GUI.Symbols.ListEraseElement.ToString(), false, "Erase this element" ),
+                                         skin.button,
+                                         new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) )
+                    contactMaterialToRemove = contactMaterial;
+              }
+              GUILayout.EndHorizontal();
+
+              if ( foldoutActive ) {
+                using ( new GUI.Indent( 12 ) )
+                  BaseEditor<ContactMaterial>.Update( contactMaterial, contactMaterial, skin );
+              }
+            }
+
+            if ( contactMaterials.Length == 0 )
+              GUILayout.Label( GUI.MakeLabel( "Empty", true ), skin.textArea );
+            else
+              GUI.Separator();
           }
         }
-
-        if ( contactMaterials.Length == 0 )
-          GUILayout.Label( GUI.MakeLabel( "Empty", true ), skin.label );
       }
+      GUILayout.EndVertical();
+
+      GUI.HandleDragDrop<ContactMaterial>( GUILayoutUtility.GetLastRect(),
+                                           Event.current,
+                                           ( contactMaterial ) =>
+                                           {
+                                             Manager.Add( contactMaterial );
+
+                                             FoldoutDataEntry.Bool = true;
+                                           } );
+
+      if ( contactMaterialToRemove != null )
+        Manager.Remove( contactMaterialToRemove );
     }
   }
 }
