@@ -374,7 +374,7 @@ namespace AgXUnityEditor.Utils
     {
       GUILayout.BeginHorizontal();
       {
-        state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ? !state.Bool : state.Bool;
+        state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) ) ? !state.Bool : state.Bool;
         GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
         if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
           state.Bool = !state.Bool;

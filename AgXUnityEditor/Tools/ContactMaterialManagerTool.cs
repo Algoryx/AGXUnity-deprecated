@@ -25,7 +25,16 @@ namespace AgXUnityEditor.Tools
 
     private void OnContactMaterialsList( GUISkin skin )
     {
+      ContactMaterial contactMaterialToAdd = null;
       ContactMaterial contactMaterialToRemove = null;
+
+      GUILayout.Label( GUI.MakeLabel( "Contact Material Manager", 18, true ), new GUIStyle( skin.label ) { alignment = TextAnchor.MiddleCenter } );
+      GUILayout.Space( 4 );
+      GUILayout.Label( GUI.MakeLabel( "Drag and drop contact materials into the list below to add/enable the contact material in the simulation." ),
+                       new GUIStyle( skin.textArea ) { alignment = TextAnchor.MiddleCenter } );
+      GUILayout.Space( 4 );
+
+      GUI.Separator3D();
 
       GUILayout.BeginVertical();
       {
@@ -53,24 +62,34 @@ namespace AgXUnityEditor.Tools
                   BaseEditor<ContactMaterial>.Update( contactMaterial, contactMaterial, skin );
               }
             }
-
-            if ( contactMaterials.Length == 0 )
-              GUILayout.Label( GUI.MakeLabel( "Empty", true ), skin.textArea );
-            else
-              GUI.Separator();
           }
         }
       }
       GUILayout.EndVertical();
 
+      // Note that GetLastRect is used here and it's expecting the begin/end vertical rect.
       GUI.HandleDragDrop<ContactMaterial>( GUILayoutUtility.GetLastRect(),
                                            Event.current,
                                            ( contactMaterial ) =>
                                            {
-                                             Manager.Add( contactMaterial );
-
-                                             FoldoutDataEntry.Bool = true;
+                                             contactMaterialToAdd = contactMaterial;
                                            } );
+
+      GUI.Separator();
+
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Label( GUI.MakeLabel( "Add:" ), skin.label );
+        contactMaterialToAdd = EditorGUILayout.ObjectField( null, typeof( ContactMaterial ), false ) as ContactMaterial ?? contactMaterialToAdd;
+      }
+      GUILayout.EndHorizontal();
+
+      GUI.Separator3D();
+
+      if ( contactMaterialToAdd != null ) {
+        Manager.Add( contactMaterialToAdd );
+        FoldoutDataEntry.Bool = true;
+      }
 
       if ( contactMaterialToRemove != null )
         Manager.Remove( contactMaterialToRemove );
