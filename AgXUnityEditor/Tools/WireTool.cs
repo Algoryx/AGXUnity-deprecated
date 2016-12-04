@@ -100,13 +100,13 @@ namespace AgXUnityEditor.Tools
       if ( Wire.BeginWinch != null ) {
         GUILayout.Label( GUI.MakeLabel( "Begin winch", true ), skin.label );
         using ( new GUI.Indent( 12 ) )
-          BaseEditor<WireWinch>.Update( Wire.BeginWinch, skin );
+          BaseEditor<WireWinch>.Update( Wire.BeginWinch, Wire.BeginWinch, skin );
         GUI.Separator();
       }
       if ( Wire.EndWinch != null ) {
         GUILayout.Label( GUI.MakeLabel( "End winch", true ), skin.label );
         using ( new GUI.Indent( 12 ) )
-          BaseEditor<WireWinch>.Update( Wire.EndWinch, skin );
+          BaseEditor<WireWinch>.Update( Wire.EndWinch, Wire.EndWinch, skin );
         GUI.Separator();
       }
 
@@ -118,6 +118,8 @@ namespace AgXUnityEditor.Tools
 
     private void RouteGUI( GUISkin skin )
     {
+      // TODO: Refactor wire route list.
+
       if ( !GUI.Prefs.SetBool( Wire.Route, EditorGUILayout.Foldout( GUI.Prefs.GetOrCreateBool( Wire.Route, true ), GUI.MakeLabel( "Route" ) ) ) )
         return;
 

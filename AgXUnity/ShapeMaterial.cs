@@ -128,6 +128,7 @@ namespace AgXUnity
     /// <summary>
     /// Default material.
     /// </summary>
+    [HideInInspector]
     public static ShapeMaterial Default
     {
       get
