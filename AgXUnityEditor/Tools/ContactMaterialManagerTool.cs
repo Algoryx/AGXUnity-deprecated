@@ -18,6 +18,8 @@ namespace AgXUnityEditor.Tools
 
     public override void OnPreTargetMembersGUI( GUISkin skin )
     {
+      Manager.RemoveNullEntries();
+
       OnContactMaterialsList( skin );
     }
 
