@@ -434,9 +434,13 @@ namespace AgXUnityEditor.Utils
                                 Texture2D.whiteTexture :
                                 Texture2D.blackTexture;
 
-      GUILayout.Space( space );
-      EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( height ) } ), lineTexture );
-      GUILayout.Space( space );
+      GUILayout.BeginVertical();
+      {
+        GUILayout.Space( space );
+        EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( height ) } ), lineTexture );
+      }
+      GUILayout.EndVertical();
+      //GUILayout.Space( space );
     }
 
     public static void Separator3D( float space = 2.0f )

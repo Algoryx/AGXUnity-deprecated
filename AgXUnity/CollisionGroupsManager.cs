@@ -26,12 +26,14 @@ namespace AgXUnity
     /// </summary>
     [SerializeField]
     private List<CollisionGroupEntryPair> m_disabledPairs = new List<CollisionGroupEntryPair>();
+
     /// <summary>
     /// Get the list of disabled pairs.
     /// </summary>
-    public List<CollisionGroupEntryPair> DisabledPairs
+    [HideInInspector]
+    public CollisionGroupEntryPair[] DisabledPairs
     {
-      get { return m_disabledPairs; }
+      get { return m_disabledPairs.ToArray(); }
     }
 
     /// <summary>

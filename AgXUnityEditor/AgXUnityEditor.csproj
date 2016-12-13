@@ -53,6 +53,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\AssemblyTool.cs" />
     <Compile Include="Tools\BuiltInToolsTool.cs" />
+    <Compile Include="Tools\CollisionGroupsManagerTool.cs" />
     <Compile Include="Tools\ConstraintAttachmentFrameTool.cs" />
     <Compile Include="Tools\ConstraintCreateTool.cs" />
     <Compile Include="Tools\ConstraintTool.cs" />

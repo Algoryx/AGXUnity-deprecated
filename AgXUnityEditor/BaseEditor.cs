@@ -108,9 +108,6 @@ namespace AgXUnityEditor
       if ( obj == null )
         return false;
 
-      if ( obj.GetType() == typeof( CollisionGroupEntryPair ) )
-        return HandleCollisionGroupEntryPair( obj as CollisionGroupEntryPair, skin );
-
       if ( obj == target )
         Utils.GUI.PreTargetMembers( target, skin );
 
@@ -333,21 +330,6 @@ namespace AgXUnityEditor
       return GUI.changed &&
              ( value != null || isNullable ) &&
              wrapper.ConditionalSet( value );
-    }
-
-    public static bool HandleCollisionGroupEntryPair( CollisionGroupEntryPair collisionGroupPair, GUISkin skin )
-    {
-      if ( collisionGroupPair == null )
-        return false;
-
-      GUILayout.BeginHorizontal();
-      {
-        collisionGroupPair.First.Tag = GUILayout.TextField( collisionGroupPair.First.Tag, skin.textField, GUILayout.Height( 19 ) );
-        collisionGroupPair.Second.Tag = GUILayout.TextField( collisionGroupPair.Second.Tag, skin.textField, GUILayout.Height( 19 ) );
-      }
-      GUILayout.EndHorizontal();
-
-      return true;
     }
 
     public static void HandleList( InvokeWrapper wrapper, T target, GUISkin skin )
