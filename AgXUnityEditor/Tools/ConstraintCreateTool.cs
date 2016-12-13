@@ -84,10 +84,7 @@ namespace AgXUnityEditor.Tools
       bool cancelPressed = false;
       GUILayout.BeginHorizontal();
       {
-        GUILayout.Space( 12 );
-
-        using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
-          createConstraintPressed = GUILayout.Button( GUI.MakeLabel( "Create", true, "Create the constraint" ), skin.button, GUILayout.Width( 120 ), GUILayout.Height( 26 ) );
+        GUILayout.FlexibleSpace();
 
         GUILayout.BeginVertical();
         {
@@ -96,6 +93,11 @@ namespace AgXUnityEditor.Tools
             cancelPressed = GUILayout.Button( GUI.MakeLabel( "Cancel", false ), skin.button, GUILayout.Width( 96 ), GUILayout.Height( 16 ) );
           GUILayout.EndVertical();
         }
+
+        UnityEngine.GUI.enabled = m_createConstraintData.AttachmentPair.ReferenceObject != null && m_createConstraintData.AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>() != null;
+        using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
+          createConstraintPressed = GUILayout.Button( GUI.MakeLabel( "Create", true, "Create the constraint" ), skin.button, GUILayout.Width( 120 ), GUILayout.Height( 26 ) );
+        UnityEngine.GUI.enabled = true;
       }
       GUILayout.EndHorizontal();
 
