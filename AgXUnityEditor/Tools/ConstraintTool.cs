@@ -100,8 +100,6 @@ namespace AgXUnityEditor.Tools
     {
       try {
         ConstraintUtils.ConstraintRowParser constraintRowParser = ConstraintUtils.ConstraintRowParser.Create( Constraint );
-        if ( constraintRowParser.Empty )
-          throw new AgXUnity.Exception( "Unable to parse rows." );
 
         InvokeWrapper[] memberWrappers = InvokeWrapper.FindFieldsAndProperties( null, typeof( ElementaryConstraintRowData ) );
         if ( constraintRowParser.HasTranslationalRows ) {
@@ -120,7 +118,8 @@ namespace AgXUnityEditor.Tools
 
         ElementaryConstraintController[] controllers = Constraint.GetElementaryConstraintControllers();
         if ( controllers.Length > 0 ) {
-          GUI.Separator();
+          if ( !constraintRowParser.Empty )
+            GUI.Separator();
 
           if ( GUI.Foldout( Selected( SelectedFoldout.Controllers ), GUI.MakeLabel( "Controllers", true ), skin ) ) {
             using ( new GUI.Indent( 12 ) ) {

@@ -74,6 +74,7 @@ namespace AgXUnityEditor.Tools
       GUI.Separator3D();
 
       AttachmentFrameTool.OnPreTargetMembersGUI( skin );
+      AttachmentFrameTool.AttachmentPair.Update();
 
       m_createConstraintData.CollisionState = ConstraintTool.ConstraintCollisionsStateGUI( m_createConstraintData.CollisionState, skin );
       m_createConstraintData.SolveType = ConstraintTool.ConstraintSolveTypeGUI( m_createConstraintData.SolveType, skin );
