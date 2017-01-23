@@ -65,24 +65,37 @@ namespace AgXUnity
 
         // Creating a temporary native instance of the constraint, including a rigid body and frames.
         // Given this native instance we copy the default configuration.
-        using ( agx.RigidBody tmpRb = new agx.RigidBody() )
-        using ( agx.Frame tmpF1 = new agx.Frame() )
-        using ( agx.Frame tmpF2 = new agx.Frame() )
-        using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
-          for ( ulong i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
-            ElementaryConstraint ec = ElementaryConstraint.Create( tmpConstraint.getElementaryConstraint( i ) );
-            if ( ec == null )
-              throw new Exception( "Failed to configure elementary constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
+        using (agx.RigidBody tmpRb = new agx.RigidBody())
+        using ( agx.Frame tmpF1 = new agx.Frame() ) {
+          using ( agx.Frame tmpF2 = new agx.Frame() ) {
+            // Some constraints, e.g., Distance Joints depends on the constraint angle during
+            // creation so we feed the frames with the world transform of the reference and
+            // connecting frame.
+            constraint.AttachmentPair.Update();
 
-            constraint.m_elementaryConstraints.Add( ec );
-          }
+            tmpF1.setLocalTranslate( constraint.AttachmentPair.ReferenceFrame.Position.ToHandedVec3() );
+            tmpF1.setLocalRotate( constraint.AttachmentPair.ReferenceFrame.Rotation.ToHandedQuat() );
 
-          for ( ulong i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
-            ElementaryConstraint sc = ElementaryConstraint.Create( tmpConstraint.getSecondaryConstraint( i ) );
-            if ( sc == null )
-              throw new Exception( "Failed to configure elementary controller constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
+            tmpF2.setLocalTranslate( constraint.AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
+            tmpF2.setLocalRotate( constraint.AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
 
-            constraint.m_elementaryConstraints.Add( sc );
+            using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
+              for ( ulong i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
+                ElementaryConstraint ec = ElementaryConstraint.Create( tmpConstraint.getElementaryConstraint( i ) );
+                if (ec == null)
+                  throw new Exception( "Failed to configure elementary constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
+
+                constraint.m_elementaryConstraints.Add( ec );
+              }
+
+              for ( ulong i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
+                ElementaryConstraint sc = ElementaryConstraint.Create( tmpConstraint.getSecondaryConstraint( i ) );
+                if (sc == null)
+                  throw new Exception( "Failed to configure elementary controller constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
+
+                constraint.m_elementaryConstraints.Add( sc );
+              }
+            }
           }
         }
 
@@ -438,7 +451,7 @@ namespace AgXUnity
       return m_gizmosMesh;
     }
 
-    private static void DrawGizmos( Color color, ConstraintAttachmentPair attachmentPair )
+    private static void DrawGizmos( Color color, ConstraintAttachmentPair attachmentPair, bool selected )
     {
       Gizmos.color = color;
       Gizmos.DrawMesh( GetOrCreateGizmosMesh(),
@@ -446,10 +459,9 @@ namespace AgXUnity
                        attachmentPair.ReferenceFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ),
                        0.3f * Rendering.Spawner.Utils.FindConstantScreenSizeScale( attachmentPair.ReferenceFrame.Position, Camera.current ) * Vector3.one );
 
-      if ( !attachmentPair.Synchronized ) {
+      if ( !attachmentPair.Synchronized && selected ) {
         Gizmos.color = Color.red;
         Gizmos.DrawLine( attachmentPair.ReferenceFrame.Position, attachmentPair.ConnectedFrame.Position );
-        Gizmos.DrawMesh( GetOrCreateGizmosMesh(), attachmentPair.ConnectedFrame.Position, attachmentPair.ConnectedFrame.Rotation * Quaternion.FromToRotation( Vector3.up, Vector3.forward ), 0.2f * Vector3.one );
       }
     }
 
@@ -458,7 +470,7 @@ namespace AgXUnity
       if ( !DrawGizmosEnable || !IsEnabled )
         return;
 
-      DrawGizmos( Color.blue, AttachmentPair );
+      DrawGizmos( Color.blue, AttachmentPair, false );
     }
 
     private void OnDrawGizmosSelected()
@@ -466,7 +478,7 @@ namespace AgXUnity
       if ( !DrawGizmosEnable || !IsEnabled )
         return;
 
-      DrawGizmos( Color.green, AttachmentPair );
+      DrawGizmos( Color.green, AttachmentPair, true );
     }
   }
 }

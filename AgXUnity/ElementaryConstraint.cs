@@ -278,6 +278,13 @@ namespace AgXUnity
           agx.LockController.safeCast( Native ).setPosition( m_position );
       }
     }
+
+    protected override void Construct( agx.ElementaryConstraint tmpEc )
+    {
+      base.Construct( tmpEc );
+
+      m_position = Convert.ToSingle( agx.LockController.safeCast( tmpEc ).getPosition() );
+    }
   }
 
   public class ScrewController : ElementaryConstraintController
