@@ -106,7 +106,7 @@ namespace AgXUnityEditor.Tools
 
       GUI.Separator();
 
-      if ( GUI.Foldout( EditorData.Instance.GetData( Cable, "Route" ), GUI.MakeLabel( "Route", true ), skin ) ) {
+      if ( GUI.Foldout( EditorData.Instance.GetData( Cable, "Route", ( entry ) => { entry.Bool = true; } ), GUI.MakeLabel( "Route", true ), skin ) ) {
         GUI.Separator();
 
         foreach ( CableRouteNode node in Cable.Route ) {
