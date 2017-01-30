@@ -5,7 +5,7 @@ using AgXUnity.Utils;
 
 namespace AgXUnity.Rendering
 {
-  [Serializable]
+  [System.Serializable]
   public class SegmentSpawner
   {
     [SerializeField]
@@ -25,7 +25,58 @@ namespace AgXUnity.Rendering
     [SerializeField]
     private ScriptComponent m_parentComponent = null;
 
-    public GameObject[] Segments { get { return ( from segmentTransform in m_segments.GetComponentsInChildren<Transform>() where segmentTransform != m_segments.transform select segmentTransform.gameObject ).ToArray(); } }
+    [SerializeField]
+    private Material m_material = null;
+    public Material Material
+    {
+      get { return m_material ?? DefaultMaterial; }
+      set
+      {
+        m_material = value;
+
+        Action<GameObject> assignMaterial = ( go ) =>
+        {
+          MeshRenderer[] renderers = go.GetComponentsInChildren<MeshRenderer>();
+          foreach ( var renderer in renderers )
+            renderer.sharedMaterial = m_material;
+        };
+
+        if ( m_firstSegmentInstance != null )
+          assignMaterial( m_firstSegmentInstance );
+        if ( m_segmentInstance != null )
+          assignMaterial( m_segmentInstance );
+      }
+    }
+
+    private Material m_defaultMaterial = null;
+    public Material DefaultMaterial
+    {
+      get
+      {
+        if ( m_defaultMaterial != null )
+          return m_defaultMaterial;
+
+        GameObject go = Resources.Load<GameObject>( m_prefabObjectPath );
+        if ( go == null )
+          return null;
+
+        MeshRenderer renderer = go.GetComponentInChildren<MeshRenderer>();
+        if ( renderer != null )
+          m_defaultMaterial = renderer.sharedMaterial;
+
+        return m_defaultMaterial;
+      }
+    }
+
+    public GameObject[] Segments
+    {
+      get
+      {
+        return ( from segmentTransform in m_segments.GetComponentsInChildren<Transform>()
+                 where segmentTransform != m_segments.transform
+                 select segmentTransform.gameObject ).ToArray();
+      }
+    }
 
     public SegmentSpawner( ScriptComponent parentComponent, string prefabObjectPath, string separateFirstObjectPath = "" )
     {
@@ -109,13 +160,22 @@ namespace AgXUnity.Rendering
 
     private GameObject GetInstance()
     {
+      Action<GameObject, Material> setMaterialFunc = ( go, material ) =>
+      {
+        MeshRenderer[] renderers = go.GetComponentsInChildren<MeshRenderer>();
+        foreach ( var renderer in renderers )
+          renderer.sharedMaterial = material;
+      };
+
       if ( m_separateFirstObjectPrefabPath != string.Empty && m_firstSegmentInstance == null ) {
         m_firstSegmentInstance = PrefabLoader.Instantiate<GameObject>( m_separateFirstObjectPrefabPath );
+        setMaterialFunc( m_firstSegmentInstance, Material );
         AddSelectionProxy( m_firstSegmentInstance );
         Add( m_firstSegmentInstance );
       }
       else if ( m_segmentInstance == null ) {
         m_segmentInstance = PrefabLoader.Instantiate<GameObject>( m_prefabObjectPath );
+        setMaterialFunc( m_segmentInstance, Material );
         AddSelectionProxy( m_segmentInstance );
         Add( m_segmentInstance );
       }

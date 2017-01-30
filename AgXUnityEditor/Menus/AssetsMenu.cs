@@ -5,7 +5,7 @@ namespace AgXUnityEditor
 {
   public static class AssetsMenu
   {
-    [MenuItem( "Assets/AgXUnity/Material" )]
+    [MenuItem( "Assets/AgXUnity/Shape Material" )]
     public static UnityEngine.Object CreateMaterial()
     {
       return Utils.AssetFactory.Create<ShapeMaterial>( "material" );
@@ -21,6 +21,12 @@ namespace AgXUnityEditor
     public static UnityEngine.Object CreateFrictionModel()
     {
       return Utils.AssetFactory.Create<FrictionModel>( "friction model" );
+    }
+
+    [MenuItem( "Assets/AgXUnity/Cable Properties" )]
+    public static UnityEngine.Object CreateCableProperties()
+    {
+      return Utils.AssetFactory.Create<CableProperties>( "cable properties" );
     }
   }
 }

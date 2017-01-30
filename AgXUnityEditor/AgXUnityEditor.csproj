@@ -53,6 +53,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\AssemblyTool.cs" />
     <Compile Include="Tools\BuiltInToolsTool.cs" />
+    <Compile Include="Tools\CableTool.cs" />
     <Compile Include="Tools\CollisionGroupsManagerTool.cs" />
     <Compile Include="Tools\ConstraintAttachmentFrameTool.cs" />
     <Compile Include="Tools\ConstraintCreateTool.cs" />
@@ -93,7 +94,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "C:\Projects\Unity\AgXUnityDev01\Assets\AgXUnity\Editor\Plugins" /Y</PostBuildEvent>
+    <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "D:\Unity\AGXUnityCable01\Assets\AgXUnity\Editor\Plugins" /Y</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
