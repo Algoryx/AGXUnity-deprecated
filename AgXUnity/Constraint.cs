@@ -431,10 +431,15 @@ namespace AgXUnity
     private static Mesh m_gizmosMesh = null;
     private static Mesh GetOrCreateGizmosMesh()
     {
+      // Unity crashes before first scene view frame has been rendered on startup
+      // if we load resources. Wait some time before we show this gizmo...
+      if ( Time.realtimeSinceStartup < 30.0f )
+        return null;
+
       if ( m_gizmosMesh != null )
         return m_gizmosMesh;
 
-      GameObject tmp = PrefabLoader.Instantiate<GameObject>( @"Debug/ConstraintRenderer" );
+      GameObject tmp = Resources.Load<GameObject>( @"Debug/ConstraintRenderer" );
       MeshFilter[] filters = tmp.GetComponentsInChildren<MeshFilter>();
       CombineInstance[] combine = new CombineInstance[ filters.Length ];
 
@@ -445,8 +450,6 @@ namespace AgXUnity
 
       m_gizmosMesh = new Mesh();
       m_gizmosMesh.CombineMeshes( combine );
-
-      GameObject.DestroyImmediate( tmp );
 
       return m_gizmosMesh;
     }
