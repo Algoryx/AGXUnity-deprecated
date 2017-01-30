@@ -163,8 +163,10 @@ namespace AgXUnityEditor
     public static UnityEngine.Object RouteObject( UnityEngine.Object obj )
     {
       GameObject gameObject = obj as GameObject;
-      var proxyTarget = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
-      return proxyTarget != null ? proxyTarget.Target : obj;
+      var proxy  = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
+      // If proxy target is null we're ignoring it.
+      var result = proxy != null && proxy.Target != null ? proxy.Target : obj;
+      return result;
     }
 
     /// <summary>

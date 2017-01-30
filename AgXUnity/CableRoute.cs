@@ -65,6 +65,16 @@ namespace AgXUnity
       return TryInsertAtIndex( m_nodes.IndexOf( afterThisNode ) + 1, nodeToInsert );
     }
 
+    /// <summary>
+    /// Remove node from route.
+    /// </summary>
+    /// <param name="node">Node to remove.</param>
+    /// <returns>True if removed, otherwise false.</returns>
+    public bool Remove( CableRouteNode node )
+    {
+      return m_nodes.Remove( node );
+    }
+
     private bool TryInsertAtIndex( int index, CableRouteNode node )
     {
       // According to List documentation having index == m_nodes.Count is

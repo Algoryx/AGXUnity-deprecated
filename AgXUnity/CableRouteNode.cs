@@ -15,7 +15,7 @@ namespace AgXUnity
     /// <param name="localPosition">Position in parent frame. If parent is null this is the position in world frame.</param>
     /// <param name="localRotation">Rotation in parent frame. If parent is null this is the rotation in world frame.</param>
     /// <returns>Cable route node instance.</returns>
-    public static CableRouteNode Create( Cable.NodeType nodeType = Cable.NodeType.BodyFixedNode,
+    public static CableRouteNode Create( Cable.NodeType nodeType = Cable.NodeType.FreeNode,
                                          GameObject parent = null,
                                          Vector3 localPosition = default( Vector3 ),
                                          Quaternion localRotation = default( Quaternion ) )

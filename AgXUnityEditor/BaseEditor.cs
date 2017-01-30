@@ -39,10 +39,16 @@ namespace AgXUnityEditor
 
     public virtual void OnRecursiveInspectorGUI( object parent )
     {
-      OnInspectorGUI();
+      GUILayout.BeginVertical();
+      {
+        OnInspectorGUI();
+      }
+      GUILayout.EndVertical();
 
-      //if ( parent is UnityEngine.Object )
-      //  EditorUtility.SetDirty( parent as UnityEngine.Object );
+      // This is sort of a hack to get responsive foldouts in recursive GUI updates
+      // e.g., Cable.Properties[ dir ] in CableEditor.
+      if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && parent is UnityEngine.Object )
+        EditorUtility.SetDirty( parent as UnityEngine.Object );
     }
 
     public override sealed void OnInspectorGUI()

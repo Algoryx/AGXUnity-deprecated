@@ -141,17 +141,14 @@ namespace AgXUnity
     /// Get cable bulk properties instance.
     /// </summary>
     [AllowRecursiveEditing]
+    [IgnoreSynchronization]
     public CableProperties Properties
     {
-      get
-      {
-        if ( m_properties == null )
-          m_properties = CableProperties.Create();
-        return m_properties;
-      }
+      get { return m_properties; }
       set
       {
-        m_properties = value ?? CableProperties.Create();
+        m_properties = value;
+        SynchronizeProperties();
       }
     }
 
@@ -208,7 +205,30 @@ namespace AgXUnity
 
       GetSimulation().add( Native );
 
+      SynchronizeProperties();
+
       return true;
+    }
+
+    private void SynchronizeProperties()
+    {
+      if ( Properties == null )
+        return;
+
+      if ( !Properties.IsListening( this ) )
+        Properties.OnPropertyUpdated += OnPropertyValueUpdate;
+
+      foreach ( CableProperties.Direction dir in CableProperties.Directions )
+        OnPropertyValueUpdate( dir );
+    }
+
+    private void OnPropertyValueUpdate( CableProperties.Direction dir )
+    {
+      if ( Native != null ) {
+        Native.getCableProperties().setYoungsModulus( Convert.ToDouble( Properties[ dir ].YoungsModulus ), CableProperties.ToNative( dir ) );
+        Native.getCableProperties().setYieldPoint( Convert.ToDouble( Properties[ dir ].YieldPoint ), CableProperties.ToNative( dir ) );
+        Native.getCableProperties().setDamping( Convert.ToDouble( Properties[ dir ].Damping ), CableProperties.ToNative( dir ) );
+      }
     }
   }
 }

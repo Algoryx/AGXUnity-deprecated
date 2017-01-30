@@ -33,6 +33,8 @@ namespace AgXUnity
       set
       {
         m_youngsModulus = value;
+
+        OnValueCanged( Direction );
       }
     }
 
@@ -44,6 +46,8 @@ namespace AgXUnity
       set
       {
         m_yieldPoint = value;
+
+        OnValueCanged( Direction );
       }
     }
 
@@ -55,6 +59,8 @@ namespace AgXUnity
       set
       {
         m_damping = value;
+
+        OnValueCanged( Direction );
       }
     }
   }
@@ -69,10 +75,16 @@ namespace AgXUnity
       Stretch
     }
 
+    public static Array Directions { get { return Enum.GetValues( typeof( Direction ) ); } }
+
+    public static agxCable.CableProperties.Direction ToNative( Direction dir )
+    {
+      return (agxCable.CableProperties.Direction)dir;
+    }
+
     public static CableProperties Create()
     {
       CableProperties properties = Create<CableProperties>();
-      properties.hideFlags = HideFlags.HideAndDontSave;
 
       return properties;
     }
@@ -84,7 +96,17 @@ namespace AgXUnity
       get { return m_properties[ (int)dir ]; }
     }
 
-    public static Array Directions { get { return Enum.GetValues( typeof( Direction ) ); } }
+    public Action<Direction> OnPropertyUpdated = delegate { };
+
+    public bool IsListening( Cable cable )
+    {
+      var invocationList = OnPropertyUpdated.GetInvocationList();
+      foreach ( var listener in invocationList )
+        if ( cable.Equals( listener.Target ) )
+          return true;
+
+      return false;
+    }
 
     public override void Destroy()
     {
@@ -105,7 +127,7 @@ namespace AgXUnity
 
     private void OnPropertyChanged( Direction dir )
     {
-      Debug.Log( dir );
+      OnPropertyUpdated( dir );
     }
   }
 }
