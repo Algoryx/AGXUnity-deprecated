@@ -15,16 +15,18 @@ namespace AgXUnityEditor.Tools
       bool hasRigidBody = !isNull && gameObject.GetComponent<RigidBody>() != null;
       bool hasShape     = !isNull && gameObject.GetComponent<AgXUnity.Collide.Shape>() != null;
       bool hasWire      = !isNull && gameObject.GetComponent<Wire>() != null;
+      bool hasCable     = !isNull && gameObject.GetComponent<Cable>() != null;
 
       string nullTag      = isNull       ? Utils.GUI.AddColorTag( "[null]", Color.red ) : "";
       string visualTag    = hasVisual    ? Utils.GUI.AddColorTag( "[Visual]", Color.yellow ) : "";
       string rigidBodyTag = hasRigidBody ? Utils.GUI.AddColorTag( "[RigidBody]", Color.Lerp( Color.blue, Color.white, 0.35f ) ) : "";
       string shapeTag     = hasShape     ? Utils.GUI.AddColorTag( "[" + gameObject.GetComponent<AgXUnity.Collide.Shape>().GetType().Name + "]", Color.Lerp( Color.green, Color.black, 0.4f ) ) : "";
       string wireTag      = hasWire      ? Utils.GUI.AddColorTag( "[Wire]", Color.Lerp( Color.cyan, Color.black, 0.35f ) ) : "";
+      string cableTag     = hasCable     ? Utils.GUI.AddColorTag( "[Cable]", Color.Lerp( Color.yellow, Color.red, 0.65f ) ) : "";
 
       string name = isNull ? "World" : gameObject.name;
 
-      return Utils.GUI.MakeLabel( name + " " + nullTag + rigidBodyTag + shapeTag + visualTag + wireTag );
+      return Utils.GUI.MakeLabel( name + " " + nullTag + rigidBodyTag + shapeTag + visualTag + wireTag + cableTag );
     }
 
     public class ObjectData

@@ -370,14 +370,22 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    public static bool Foldout( EditorDataEntry state, GUIContent label, GUISkin skin )
+    public static bool Foldout( EditorDataEntry state, GUIContent label, GUISkin skin, Action<bool> onStateChanged = null )
     {
       GUILayout.BeginHorizontal();
       {
-        state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) ) ? !state.Bool : state.Bool;
+        bool expandPressed = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) );
+        //state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) ) ? !state.Bool : state.Bool;
         GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
-        if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && Event.current.type == EventType.MouseDown && Event.current.button == 0 ) {
+        if ( expandPressed ||
+             ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) &&
+               Event.current.type == EventType.MouseDown &&
+               Event.current.button == 0 ) ) {
           state.Bool = !state.Bool;
+
+          onStateChanged?.Invoke( state.Bool );
+
+          if ( !expandPressed )
           GUIUtility.ExitGUI();
         }
       }

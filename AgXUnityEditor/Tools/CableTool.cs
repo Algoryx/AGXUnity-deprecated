@@ -10,57 +10,6 @@ namespace AgXUnityEditor.Tools
   [CustomTool( typeof( Cable ) )]
   public class CableTool : Tool
   {
-    private class CableRouteNodeTool : Tool
-    {
-      public Cable Cable { get; private set; }
-
-      public CableTool CableTool { get { return GetParent() as CableTool; } }
-
-      public CableRouteNode Node { get; private set; }
-
-      public FrameTool FrameTool
-      {
-        get { return GetChild<FrameTool>(); }
-      }
-
-      public Utils.VisualPrimitiveSphere Visual { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveSphere>( "cableRouteNode" ); } }
-
-      public bool Selected
-      {
-        get { return CableTool.Selected == Node; }
-        set { CableTool.Selected = value ? Node : null; }
-      }
-
-      public CableRouteNodeTool( CableRouteNode node, Cable cable )
-      {
-        Node = node;
-        Cable = cable;
-        AddChild( new FrameTool( node.Frame ) { OnChangeDirtyTarget = Cable, TransformHandleActive = false } );
-
-        Visual.Color = Color.yellow;
-        Visual.MouseOverColor = new Color( 0.1f, 0.96f, 0.15f, 1.0f );
-        Visual.OnMouseClick += OnClick;
-      }
-
-      public override void OnSceneViewGUI( SceneView sceneView )
-      {
-        if ( Cable == null || Node == null || !Cable.Route.Contains( Node ) ) {
-          PerformRemoveFromParent();
-          return;
-        }
-
-        float radius = 3f * Cable.Radius;
-        Visual.Visible = !EditorApplication.isPlaying;
-        Visual.Color = Selected ? Visual.MouseOverColor : Color.yellow;
-        Visual.SetTransform( Node.Frame.Position, Node.Frame.Rotation, radius, true, 1.2f * Cable.Radius, Mathf.Max( 1.5f * Cable.Radius, 0.25f ) );
-      }
-
-      private void OnClick( AgXUnity.Utils.Raycast.Hit hit, Utils.VisualPrimitive primitive )
-      {
-        Selected = true;
-      }
-    }
-
     public Cable Cable { get; private set; }
 
     private CableRouteNode m_selected = null;
@@ -88,6 +37,19 @@ namespace AgXUnityEditor.Tools
     }
 
     CableRouteNodeTool SelectedTool { get { return FindActive<CableRouteNodeTool>( this, ( tool ) => { return tool.Node == m_selected; } ); } }
+    public bool DisableCollisionsTool
+    {
+      get { return GetChild<DisableCollisionsTool>() != null; }
+      set
+      {
+        if ( value && !DisableCollisionsTool ) {
+          var disableCollisionsTool = new DisableCollisionsTool( Cable.gameObject );
+          AddChild( disableCollisionsTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<DisableCollisionsTool>() );
+      }
+    }
 
     public CableTool( Cable cable )
     {
@@ -98,14 +60,43 @@ namespace AgXUnityEditor.Tools
     {
       HideDefaultHandlesEnableWhenRemoved();
 
-      foreach ( var node in Cable.Route ) {
-        CreateRouteNodeTool( node );
-        if ( GetFoldoutData( node ).Bool )
-          Selected = node;
+      if ( !EditorApplication.isPlaying ) {
+        foreach ( var node in Cable.Route ) {
+          CreateRouteNodeTool( node );
+          if ( GetFoldoutData( node ).Bool )
+            Selected = node;
+        }
       }
     }
 
     public override void OnPreTargetMembersGUI( GUISkin skin )
+    {
+      bool toggleDisableCollisions = false;
+
+      GUILayout.BeginHorizontal();
+      {
+        GUI.ToolsLabel( skin );
+
+        using ( GUI.ToolButtonData.ColorBlock ) {
+          toggleDisableCollisions = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool, DisableCollisionsTool, "Disable collisions against other objects", skin );
+        }
+      }
+      GUILayout.EndHorizontal();
+
+      if ( DisableCollisionsTool ) {
+        GetChild<DisableCollisionsTool>().OnInspectorGUI( skin );
+
+        GUI.Separator();
+      }
+
+      if ( !EditorApplication.isPlaying )
+        RouteGUI( skin );
+
+      if ( toggleDisableCollisions )
+        DisableCollisionsTool = !DisableCollisionsTool;
+    }
+
+    private void RouteGUI( GUISkin skin )
     {
       bool addNewPressed        = false;
       bool insertBeforePressed  = false;

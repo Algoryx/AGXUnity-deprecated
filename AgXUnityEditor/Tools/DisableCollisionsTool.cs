@@ -138,7 +138,8 @@ namespace AgXUnityEditor.Tools
     {
       return go.GetComponent<RigidBody>() == null &&
              go.GetComponent<AgXUnity.Collide.Shape>() == null &&
-             go.GetComponent<Wire>() == null;
+             go.GetComponent<Wire>() == null &&
+             go.GetComponent<Cable>() == null;
     }
   }
 }
