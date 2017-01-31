@@ -37,6 +37,20 @@ namespace AgXUnityEditor
       return updates;
     }
 
+    public virtual void OnRecursiveInspectorGUI( object parent )
+    {
+      GUILayout.BeginVertical();
+      {
+        OnInspectorGUI();
+      }
+      GUILayout.EndVertical();
+
+      // This is sort of a hack to get responsive foldouts in recursive GUI updates
+      // e.g., Cable.Properties[ dir ] in CableEditor.
+      if ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) && parent is UnityEngine.Object )
+        EditorUtility.SetDirty( parent as UnityEngine.Object );
+    }
+
     public override sealed void OnInspectorGUI()
     {
       if ( Utils.GUI.TargetEditorOnInspectorGUI<T>( target as T, CurrentSkin ) )
@@ -312,8 +326,16 @@ namespace AgXUnityEditor
 
               GUILayout.Space( 6 );
 
-              var updateMethod = typeof( BaseEditor<> ).MakeGenericType( typeof( T ) ).GetMethod( "Update", BindingFlags.Public | BindingFlags.Static );
-              updateMethod.Invoke( null, new object[] { value, target, skin } );
+              // Executes OnInspectorGUI on a custom editor if it exist - otherwise Update.
+              Editor editor = null;
+              if ( value is UnityEngine.Object && ( editor = Editor.CreateEditor( value as UnityEngine.Object ) ) != null ) {
+                var updateMethod = typeof( BaseEditor<> ).MakeGenericType( value.GetType() ).GetMethod( "OnRecursiveInspectorGUI", BindingFlags.Public | BindingFlags.Instance );
+                updateMethod.Invoke( editor, new object[] { target } );
+              }
+              else {
+                var updateMethod = typeof( BaseEditor<> ).MakeGenericType( typeof( T ) ).GetMethod( "Update", BindingFlags.Public | BindingFlags.Static );
+                updateMethod.Invoke( null, new object[] { value, target, skin } );
+              }
 
               Utils.GUI.Separator();
             }

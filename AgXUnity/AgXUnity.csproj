@@ -67,6 +67,10 @@
   <ItemGroup>
     <Compile Include="Assembly.cs" />
     <Compile Include="Attributes.cs" />
+    <Compile Include="Cable.cs" />
+    <Compile Include="CableProperties.cs" />
+    <Compile Include="CableRoute.cs" />
+    <Compile Include="CableRouteNode.cs" />
     <Compile Include="Collide\Box.cs" />
     <Compile Include="Collide\Capsule.cs" />
     <Compile Include="Collide\Cylinder.cs" />
@@ -81,6 +85,7 @@
     <Compile Include="ElementaryConstraintRowData.cs" />
     <Compile Include="Frame.cs" />
     <Compile Include="PickHandler.cs" />
+    <Compile Include="Rendering\CableRenderer.cs" />
     <Compile Include="Rendering\PickHandlerRenderer.cs" />
     <Compile Include="Rendering\SegmentSpawner.cs" />
     <Compile Include="Rendering\SpawnerUtils.cs" />
@@ -108,7 +113,6 @@
     <Compile Include="PrefabLoader.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RangeReal.cs" />
-    <Compile Include="Rendering\SimpleLineRenderer.cs" />
     <Compile Include="Rendering\Spawner.cs" />
     <Compile Include="Rendering\WireRenderer.cs" />
     <Compile Include="RigidBody.cs" />
@@ -138,7 +142,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "C:\Projects\Unity\AgXUnityDev01\Assets\AgXUnity\Plugins" /Y
+    <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "D:\Unity\AGXUnityCable01\Assets\AgXUnity\Plugins" /Y
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

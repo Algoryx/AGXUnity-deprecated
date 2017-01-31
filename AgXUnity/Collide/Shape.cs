@@ -40,6 +40,7 @@ namespace AgXUnity.Collide
     /// <summary>
     /// Get or set shape material instance.
     /// </summary>
+    [AllowRecursiveEditing]
     public ShapeMaterial Material
     {
       get { return m_material; }

@@ -204,6 +204,30 @@ namespace AgXUnityEditor
     }
     #endregion
 
+    #region Cable
+    [MenuItem( "AgXUnity/Cable/Empty" )]
+    public static GameObject CableEmpty()
+    {
+      GameObject go = Factory.Create<Cable>();
+      if ( go != null )
+        Undo.RegisterCreatedObjectUndo( go, "cable" );
+
+      return Selection.activeGameObject = go;
+    }
+
+    [MenuItem( "AgXUnity/Cable/Test 1" )]
+    public static GameObject CableTest1()
+    {
+      Cable cable = Factory.CreateCable();
+      cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3( -5, 0, 0 ) ) );
+      cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3(  0, 3, 0 ) ) );
+      cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3(  5, 0, 0 ) ) );
+      Undo.RegisterCreatedObjectUndo( cable.gameObject, "New test cable" );
+
+      return Selection.activeGameObject = cable.gameObject;
+    }
+    #endregion
+
     #region Managers
     [MenuItem( "AgXUnity/Debug Render Manager" )]
     public static GameObject DebugRenderer()

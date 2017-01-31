@@ -161,26 +161,33 @@ namespace AgXUnity
     {
       public Collide.Shape[] Shapes = new Collide.Shape[] { };
       public Wire[] Wires = new Wire[] { };
+      public Cable[] Cables = new Cable[] { };
     }
 
     private Data CollectData( bool propagateToChildren )
     {
       Data data = new Data(); 
 
-      RigidBody rb        =                                      GetComponent<RigidBody>();
-      Collide.Shape shape = rb != null                  ? null : GetComponent<Collide.Shape>();
-      Wire wire           = rb != null || shape != null ? null : GetComponent<Wire>();
+      RigidBody rb        =                                                      GetComponent<RigidBody>();
+      Collide.Shape shape = rb != null                  ? null                 : GetComponent<Collide.Shape>();
+      Wire wire           = rb != null || shape != null ? null                 : GetComponent<Wire>();
+      Cable cable         = rb != null || shape != null || wire != null ? null : GetComponent<Cable>();
 
-      bool allPredefinedAreNull = rb == null && shape == null && wire == null;
+      bool allPredefinedAreNull = rb == null && shape == null && wire == null && cable == null;
 
       if ( allPredefinedAreNull && propagateToChildren ) {
         data.Shapes = GetComponentsInChildren<Collide.Shape>();
         data.Wires  = GetComponentsInChildren<Wire>();
+        data.Cables = GetComponentsInChildren<Cable>();
       }
       // A wire is by definition independent of PropagateToChildren, since
       // it's not defined to add children to a wire game object.
       else if ( wire != null ) {
         data.Wires = new Wire[] { wire };
+      }
+      // Same logics for Cable.
+      else if ( cable != null ) {
+        data.Cables = new Cable[] { cable };
       }
       // Bodies have shapes so if 'rb' != null we should collect all shape children
       // independent of 'propagate' flag.
@@ -208,6 +215,10 @@ namespace AgXUnity
       foreach ( Wire wire in data.Wires )
         if ( wire.GetInitialized<Wire>() != null )
           entry.AddTo( wire.Native );
+
+      foreach ( Cable cable in data.Cables )
+        if ( cable.GetInitialized<Cable>() != null )
+          cable.GetInitialized<Cable>().Native.getImplementation().addGroupID( entry.Tag.To32BitFnv1aHash() );
     }
 
     private void RemoveGroup( CollisionGroupEntry entry, Data data )
@@ -219,6 +230,11 @@ namespace AgXUnity
       foreach ( Wire wire in data.Wires )
         if ( wire.GetInitialized<Wire>() != null )
           entry.RemoveFrom( wire.Native );
+
+      foreach ( Cable cable in data.Cables ) {
+        if ( cable.GetInitialized<Cable>() != null )
+          cable.GetInitialized<Cable>().Native.getImplementation().removeGroupID( entry.Tag.To32BitFnv1aHash() );
+      }
     }
   }
 }

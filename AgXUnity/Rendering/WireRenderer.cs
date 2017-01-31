@@ -18,6 +18,18 @@ namespace AgXUnity.Rendering
     [HideInInspector]
     public SegmentSpawner SegmentSpawner { get { return m_segmentSpawner; } }
 
+    [SerializeField]
+    private Material m_material = null;
+    public Material Material
+    {
+      get { return m_material ?? m_segmentSpawner.DefaultMaterial; }
+      set
+      {
+        m_material = value ?? m_segmentSpawner.DefaultMaterial;
+        m_segmentSpawner.Material = m_material;
+      }
+    }
+
     public void OnPostStepForward( Wire wire )
     {
       if ( wire != null )
