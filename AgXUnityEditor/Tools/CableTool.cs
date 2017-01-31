@@ -121,6 +121,12 @@ namespace AgXUnityEditor.Tools
                                 Selected = newState ? node : null;
                                 EditorUtility.SetDirty( Cable );
                               } ) ) {
+              using ( new GUI.Indent( 12 ) ) {
+                node.Type = (Cable.NodeType)EditorGUILayout.EnumPopup( GUI.MakeLabel( "Type" ), node.Type, skin.button );
+
+                GUI.Separator();
+              }
+
               GUI.HandleFrame( node.Frame, skin, 12 );
 
               GUILayout.BeginHorizontal();
@@ -190,7 +196,8 @@ namespace AgXUnityEditor.Tools
 
       if ( addNewPressed || insertBeforePressed || insertAfterPressed ) {
         CableRouteNode newRouteNode = null;
-        newRouteNode = listOpNode != null ?
+        // Clicking "Add" will not copy data from last node.
+        newRouteNode = listOpNode != null && !addNewPressed ?
                          CableRouteNode.Create( listOpNode.Type, listOpNode.Frame.Parent, listOpNode.Frame.LocalPosition, listOpNode.Frame.LocalRotation ) :
                          CableRouteNode.Create();
 
