@@ -90,7 +90,7 @@ namespace AgXUnity
                             Frame.Rotation.ToHandedQuat();
 
       if ( Type == Cable.NodeType.BodyFixedNode )
-        Native = new agxCable.BodyFixedNode( rb.Native, new agx.AffineMatrix4x4( rotation, position ) );
+        Native = new agxCable.BodyFixedNode( rb != null ? rb.Native : null, new agx.AffineMatrix4x4( rotation, position ) );
       else if ( Type == Cable.NodeType.FreeNode )
         Native = new agxCable.FreeNode( position );
       else

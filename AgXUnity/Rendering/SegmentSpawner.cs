@@ -88,11 +88,6 @@ namespace AgXUnity.Rendering
 
     public void Initialize( GameObject parent )
     {
-      if ( m_segments != null )
-        return;
-
-      m_segments = new GameObject( "RenderSegments" );
-      parent.AddChild( m_segments, false );
     }
 
     public void Destroy()
@@ -167,6 +162,27 @@ namespace AgXUnity.Rendering
           renderer.sharedMaterial = material;
       };
 
+      // Moving create parent m_segments from Initialize to here because the
+      // editor will delete it when the user presses play then stop then "Undo".
+      if ( m_segments == null ) {
+        var segmentsTransform = m_parentComponent.transform.Find( "RenderSegments" );
+        if ( segmentsTransform != null ) {
+          m_segments = segmentsTransform.gameObject;
+          if ( segmentsTransform.childCount > 0 ) {
+            if ( m_separateFirstObjectPrefabPath != string.Empty )
+              m_firstSegmentInstance = segmentsTransform.GetChild( 0 ).gameObject;
+            if ( m_firstSegmentInstance != null && segmentsTransform.childCount > 1 )
+              m_segmentInstance = segmentsTransform.GetChild( 1 ).gameObject;
+            else if ( m_firstSegmentInstance == null )
+              m_segmentInstance = segmentsTransform.GetChild( 0 ).gameObject;
+          }
+        }
+        else {
+          m_segments = new GameObject( "RenderSegments" );
+          m_parentComponent.gameObject.AddChild( m_segments, false );
+        }
+      }
+
       if ( m_separateFirstObjectPrefabPath != string.Empty && m_firstSegmentInstance == null ) {
         m_firstSegmentInstance = PrefabLoader.Instantiate<GameObject>( m_separateFirstObjectPrefabPath );
         setMaterialFunc( m_firstSegmentInstance, Material );
@@ -192,6 +208,9 @@ namespace AgXUnity.Rendering
 
     private void DestroyFrom( int index )
     {
+      if ( m_segments == null )
+        return;
+
       index = Mathf.Max( 0, index );
 
       while ( m_segments.transform.childCount > index )

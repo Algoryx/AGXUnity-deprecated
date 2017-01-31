@@ -120,6 +120,7 @@ namespace AgXUnity
     /// <summary>
     /// Get or set shape material of this wire. Default null.
     /// </summary>
+    [AllowRecursiveEditing]
     public ShapeMaterial Material
     {
       get { return m_material; }

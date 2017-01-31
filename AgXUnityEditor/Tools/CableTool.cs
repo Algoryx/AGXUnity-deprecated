@@ -197,8 +197,10 @@ namespace AgXUnityEditor.Tools
       if ( addNewPressed || insertBeforePressed || insertAfterPressed ) {
         CableRouteNode newRouteNode = null;
         // Clicking "Add" will not copy data from last node.
-        newRouteNode = listOpNode != null && !addNewPressed ?
-                         CableRouteNode.Create( listOpNode.Type, listOpNode.Frame.Parent, listOpNode.Frame.LocalPosition, listOpNode.Frame.LocalRotation ) :
+        newRouteNode = listOpNode != null ?
+                         addNewPressed ?
+                           CableRouteNode.Create( Cable.NodeType.FreeNode, null, listOpNode.Frame.Position, listOpNode.Frame.Rotation ) :
+                           CableRouteNode.Create( listOpNode.Type, listOpNode.Frame.Parent, listOpNode.Frame.LocalPosition, listOpNode.Frame.LocalRotation ) :
                          CableRouteNode.Create();
 
         bool success = false;
