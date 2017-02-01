@@ -47,9 +47,14 @@ namespace AgXUnity
   [AttributeUsage( AttributeTargets.Method, AllowMultiple = false )]
   public class InvokableInInspector : Attribute
   {
-    public InvokableInInspector( string label = "" ) { Label = label; }
+    public InvokableInInspector( string label = "", bool onlyInStatePlay = false )
+    {
+      Label = label;
+      OnlyInStatePlay = onlyInStatePlay;
+    }
 
-    public string Label = "";
+    public string Label = string.Empty;
+    public bool OnlyInStatePlay = false;
   }
 
   /// <summary>

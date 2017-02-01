@@ -148,18 +148,25 @@ namespace AgXUnityEditor
       if ( methodInfo == null )
         return false;
 
-      object[] attributes = methodInfo.GetCustomAttributes( typeof( InvokableInInspector ), false );
-      GUIContent label = null;
-      if ( attributes.Length > 0 && ( attributes[ 0 ] as InvokableInInspector ).Label != "" )
-        label = Utils.GUI.MakeLabel( ( attributes[ 0 ] as InvokableInInspector ).Label );
-      else
-        label = MakeLabel( methodInfo );
+      InvokableInInspector attribute = methodInfo.GetCustomAttributes( typeof( InvokableInInspector ), false ).Cast<InvokableInInspector>().FirstOrDefault();
+      if ( attribute == null )
+        return false;
+
+      GUIContent label = attribute.Label != string.Empty ?
+                           Utils.GUI.MakeLabel( attribute.Label ) :
+                           MakeLabel( methodInfo );
+
+      bool guiWasEnabled = GUI.enabled;
+      if ( attribute.OnlyInStatePlay && !( EditorApplication.isPlaying || EditorApplication.isPaused ) )
+        GUI.enabled = false;
 
       bool invoked = false;
       if ( GUILayout.Button( label, skin.button, new GUILayoutOption[]{} ) ) {
         methodInfo.Invoke( target, new object[] { } );
         invoked = true;
       }
+
+      GUI.enabled = guiWasEnabled;
 
       return invoked;
     }
