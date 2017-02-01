@@ -125,7 +125,7 @@ namespace AgXUnity
       return m_simulation;
     }
 
-    [InvokableInInspector( "Open in AgX native viewer" )]
+    [InvokableInInspector( "Open in AgX native viewer", true )]
     public void OpenInAgXViewer()
     {
       if ( m_simulation == null ) {
