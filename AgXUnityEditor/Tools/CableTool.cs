@@ -252,6 +252,9 @@ namespace AgXUnityEditor.Tools
 
       Undo.RecordObject( properties, "Cable properties" );
 
+      using ( GUI.AlignBlock.Center )
+        GUILayout.Label( GUI.MakeLabel( "Cable Properties", true ), skin.label );
+
       GUI.Separator();
 
       using ( new GUI.Indent( 12 ) ) {
@@ -269,19 +272,16 @@ namespace AgXUnityEditor.Tools
 
     private void OnPropertyGUI( CableProperties.Direction dir, CableProperties properties, GUISkin skin )
     {
-      Undo.RecordObject( properties[ dir ], "Cable property " + dir.ToString() );
-
       var data = EditorData.Instance.GetData( properties, "CableProperty" + dir.ToString() );
       if ( GUI.Foldout( data, GUI.MakeLabel( dir.ToString() ), skin ) ) {
         using ( new GUI.Indent( 12 ) ) {
+          GUI.Separator();
+
           properties[ dir ].YoungsModulus = Mathf.Clamp( EditorGUILayout.FloatField( GUI.MakeLabel( "Young's modulus" ), properties[ dir ].YoungsModulus ), 1.0E-6f, float.PositiveInfinity );
           properties[ dir ].YieldPoint = Mathf.Clamp( EditorGUILayout.FloatField( GUI.MakeLabel( "Yield point" ), properties[ dir ].YieldPoint ), 0.0f, float.PositiveInfinity );
           properties[ dir ].Damping = Mathf.Clamp( EditorGUILayout.FloatField( GUI.MakeLabel( "Spook damping" ), properties[ dir ].Damping ), 0.0f, float.PositiveInfinity );
         }
       }
-
-      if ( UnityEngine.GUI.changed )
-        EditorUtility.SetDirty( properties[ dir ] );
     }
   }
 }

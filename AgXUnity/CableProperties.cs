@@ -3,12 +3,12 @@ using UnityEngine;
 
 namespace AgXUnity
 {
-  [DoNotGenerateCustomEditor]
-  public class CableProperty : ScriptableObject
+  [Serializable]
+  public class CableProperty
   {
     public static CableProperty Create( CableProperties.Direction dir, Action<CableProperties.Direction> onValueChanged )
     {
-      CableProperty property = CreateInstance<CableProperty>();
+      CableProperty property = new CableProperty();
       property.Direction = dir;
       property.OnValueCanged += onValueChanged;
 
@@ -82,18 +82,12 @@ namespace AgXUnity
       return (agxCable.CableProperties.Direction)dir;
     }
 
-    public static CableProperties Create()
-    {
-      CableProperties properties = Create<CableProperties>();
-
-      return properties;
-    }
-
     [SerializeField]
     private CableProperty[] m_properties = new CableProperty[ Enum.GetValues( typeof( Direction ) ).Length ];
     public CableProperty this[ Direction dir ]
     {
       get { return m_properties[ (int)dir ]; }
+      private set { m_properties[ (int)dir ] = value; }
     }
 
     public Action<Direction> OnPropertyUpdated = delegate { };
@@ -114,10 +108,8 @@ namespace AgXUnity
 
     protected override void Construct()
     {
-      foreach ( Direction dir in Directions ) {
-        m_properties[ (int)dir ] = CableProperty.Create( dir, OnPropertyChanged );
-        m_properties[ (int)dir ].hideFlags = HideFlags.HideAndDontSave;
-      }
+      foreach ( Direction dir in Directions )
+        this[ dir ] = CableProperty.Create( dir, OnPropertyChanged );
     }
 
     protected override bool Initialize()
