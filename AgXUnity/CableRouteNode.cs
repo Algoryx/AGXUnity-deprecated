@@ -4,7 +4,7 @@ using AgXUnity.Utils;
 
 namespace AgXUnity
 {
-  public class CableRouteNode : ScriptAsset
+  public class CableRouteNode : RouteNode
   {
     /// <summary>
     /// Construct a route node given type, parent game object, local position to parent and
@@ -20,15 +20,7 @@ namespace AgXUnity
                                          Vector3 localPosition = default( Vector3 ),
                                          Quaternion localRotation = default( Quaternion ) )
     {
-      CableRouteNode node = Create<CableRouteNode>();
-
-      if ( object.Equals( localRotation, default( Quaternion ) ) )
-        localRotation = Quaternion.identity;
-
-      node.Frame.SetParent( parent );
-      node.Frame.LocalPosition = localPosition;
-      node.Frame.LocalRotation = localRotation;
-
+      CableRouteNode node = RouteNode.Create<CableRouteNode>( parent, localPosition, localRotation );
       node.Type = nodeType;
 
       return node;
@@ -54,27 +46,9 @@ namespace AgXUnity
       set { m_type = value; }
     }
 
-    /// <summary>
-    /// Frame of this node holding position, rotation and parenting.
-    /// The first rigid body (if any) will be the body added to the node.
-    /// </summary>
-    [SerializeField]
-    private Frame m_frame = null;
-
-    /// <summary>
-    /// Frame of this node holding position, rotation and parenting.
-    /// The first rigid body (if any) will be the body added to the node.
-    /// </summary>
-    public Frame Frame { get { return m_frame; } }
-
     public override void Destroy()
     {
       Native = null;
-    }
-
-    protected override void Construct()
-    {
-      m_frame = Create<Frame>();
     }
 
     protected override bool Initialize()
