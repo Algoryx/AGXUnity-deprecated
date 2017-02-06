@@ -85,8 +85,8 @@ namespace AgXUnity
       set
       {
         m_linearVelocityDamping = value;
-        if ( Native != null )
-          agxCable.Cable.setLinearVelocityDamping( Native.begin(), Native.end(), new agx.Vec3f( m_linearVelocityDamping, m_linearVelocityDamping, 0f ) );
+        //if ( Native != null )
+        //  agxCable.Cable.setLinearVelocityDamping( Native.begin(), Native.end(), new agx.Vec3f( m_linearVelocityDamping, m_linearVelocityDamping, 0f ) );
       }
     }
 
@@ -106,8 +106,8 @@ namespace AgXUnity
       set
       {
         m_angularVelocityDamping = value;
-        if ( Native != null )
-          agxCable.Cable.setAngularVelocityDamping( Native.begin(), Native.end(), new agx.Vec3f( m_angularVelocityDamping, m_angularVelocityDamping, 0f ) );
+        //if ( Native != null )
+        //  agxCable.Cable.setAngularVelocityDamping( Native.begin(), Native.end(), new agx.Vec3f( m_angularVelocityDamping, m_angularVelocityDamping, 0f ) );
       }
     }
 
