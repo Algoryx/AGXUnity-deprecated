@@ -17,8 +17,13 @@ namespace AgXUnity.Rendering
       if ( constraint.Type == ConstraintType.AngularLockJoint )
         return;
 
-      const float sphereRadius   = 0.05f;
-      const float cylinderRadius = 0.5f * sphereRadius;
+      const float sphereRadius     = 0.05f;
+      const float cylinderRadius   = 0.5f * sphereRadius;
+      float distReferenceConnected = Vector3.Distance( constraint.AttachmentPair.ReferenceFrame.Position, constraint.AttachmentPair.ConnectedFrame.Position );
+
+      ReferenceSphere.SetActive( true );
+      ConnectedSphere.SetActive( true );
+      ConnectingCylinder.SetActive( distReferenceConnected > 1.0E-4f );
 
       Rendering.Spawner.Utils.SetSphereTransform( ReferenceSphere,
                                                   constraint.AttachmentPair.ReferenceFrame.Position,
@@ -32,7 +37,6 @@ namespace AgXUnity.Rendering
                                                   sphereRadius,
                                                   true );
 
-      // TODO: Handle when reference frame position == connected frame position.
       Rendering.Spawner.Utils.SetCylinderTransform( ConnectingCylinder,
                                                     constraint.AttachmentPair.ReferenceFrame.Position,
                                                     constraint.AttachmentPair.ConnectedFrame.Position,
@@ -58,6 +62,11 @@ namespace AgXUnity.Rendering
       Rendering.Spawner.Utils.SetColor( ReferenceSphere, PickHandler.ReferenceSphereColor );
       Rendering.Spawner.Utils.SetColor( ConnectedSphere, PickHandler.ConnectedSphereColor );
       Rendering.Spawner.Utils.SetColor( ConnectingCylinder, PickHandler.ConnectingCylinderColor );
+
+      // We'll update this active state in the Update method.
+      ReferenceSphere.SetActive( false );
+      ConnectedSphere.SetActive( false );
+      ConnectingCylinder.SetActive( false );
 
       return true;
     }

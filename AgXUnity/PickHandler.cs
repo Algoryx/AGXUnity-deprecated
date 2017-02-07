@@ -282,13 +282,16 @@ namespace AgXUnity
     {
       List<BroadPhaseResult> result = new List<BroadPhaseResult>();
 
-      // Testing shapes.
-      MeshFilter[] shapeFilters = Rendering.DebugRenderManager.Instance.GetComponentsInChildren<MeshFilter>();
-      for ( int i = 0; i < shapeFilters.Length; ++i ) {
-        BroadPhaseResult bpr = TestFilter( worldRay, shapeFilters[ i ] );
-        if ( bpr != null && bpr.GameObject.GetComponent<OnSelectionProxy>() != null ) {
-          bpr.GameObject = bpr.GameObject.GetComponent<OnSelectionProxy>().Target;
-          result.Add( bpr );
+      // Testing shapes - only if we have a DebugRenderManager instance so that the
+      // user only picks "visual" objects.
+      if ( Rendering.DebugRenderManager.HasInstance ) {
+        MeshFilter[] shapeFilters = Rendering.DebugRenderManager.Instance.GetComponentsInChildren<MeshFilter>();
+        for ( int i = 0; i < shapeFilters.Length; ++i ) {
+          BroadPhaseResult bpr = TestFilter( worldRay, shapeFilters[ i ] );
+          if ( bpr != null && bpr.GameObject.GetComponent<OnSelectionProxy>() != null ) {
+            bpr.GameObject = bpr.GameObject.GetComponent<OnSelectionProxy>().Target;
+            result.Add( bpr );
+          }
         }
       }
 
