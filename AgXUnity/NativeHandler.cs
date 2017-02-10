@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using UnityEngine;
-using UnityEditor;
 using Microsoft.Win32;
 
 namespace AgXUnity
@@ -39,42 +38,40 @@ namespace AgXUnity
     /// therefore plugins in "./plugins", data in "./data" and license and
     /// other configuration files in "./cfg".
     /// </summary>
-    public static String FindBinaryPath()
+    public static string FindBinaryPath()
     {
       return ".";
     }
 
-   private void InitPath()
-    {
-    }
-
-    private string GetRunimePathFromRegistry()
+    public static string FindRuntimePathFromRegistry()
     {
       const string parent = "HKEY_LOCAL_MACHINE\\Software\\Wow6432Node\\Algoryx Simulation AB\\Algoryx\\AgX";
-      string path = (string)Registry.GetValue(parent, "runtime", "");
-      return path;
+      return (string)Registry.GetValue( parent, "runtime", "" );
+    }
+
+    private void InitPath()
+    {
     }
 
     private void ConfigureAgX()
     {
-      String binaryPath = FindBinaryPath();
+      string binaryPath = FindBinaryPath();
 
       // Check if agxDotNet.dll is in path.
-      if ( !ExistInPath( "agxDotNet.dll" ) )
-      {
+      if ( !ExistInPath( "agxDotNet.dll" ) ) {
         // If it is not in path, lets look in the registry
-        binaryPath = GetRunimePathFromRegistry();
+        binaryPath = FindRuntimePathFromRegistry();
 
         // If no luck, then we need to bail out
-        if (binaryPath.Length == 0)
-          throw new AgXUnity.Exception("Unable to find agxDotNet.dll - part of the AgX installation.");
+        if ( binaryPath.Length == 0 )
+          throw new AgXUnity.Exception( "Unable to find agxDotNet.dll - part of the AgX installation." );
         else
-          AddToPath(binaryPath);
+          AddToPath( binaryPath );
       }
 
-      String pluginPath = binaryPath + @"\plugins";
-      String dataPath = binaryPath + @"\data";
-      String cfgPath = dataPath + @"\cfg";
+      string pluginPath = binaryPath + @"\plugins";
+      string dataPath = binaryPath + @"\data";
+      string cfgPath = dataPath + @"\cfg";
 
       try {
         // Components are initialized in parallel and destroy is executed
@@ -100,24 +97,24 @@ namespace AgXUnity
       }
     }
 
-    private bool ExistInPath( String filename )
+    private bool ExistInPath( string filename )
     {
-      if ( System.IO.File.Exists( filename ) )
+      if ( File.Exists( filename ) )
         return true;
 
-      String path = System.Environment.GetEnvironmentVariable( "PATH", m_envTarget );
-      foreach ( String p in path.Split( ';' ) ) {
-        String fullPath = p + @"\" + filename;
-        if ( System.IO.File.Exists( fullPath ) )
+      string path = Environment.GetEnvironmentVariable( "PATH", m_envTarget );
+      foreach ( string p in path.Split( ';' ) ) {
+        string fullPath = p + @"\" + filename;
+        if ( File.Exists( fullPath ) )
           return true;
       }
       return false;
     }
 
-    private void AddToPath( String path )
+    private void AddToPath( string path )
     {
-      String currentPath = System.Environment.GetEnvironmentVariable( "PATH", m_envTarget );
-      System.Environment.SetEnvironmentVariable( "PATH", currentPath + Path.PathSeparator + path, m_envTarget );
+      string currentPath = Environment.GetEnvironmentVariable( "PATH", m_envTarget );
+      Environment.SetEnvironmentVariable( "PATH", currentPath + Path.PathSeparator + path, m_envTarget );
     }
   }
 
