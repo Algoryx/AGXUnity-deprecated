@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Linq;
@@ -51,10 +52,15 @@ namespace AgXUnityEditor
     /// </summary>
     static Manager()
     {
-      if ( !System.IO.Directory.Exists( Utils.CustomEditorGenerator.Path ) )
-        Debug.LogError( @"Unable to find directory with custom editors: """ + Utils.CustomEditorGenerator.Path + @""". Make sure to import the latest version of PluginStructure.unitypackage." );
-      else
-        Utils.CustomEditorGenerator.GenerateMissingEditors();
+      // If compatibility issues, this method will try to fix them and this manager
+      // will probably be loaded again after the fix.
+      if ( !VerifyCompatibility() )
+        return;
+
+      if ( !Directory.Exists( Utils.CustomEditorGenerator.Path ) )
+        Directory.CreateDirectory( Utils.CustomEditorGenerator.Path );
+
+      Utils.CustomEditorGenerator.Synchronize();
 
       SceneView.onSceneGUIDelegate             += OnSceneView;
       EditorApplication.hierarchyWindowChanged += OnHierarchyWindowChanged;
@@ -440,6 +446,53 @@ namespace AgXUnityEditor
     private static void HandleWindowsGUI( SceneView sceneView )
     {
       SceneViewWindow.OnSceneView( sceneView );
+    }
+
+    private static bool Equals( byte[] a, byte[] b )
+    {
+      if ( a.Length != b.Length )
+        return false;
+      for ( long i = 0; i < a.LongLength; ++i )
+        if ( a[ i ] != b[ i ] )
+          return false;
+      return true;
+    }
+
+    private static bool VerifyCompatibility()
+    {
+      Func<FileInfo, byte[]> generateMd5 = ( fi ) =>
+      {
+        using ( var stream = fi.OpenRead() ) {
+          return System.Security.Cryptography.MD5.Create().ComputeHash( stream );
+        }
+      };
+
+      // Initializes AGX and adds installed directory from registry to path if
+      // AGX doesn't already exist in path.
+      var nativeHandler = AgXUnity.NativeHandler.Instance;
+
+      string localDllFilename = Application.dataPath + @"/AgXUnity/Plugins/agxDotNet.dll";
+      FileInfo currDll = new FileInfo( localDllFilename );
+      FileInfo installedDll = null;
+
+      // Search for installed AGX with agxDotNet.dll in path.
+      foreach ( var envPath in Environment.GetEnvironmentVariable( "PATH", EnvironmentVariableTarget.Process ).Split( ';' ) ) {
+        installedDll = new FileInfo( envPath + @"/agxDotNet.dll" );
+        if ( installedDll.Exists )
+          break;
+      }
+
+      // Wasn't able to find any installed agxDotNet.dll - it's up to Unity to handle this...
+      if ( !installedDll.Exists )
+        return true;
+
+      if ( !currDll.Exists || !generateMd5( currDll ).SequenceEqual( generateMd5( installedDll ) ) ) {
+        Debug.Log( "<color=green>New version of agxDotNet.dll located in: " + installedDll.Directory + ". Copying it to current project.</color>" );
+        installedDll.CopyTo( localDllFilename, true );
+        return false;
+      }
+
+      return true;
     }
   }
 }
