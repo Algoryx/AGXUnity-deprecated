@@ -46,17 +46,64 @@ namespace AgXUnityEditor.Utils
       return ( from type in assembly.GetTypes() where IsMatch( type ) select type ).ToArray();
     }
 
-    public static void GenerateMissingEditors()
+    public static string[] GetEditorFiles()
     {
-      var types = GetAgXUnityTypes();
+      return Directory.GetFiles( Path, "*Editor.cs", SearchOption.TopDirectoryOnly );
+    }
+
+    public static System.Collections.Generic.IEnumerable<FileInfo> GetEditorFileInfos()
+    {
+      var files = GetEditorFiles();
+      foreach ( var file in files )
+        yield return new FileInfo( file );
+    }
+
+    public static void Synchronize()
+    {
+      // Newer versions replaces '.' with '+' so if our files
+      // doesn't contains any '+' we regenerate all.
+      {
+        bool regenerate = false;
+        foreach ( var fileInfo in GetEditorFileInfos() ) {
+          if ( fileInfo.Name.StartsWith( "AgXUnity" ) && !fileInfo.Name.Contains( '+' ) ) {
+            regenerate = true;
+            break;
+          }
+        }
+
+        if ( regenerate ) {
+          Debug.Log( "Wrong version of custom editor files. Regenerating." );
+          foreach ( var fileInfo in GetEditorFileInfos() )
+            fileInfo.Delete();
+        }
+      }
 
       bool assetDatabaseDirty = false;
-      foreach ( var type in types ) {
-        FileInfo info = new FileInfo( GetFilename( type, true ) );
-        if ( !info.Exists ) {
-          Debug.Log( "Custom editor for class " + type.ToString() + " is missing. Generating." );
-          GenerateEditor( type, Path );
-          assetDatabaseDirty = true;
+
+      // Removing editors which classes has been removed.
+      {
+        var assembly = GetAgXUnityAssembly();
+        foreach ( var fileInfo in GetEditorFileInfos() ) {
+          string className = GetClassName( fileInfo.Name );
+          Type type = assembly.GetType( className, false );
+          if ( !IsMatch( type ) ) {
+            Debug.Log( "Mismatching editor for class: " + className + ", removing custom editor." );
+            fileInfo.Delete();
+            assetDatabaseDirty = true;
+          }
+        }
+      }
+
+      // Generating missing editors.
+      {
+        var types = GetAgXUnityTypes();
+        foreach ( var type in types ) {
+          FileInfo info = new FileInfo( GetFilename( type, true ) );
+          if ( !info.Exists ) {
+            Debug.Log( "Custom editor for class " + type.ToString() + " is missing. Generating." );
+            GenerateEditor( type, Path );
+            assetDatabaseDirty = true;
+          }
         }
       }
 
@@ -66,7 +113,8 @@ namespace AgXUnityEditor.Utils
 
     private static bool IsMatch( Type type )
     {
-      return !type.IsAbstract &&
+      return type != null &&
+             !type.IsAbstract &&
              !type.ContainsGenericParameters &&
             ( type.IsSubclassOf( typeof( ScriptComponent ) ) ||
               type.IsSubclassOf( typeof( ScriptAsset ) ) ) &&
@@ -78,10 +126,20 @@ namespace AgXUnityEditor.Utils
       return type.ToString().Replace( ".", string.Empty );
     }
 
+    private static string GetTypeFilename( Type type )
+    {
+      return type.ToString().Replace( ".", "+" );
+    }
+
+    private static string GetClassName( string filename )
+    {
+      return filename.Replace( "Editor.cs", string.Empty ).Replace( '+', '.' );
+    }
+
     private static string GetFilename( Type type, bool includePath )
     {
       string path = includePath ? Path : string.Empty;
-      return path + GetClassName( type ) + "Editor.cs";
+      return path + GetTypeFilename( type ) + "Editor.cs";
     }
 
     private static void GenerateEditor( Type type, string path )
