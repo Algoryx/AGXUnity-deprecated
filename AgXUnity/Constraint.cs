@@ -80,7 +80,7 @@ namespace AgXUnity
             tmpF2.setLocalRotate( constraint.AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
 
             using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
-              for ( ulong i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
+              for ( uint i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
                 ElementaryConstraint ec = ElementaryConstraint.Create( tmpConstraint.getElementaryConstraint( i ) );
                 if (ec == null)
                   throw new Exception( "Failed to configure elementary constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
@@ -88,7 +88,7 @@ namespace AgXUnity
                 constraint.m_elementaryConstraints.Add( ec );
               }
 
-              for ( ulong i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
+              for ( uint i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
                 ElementaryConstraint sc = ElementaryConstraint.Create( tmpConstraint.getSecondaryConstraint( i ) );
                 if (sc == null)
                   throw new Exception( "Failed to configure elementary controller constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );

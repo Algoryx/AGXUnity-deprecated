@@ -24,11 +24,15 @@ namespace AgXUnity
     public int Row { get { return m_row; } }
 
     /// <summary>
-    /// Row index (unsigned long version) in the elementary constraint.
-    /// Some methods in the native elementary constraint takes ulong as argument. 
+    /// Row index (unsigned version) in the elementary constraint.
+    /// Some methods in the native elementary constraint takes uint as argument. 
     /// </summary>
+    /// <remarks>
+    /// 64-bit builds of AGX Dynamics takes ulong as argument but uint can be
+    /// implicitly converted to ulong - not the other way around.
+    /// </remarks>
     [HideInInspector]
-    public ulong RowUInt64 { get { return Convert.ToUInt64( Row ); } }
+    public uint RowUInt { get { return Convert.ToUInt32( Row ); } }
 
     /// <summary>
     /// Reference back to the elementary constraint.
@@ -100,7 +104,7 @@ namespace AgXUnity
       {
         m_forceRange = value;
         if ( ElementaryConstraint.Native != null )
-          ElementaryConstraint.Native.setForceRange( m_forceRange.Native, RowUInt64 );
+          ElementaryConstraint.Native.setForceRange( m_forceRange.Native, RowUInt );
       }
     }
 
@@ -116,9 +120,9 @@ namespace AgXUnity
       m_elementaryConstraint = elementaryConstraint;
       m_row = row;
       if ( tmpEc != null ) {
-        m_compliance = Convert.ToSingle( tmpEc.getCompliance( RowUInt64 ) );
-        m_damping = Convert.ToSingle( tmpEc.getDamping( RowUInt64 ) );
-        m_forceRange = new RangeReal( tmpEc.getForceRange( RowUInt64 ) );
+        m_compliance = Convert.ToSingle( tmpEc.getCompliance( RowUInt ) );
+        m_damping = Convert.ToSingle( tmpEc.getDamping( RowUInt ) );
+        m_forceRange = new RangeReal( tmpEc.getForceRange( RowUInt ) );
       }
     }
   }

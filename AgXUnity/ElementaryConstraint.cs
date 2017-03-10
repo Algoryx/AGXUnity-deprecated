@@ -124,7 +124,7 @@ namespace AgXUnity
       m_nativeName = tmpEc.getName();
       m_enable     = tmpEc.getEnable();
       m_rowData    = new ElementaryConstraintRowData[ tmpEc.getNumRows() ];
-      for ( ulong i = 0; i < tmpEc.getNumRows(); ++i )
+      for ( uint i = 0; i < tmpEc.getNumRows(); ++i )
         m_rowData[ i ] = new ElementaryConstraintRowData( this, Convert.ToInt32( i ), tmpEc );
     }
 
