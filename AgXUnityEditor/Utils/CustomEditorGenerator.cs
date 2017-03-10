@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection;
 using System.Linq;
 using System.IO;
 using UnityEngine;
@@ -64,8 +63,8 @@ namespace AgXUnityEditor.Utils
       // doesn't contains any '+' we regenerate all.
       {
         bool regenerate = false;
-        foreach ( var fileInfo in GetEditorFileInfos() ) {
-          if ( fileInfo.Name.StartsWith( "AgXUnity" ) && !fileInfo.Name.Contains( '+' ) ) {
+        foreach ( var info in GetEditorFileInfos() ) {
+          if ( info.Name.StartsWith( "AgXUnity" ) && !info.Name.Contains( '+' ) ) {
             regenerate = true;
             break;
           }
@@ -73,8 +72,8 @@ namespace AgXUnityEditor.Utils
 
         if ( regenerate ) {
           Debug.Log( "Wrong version of custom editor files. Regenerating." );
-          foreach ( var fileInfo in GetEditorFileInfos() )
-            fileInfo.Delete();
+          foreach ( var info in GetEditorFileInfos() )
+            DeleteFile( info );
         }
       }
 
@@ -83,12 +82,12 @@ namespace AgXUnityEditor.Utils
       // Removing editors which classes has been removed.
       {
         var assembly = GetAgXUnityAssembly();
-        foreach ( var fileInfo in GetEditorFileInfos() ) {
-          string className = GetClassName( fileInfo.Name );
+        foreach ( var info in GetEditorFileInfos() ) {
+          string className = GetClassName( info.Name );
           Type type = assembly.GetType( className, false );
           if ( !IsMatch( type ) ) {
             Debug.Log( "Mismatching editor for class: " + className + ", removing custom editor." );
-            fileInfo.Delete();
+            DeleteFile( info );
             assetDatabaseDirty = true;
           }
         }
@@ -109,6 +108,14 @@ namespace AgXUnityEditor.Utils
 
       if ( assetDatabaseDirty )
         AssetDatabase.Refresh();
+    }
+
+    private static void DeleteFile( FileInfo info )
+    {
+      FileInfo meta = new FileInfo( info.Name + ".meta" );
+      info.Delete();
+      if ( meta.Exists )
+        meta.Delete();
     }
 
     private static bool IsMatch( Type type )
