@@ -288,7 +288,7 @@ namespace AgXUnityEditor
     /// <param name="data">Window data.</param>
     private static void EatMouseEvents( Data data )
     {
-      int controlID = GUIUtility.GetControlID( data.Id, FocusType.Native, data.GetRect() );
+      int controlID = GUIUtility.GetControlID( data.Id, FocusType.Passive, data.GetRect() );
 
       switch ( Event.current.GetTypeForControl( controlID ) ) {
         case EventType.MouseDown:
