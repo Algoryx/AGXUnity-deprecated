@@ -51,7 +51,7 @@ namespace AgXUnity
     /// Create a new constraint component given constraint type.
     /// </summary>
     /// <param name="type">Type of constraint.</param>
-    /// <param name="givenAttachmentPair">Optional initial attachment pair. If null, a new one will be created.</param>
+    /// <param name="givenAttachmentPair">Optional initial attachment pair. When given, values and fields will be copied to this objects attachment pair.</param>
     /// <returns>Constraint component, added to a new game object - null if unsuccessful.</returns>
     public static Constraint Create( ConstraintType type, ConstraintAttachmentPair givenAttachmentPair = null )
     {
@@ -61,7 +61,7 @@ namespace AgXUnity
         constraint.Type       = type;
 
         // Property AttachmentPair will create a new one if it doesn't exist.
-        constraint.m_attachmentPair = givenAttachmentPair ?? constraint.AttachmentPair;
+        constraint.AttachmentPair.CopyFrom( givenAttachmentPair );
 
         // Creating a temporary native instance of the constraint, including a rigid body and frames.
         // Given this native instance we copy the default configuration.
@@ -81,7 +81,7 @@ namespace AgXUnity
 
             using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
               for ( uint i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
-                ElementaryConstraint ec = ElementaryConstraint.Create( tmpConstraint.getElementaryConstraint( i ) );
+                ElementaryConstraint ec = ElementaryConstraint.Create( constraintGameObject, tmpConstraint.getElementaryConstraint( i ) );
                 if (ec == null)
                   throw new Exception( "Failed to configure elementary constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
 
@@ -89,7 +89,7 @@ namespace AgXUnity
               }
 
               for ( uint i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
-                ElementaryConstraint sc = ElementaryConstraint.Create( tmpConstraint.getSecondaryConstraint( i ) );
+                ElementaryConstraint sc = ElementaryConstraint.Create( constraintGameObject, tmpConstraint.getSecondaryConstraint( i ) );
                 if (sc == null)
                   throw new Exception( "Failed to configure elementary controller constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
 
@@ -124,7 +124,8 @@ namespace AgXUnity
       get
       {
         if ( m_attachmentPair == null )
-          m_attachmentPair = ConstraintAttachmentPair.Create<ConstraintAttachmentPair>();
+          m_attachmentPair = ConstraintAttachmentPair.Create( gameObject );
+
         return m_attachmentPair;
       }
     }
@@ -286,6 +287,30 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Transforms this instance from a version where the ElementaryConstraint instances
+    /// were ScriptAsset to the new version where the ElementaryConstraint is ScriptComponent.
+    /// All values are copied.
+    /// </summary>
+    /// <returns></returns>
+    public bool TransformToComponentVersion()
+    {
+      if ( m_elementaryConstraints.Count == 0 || GetComponents<ElementaryConstraint>().Length > 0 )
+        return false;
+
+      List<ElementaryConstraint> newElementaryConstraints = new List<ElementaryConstraint>();
+      foreach ( var old in m_elementaryConstraints )
+        newElementaryConstraints.Add( old.FromLegacy( gameObject ) );
+
+      foreach ( var old in m_elementaryConstraints )
+        DestroyImmediate( old );
+      m_elementaryConstraints.Clear();
+
+      m_elementaryConstraints = newElementaryConstraints;
+
+      return true;
+    }
+
+    /// <summary>
     /// Creates native instance and adds it to the simulation if this constraint
     /// is properly configured.
     /// </summary>
@@ -406,6 +431,14 @@ namespace AgXUnity
       if ( Native == null || !Native.getValid() )
         return;
 
+      // NOTE: It's not possible to update the constraint frames given the current
+      //       transforms since the actual constraint direction will change with the
+      //       violation.
+      //SynchronizeNativeFramesWithAttachmentPair();
+    }
+
+    private void SynchronizeNativeFramesWithAttachmentPair()
+    {
       RigidBody rb1 = AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>();
       if ( rb1 == null )
         return;

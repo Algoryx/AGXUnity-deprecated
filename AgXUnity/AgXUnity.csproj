@@ -79,8 +79,6 @@
     <Compile Include="Collide\Plane.cs" />
     <Compile Include="Collide\Shape.cs" />
     <Compile Include="ConstraintAttachmentPair.cs" />
-    <Compile Include="Deprecated\Constraint.cs" />
-    <Compile Include="Deprecated\ElementaryConstraint.cs" />
     <Compile Include="ElementaryConstraint.cs" />
     <Compile Include="ElementaryConstraintRowData.cs" />
     <Compile Include="Frame.cs" />

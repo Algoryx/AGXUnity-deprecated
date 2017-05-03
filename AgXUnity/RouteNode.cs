@@ -45,7 +45,7 @@ namespace AgXUnity
 
     protected override void Construct()
     {
-      m_frame = ScriptAsset.Create<Frame>();
+      //m_frame = ScriptAsset.Create<Frame>();
     }
   }
 }

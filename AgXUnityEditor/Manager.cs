@@ -394,40 +394,61 @@ namespace AgXUnityEditor
             rb.MassProperties.RigidBody = rb;
         }
 
-        AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
-        foreach ( var constraint in constraints ) {
-          bool isOldVersion = ( from component in constraint.GetComponents<Component>() where component == null select component ).ToArray().Length > 0 &&
-                              constraint.ElementaryConstraints.Length == 0;
-          if ( !isOldVersion )
-            continue;
+        // Patching constraints where we removed ElementaryConstraint as component.
+        // Now we're back and I hope the components will still show up as null now
+        // that AgXUnity.ElementaryConstraint is a component again.
+        {
+          AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
+          foreach ( var constraint in constraints ) {
+            bool isOldVersion = ( from component in constraint.GetComponents<Component>() where component == null select component ).ToArray().Length > 0 &&
+                                constraint.ElementaryConstraints.Length == 0;
+            if ( !isOldVersion )
+              continue;
 
-          if ( EditorUtility.DisplayDialog( "Update \"" + constraint.name + "\" (type: " + constraint.Type + ") to the new version?",
-                                            "The game object will be deleted and a new will be created with the same Reference/Connected setup. All data such as compliance, damping, motor speed etc. will be lost.",
-                                            "Update", "Ignore" ) ) {
-            AgXUnity.Constraint newConstraint = AgXUnity.Constraint.Create( constraint.Type );
+            if ( EditorUtility.DisplayDialog( "Update \"" + constraint.name + "\" (type: " + constraint.Type + ") to the new version?",
+                                              "The game object will be deleted and a new will be created with the same Reference/Connected setup. All data such as compliance, damping, motor speed etc. will be lost.",
+                                              "Update", "Ignore" ) ) {
+              AgXUnity.Constraint newConstraint = AgXUnity.Constraint.Create( constraint.Type );
 
-            newConstraint.AttachmentPair.ReferenceObject              = constraint.AttachmentPair.ReferenceObject;
-            newConstraint.AttachmentPair.ReferenceFrame.LocalPosition = constraint.AttachmentPair.ReferenceFrame.LocalPosition;
-            newConstraint.AttachmentPair.ReferenceFrame.LocalRotation = constraint.AttachmentPair.ReferenceFrame.LocalRotation;
+              newConstraint.AttachmentPair.ReferenceObject              = constraint.AttachmentPair.ReferenceObject;
+              newConstraint.AttachmentPair.ReferenceFrame.LocalPosition = constraint.AttachmentPair.ReferenceFrame.LocalPosition;
+              newConstraint.AttachmentPair.ReferenceFrame.LocalRotation = constraint.AttachmentPair.ReferenceFrame.LocalRotation;
 
-            newConstraint.AttachmentPair.Synchronized                 = constraint.AttachmentPair.Synchronized;
+              newConstraint.AttachmentPair.Synchronized                 = constraint.AttachmentPair.Synchronized;
 
-            newConstraint.AttachmentPair.ConnectedObject              = constraint.AttachmentPair.ConnectedObject;
-            newConstraint.AttachmentPair.ConnectedFrame.LocalPosition = constraint.AttachmentPair.ConnectedFrame.LocalPosition;
-            newConstraint.AttachmentPair.ConnectedFrame.LocalRotation = constraint.AttachmentPair.ConnectedFrame.LocalRotation;
+              newConstraint.AttachmentPair.ConnectedObject              = constraint.AttachmentPair.ConnectedObject;
+              newConstraint.AttachmentPair.ConnectedFrame.LocalPosition = constraint.AttachmentPair.ConnectedFrame.LocalPosition;
+              newConstraint.AttachmentPair.ConnectedFrame.LocalRotation = constraint.AttachmentPair.ConnectedFrame.LocalRotation;
 
-            newConstraint.name = constraint.name;
+              newConstraint.name = constraint.name;
 
-            GameObject.DestroyImmediate( constraint.gameObject );
+              GameObject.DestroyImmediate( constraint.gameObject );
 
-            Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
+              Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
+
+              UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+            }
+          }
+        }
+
+        // Patching constraints where ElementaryConstraint is a ScriptAsset.
+        {
+          AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
+          foreach ( var constraint in constraints ) {
+            bool isOldVersion = constraint.ElementaryConstraints.Length > 0 && constraint.GetComponents<AgXUnity.ElementaryConstraint>().Length == 0;
+            if ( !isOldVersion )
+              continue;
+
+            constraint.TransformToComponentVersion();
+
+            Debug.Log( "Constraint: " + constraint.name + " updated to new version." );
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
 
-        // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
-        AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+          // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
+          AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
         foreach ( var wire in wires ) {
           AgXUnity.Rendering.SegmentSpawner ss = wire.GetComponent<AgXUnity.Rendering.WireRenderer>().SegmentSpawner;
           if ( ss == null )

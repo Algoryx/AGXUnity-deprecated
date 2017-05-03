@@ -9,8 +9,18 @@ namespace AgXUnity
   /// frame the constraint will be created from. It's possible to detach the relation
   /// between the frames, setting Synchronized to false.
   /// </summary>
-  public class ConstraintAttachmentPair : ScriptAsset
+  [HideInInspector]
+  public class ConstraintAttachmentPair : ScriptComponent
   {
+    public static ConstraintAttachmentPair Create( GameObject gameObject )
+    {
+      ConstraintAttachmentPair instance = gameObject.AddComponent<ConstraintAttachmentPair>();
+      instance.m_referenceFrame         = gameObject.AddComponent<Frame>();
+      instance.m_connectedFrame         = gameObject.AddComponent<Frame>();
+
+      return instance;
+    }
+
     /// <summary>
     /// The reference object that must contain a RigidBody
     /// component for the constraint to be valid.
@@ -94,8 +104,19 @@ namespace AgXUnity
       set { m_synchronized = value; }
     }
 
-    private ConstraintAttachmentPair()
+    /// <summary>
+    /// Copies all values and objects from <paramref name="source"/>.
+    /// </summary>
+    /// <param name="source">Source</param>
+    public void CopyFrom( ConstraintAttachmentPair source )
     {
+      if ( source == null )
+        return;
+
+      m_referenceFrame.CopyFrom( source.m_referenceFrame );
+      m_connectedFrame.CopyFrom( source.m_connectedFrame );
+
+      m_synchronized = source.m_synchronized;
     }
 
     /// <summary>
@@ -109,18 +130,12 @@ namespace AgXUnity
       }
     }
 
-    protected override void Construct()
-    {
-      m_referenceFrame = Create<Frame>();
-      m_connectedFrame = Create<Frame>();
-    }
-
     protected override bool Initialize()
     {
       return true;
     }
 
-    public override void Destroy()
+    private ConstraintAttachmentPair()
     {
     }
   }

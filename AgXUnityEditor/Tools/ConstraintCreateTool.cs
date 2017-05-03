@@ -36,7 +36,7 @@ namespace AgXUnityEditor.Tools
 
     public override void OnRemove()
     {
-      m_createConstraintData.Reset( true );
+      m_createConstraintData.Reset();
     }
 
     public override void OnSceneViewGUI( SceneView sceneView )
@@ -105,16 +105,18 @@ namespace AgXUnityEditor.Tools
       GUI.Separator3D();
 
       if ( createConstraintPressed ) {
-        GameObject constraintGameObject = Factory.Create( m_createConstraintData.ConstraintType, m_createConstraintData.AttachmentPair );
-        constraintGameObject.name = m_createConstraintData.Name;
-        constraintGameObject.GetComponent<Constraint>().CollisionsState = m_createConstraintData.CollisionState;
+        GameObject constraintGameObject = Factory.Create( m_createConstraintData.ConstraintType,
+                                                          m_createConstraintData.AttachmentPair );
+        Constraint constraint           = constraintGameObject.GetComponent<Constraint>();
+        constraintGameObject.name       = m_createConstraintData.Name;
+        constraint.CollisionsState      = m_createConstraintData.CollisionState;
 
         if ( MakeConstraintChildToParent )
           constraintGameObject.transform.SetParent( Parent.transform );
 
         Undo.RegisterCreatedObjectUndo( constraintGameObject, "New constraint '" + constraintGameObject.name + "' created" );
 
-        m_createConstraintData.Reset( false );
+        m_createConstraintData.Reset();
       }
 
       if ( cancelPressed || createConstraintPressed )
@@ -145,6 +147,7 @@ namespace AgXUnityEditor.Tools
 
       public string Name                             = string.Empty;
       public ConstraintAttachmentPair AttachmentPair = null;
+      public GameObject TempGameObject               = null;
 
       public void CreateInitialState( string name )
       {
@@ -153,14 +156,16 @@ namespace AgXUnityEditor.Tools
           return;
         }
 
-        AttachmentPair = ConstraintAttachmentPair.Create<ConstraintAttachmentPair>();
-        Name           = Factory.CreateName( name + "_constraint" );
+        TempGameObject           = new GameObject();
+        TempGameObject.hideFlags = HideFlags.HideAndDontSave;
+        AttachmentPair           = ConstraintAttachmentPair.Create( TempGameObject );
+        Name                     = Factory.CreateName( name + "_constraint" );
       }
 
-      public void Reset( bool deleteAttachmentPair )
+      public void Reset()
       {
-        if ( AttachmentPair != null && deleteAttachmentPair )
-          ScriptComponent.DestroyImmediate( AttachmentPair );
+        if ( TempGameObject != null )
+          GameObject.DestroyImmediate( TempGameObject );
         AttachmentPair = null;
       }
     }

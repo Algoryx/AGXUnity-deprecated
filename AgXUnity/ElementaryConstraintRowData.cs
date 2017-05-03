@@ -125,5 +125,19 @@ namespace AgXUnity
         m_forceRange = new RangeReal( tmpEc.getForceRange( RowUInt ) );
       }
     }
+
+    /// <summary>
+    /// Construct given elementary constraint and source instance.
+    /// </summary>
+    /// <param name="elementaryConstraint"></param>
+    /// <param name="source"></param>
+    public ElementaryConstraintRowData( ElementaryConstraint elementaryConstraint, ElementaryConstraintRowData source )
+    {
+      m_elementaryConstraint = elementaryConstraint;
+      m_row = source.m_row;
+      m_compliance = source.m_compliance;
+      m_damping = source.m_damping;
+      m_forceRange = new RangeReal( source.m_forceRange );
+    }
   }
 }

@@ -30,6 +30,15 @@
     }
 
     /// <summary>
+    /// Copy constructor.
+    /// </summary>
+    public RangeReal( RangeReal other )
+    {
+      Min = other.Min;
+      Max = other.Max;
+    }
+
+    /// <summary>
     /// Construct given native range real.
     /// </summary>
     /// <param name="native">Native range real to copy values from.</param>

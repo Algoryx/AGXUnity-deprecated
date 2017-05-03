@@ -4,7 +4,8 @@ using AgXUnity.Utils;
 
 namespace AgXUnity
 {
-  public class Frame : ScriptAsset
+  [HideInInspector]
+  public class Frame : ScriptComponent
   {
     [SerializeField]
     private GameObject m_parent = null;
@@ -52,13 +53,17 @@ namespace AgXUnity
     }
 
     /// <summary>
-    /// Construct given a parent.
+    /// Copy values/objects from <paramref name="source"/>.
     /// </summary>
-    /// <param name="parent">Parent object.</param>
-    public Frame( GameObject parent = null )
-      : base()
+    /// <param name="source">Source.</param>
+    public void CopyFrom( Frame source )
     {
-      m_parent = parent;
+      if ( source == null )
+        return;
+
+      m_localPosition = source.m_localPosition;
+      m_localRotation = source.m_localRotation;
+      m_parent        = source.m_parent;
     }
 
     /// <summary>
@@ -145,20 +150,9 @@ namespace AgXUnity
     {
     }
 
-    protected override void Construct()
-    {
-      m_parent        = null;
-      m_localPosition = Vector3.zero;
-      m_localRotation = Quaternion.identity;
-    }
-
     protected override bool Initialize()
     {
       return true;
-    }
-
-    public override void Destroy()
-    {
     }
   }
 }
