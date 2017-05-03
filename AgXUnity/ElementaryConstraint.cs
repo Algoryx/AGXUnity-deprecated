@@ -134,6 +134,11 @@ namespace AgXUnity
       return GetInitialized<ElementaryConstraint>() != null;
     }
 
+    public void CopyFrom( ElementaryConstraint source )
+    {
+      Construct( source );
+    }
+
     protected virtual void Construct( agx.ElementaryConstraint tmpEc )
     {
       m_nativeName = tmpEc.getName();

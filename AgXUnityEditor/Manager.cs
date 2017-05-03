@@ -441,14 +441,34 @@ namespace AgXUnityEditor
 
             constraint.TransformToComponentVersion();
 
-            Debug.Log( "Constraint: " + constraint.name + " updated to new version." );
+            Debug.Log( "Constraint: " + constraint.name + " updated to new version.", constraint );
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
 
-          // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
-          AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+        // Patching old hinges with two Dot1 to new Swing.
+        {
+          var hingeGameObject = AgXUnity.Factory.Create( AgXUnity.ConstraintType.Hinge );
+          var refHinge = hingeGameObject.GetComponent<AgXUnity.Constraint>();
+          AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
+          foreach ( var constraint in constraints ) {
+            if ( constraint.Type != AgXUnity.ConstraintType.Hinge )
+              continue;
+
+            if ( !constraint.AdoptToReferenceHinge( refHinge ) )
+              continue;
+
+            Debug.Log( "Hinge: " + constraint.name + " successfully updated to match AGX Dynamics Hinge.", constraint );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+          }
+
+          GameObject.DestroyImmediate( hingeGameObject );
+        }
+
+        // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
+        AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
         foreach ( var wire in wires ) {
           AgXUnity.Rendering.SegmentSpawner ss = wire.GetComponent<AgXUnity.Rendering.WireRenderer>().SegmentSpawner;
           if ( ss == null )

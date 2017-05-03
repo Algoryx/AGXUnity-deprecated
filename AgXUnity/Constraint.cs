@@ -311,6 +311,83 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Adopting hinge implementation to current version of AGX Dynamics (number
+    /// of elementary constraints may change). This method can hopefully be removed later.
+    /// </summary>
+    /// <param name="referenceHinge">Reference hinge for current version of AGX Dynamics.</param>
+    /// <returns>True if any changed were made - otherwise false.</returns>
+    public bool AdoptToReferenceHinge( Constraint referenceHinge )
+    {
+      if ( Type != ConstraintType.Hinge )
+        return false;
+
+      if ( referenceHinge.m_elementaryConstraints.Count == m_elementaryConstraints.Count )
+        return false;
+
+      bool refHasSwing  = referenceHinge.m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "SW" ) != null;
+      bool thisHasSwing = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "SW" ) != null;
+      if ( refHasSwing == thisHasSwing )
+        return false;
+
+      // Add all elementary constraints given reference. We now have both
+      // the old and the new reprecentation. The old is located in m_elementaryConstraints
+      // and the new in newElementaryConstraints.
+      List<ElementaryConstraint> newElementaryConstraints = new List<ElementaryConstraint>();
+      foreach ( var refEc in referenceHinge.m_elementaryConstraints )
+        newElementaryConstraints.Add( refEc.FromLegacy( gameObject ) );
+
+      // Different if we're going from Dot1 -> Swing or the other way around.
+      var listWithDot1 = refHasSwing ? m_elementaryConstraints : newElementaryConstraints;
+      var listWithSwing = refHasSwing ? newElementaryConstraints : m_elementaryConstraints;
+
+      // Fetching the two Dot1 and the Swing object.
+      var ecUn = listWithDot1.FirstOrDefault( ec => ec.NativeName == "D1_UN" );
+      var ecVn = listWithDot1.FirstOrDefault( ec => ec.NativeName == "D1_VN" );
+      var swing = listWithSwing.FirstOrDefault( ec => ec.NativeName == "SW" );
+
+      // If we didn't find both Dot1 or the Swing object we have to bail out.
+      if ( ecUn == null || ecVn == null || swing == null ) {
+        foreach ( var newEc in newElementaryConstraints )
+          DestroyImmediate( newEc );
+        newElementaryConstraints.Clear();
+        return false;
+      }
+
+      // Copy U and V row data to Swing[ U ] and Swing[ V ].
+      if ( refHasSwing ) {
+        swing.Enable = ecUn.Enable || ecVn.Enable;
+        swing.RowData[ 0 ].CopyFrom( ecUn.RowData[ 0 ] );
+        swing.RowData[ 1 ].CopyFrom( ecVn.RowData[ 0 ] );
+      }
+      // Copy Swing[ U ] and Swing[ V ] to U and V respectively.
+      else {
+        ecUn.Enable = swing.Enable;
+        ecVn.Enable = swing.Enable;
+        ecUn.RowData[ 0 ].CopyFrom( swing.RowData[ 0 ] );
+        ecVn.RowData[ 0 ].CopyFrom( swing.RowData[ 1 ] );
+      }
+
+      // Copy the elementary constraint state from the old ones to
+      // the new version for the resting matching elementary constraints.
+      for ( int i = 0; i < newElementaryConstraints.Count; ++i ) {
+        var old = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == newElementaryConstraints[ i ].NativeName );
+        // This will skip swing (old == null) if we're moving Dot1 -> Swing.
+        // This will skip U, V (old == null) if we're moving Swing -> Dot1.
+        if ( old != null )
+          newElementaryConstraints[ i ].CopyFrom( old );
+      }
+
+      // Destroy all old elementary constraints, the data has been copied.
+      foreach ( var old in m_elementaryConstraints )
+        DestroyImmediate( old );
+      m_elementaryConstraints.Clear();
+
+      m_elementaryConstraints = newElementaryConstraints;
+
+      return true;
+    }
+
+    /// <summary>
     /// Creates native instance and adds it to the simulation if this constraint
     /// is properly configured.
     /// </summary>
