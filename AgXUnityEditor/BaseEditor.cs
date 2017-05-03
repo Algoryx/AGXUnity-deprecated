@@ -73,6 +73,10 @@ namespace AgXUnityEditor
 
       Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
 
+      // Entire class/component marked as hidden - enable "hide in inspector".
+      if ( target.GetType().GetCustomAttributes( typeof( HideInInspector ), false ).Length > 0 )
+        target.hideFlags |= HideFlags.HideInInspector;
+
       // It's possible to detect when this editor/object becomes selected.
       //if ( Application.isEditor && target != null )
       //  Debug.Log( "Create!" );
