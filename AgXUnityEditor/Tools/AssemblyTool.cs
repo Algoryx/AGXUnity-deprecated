@@ -96,7 +96,7 @@ namespace AgXUnityEditor.Tools
     {
       Renderer[] renderers = Assembly.GetComponentsInChildren<Renderer>();
       for ( int i = 0; i < renderers.Length; ++i )
-        EditorUtility.SetSelectedWireframeHidden( renderers[ i ], true );
+        EditorUtility.SetSelectedRenderState( renderers[ i ], EditorSelectedRenderState.Wireframe );
     }
 
     public override void OnRemove()
@@ -104,7 +104,7 @@ namespace AgXUnityEditor.Tools
       if ( Assembly != null ) {
         Renderer[] renderers = Assembly.GetComponentsInChildren<Renderer>();
         for ( int i = 0; i < renderers.Length; ++i )
-          EditorUtility.SetSelectedWireframeHidden( renderers[ i ], false );
+          EditorUtility.SetSelectedRenderState( renderers[ i ], EditorSelectedRenderState.Hidden );
       }
 
       ChangeMode( Mode.None );
