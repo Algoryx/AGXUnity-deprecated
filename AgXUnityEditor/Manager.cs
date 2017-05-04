@@ -369,29 +369,13 @@ namespace AgXUnityEditor
           }
         }
 
-        // There shouldn't be any MassProperties components since we've
-        // changed them to be ScriptAssets.
+        // We're back to ScriptComponent version of MassProperties.
         AgXUnity.RigidBody[] bodies = UnityEngine.Object.FindObjectsOfType<AgXUnity.RigidBody>();
         foreach ( var rb in bodies ) {
-          Component[] components = rb.GetComponents<Component>();
-          foreach ( var component in components ) {
-            if ( component.GetType() == typeof( AgXUnity.MassProperties ) ) {
-              Debug.Log( "Updating RigidBody by removing MassProperties component - copying the values to the new MassProperties instance.", rb.gameObject );
-              AgXUnity.MassProperties currentMassProperties = rb.MassProperties;
-              FieldInfo[] fields = component.GetType().GetFields( BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly );
-              foreach ( var f in fields ) {
-                if ( !f.IsNotSerialized )
-                  f.SetValue( currentMassProperties, f.GetValue( component ) );
-              }
-              Component.DestroyImmediate( component );
+          if ( !rb.PatchMassPropertiesAsComponent() )
+            continue;
 
-              UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
-            }
-          }
-
-          // 'm_rb' in MassProperties has been overwritten during the update. Update reference.
-          if ( rb.MassProperties.RigidBody == null )
-            rb.MassProperties.RigidBody = rb;
+          UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
         }
 
         // Patching constraints where we removed ElementaryConstraint as component.

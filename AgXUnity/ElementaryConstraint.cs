@@ -7,6 +7,7 @@ namespace AgXUnity
   /// Base of controllers and object of ordinary elementary constraints.
   /// </summary>
   [HideInInspector]
+  [AddComponentMenu( "" )]
   public class ElementaryConstraint : ScriptComponent
   {
     /// <summary>
