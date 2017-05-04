@@ -14,8 +14,8 @@ namespace AgXUnity
     /// <param name="localRotation">Rotation in parent frame. If parent is null this is the rotation in world frame.</param>
     /// <returns>Route node instance.</returns>
     public static T Create<T>( GameObject parent = null,
-                                       Vector3 localPosition = default( Vector3 ),
-                                       Quaternion localRotation = default( Quaternion ) )
+                               Vector3 localPosition = default( Vector3 ),
+                               Quaternion localRotation = default( Quaternion ) )
       where T : RouteNode
     {
       T node = ScriptAsset.Create<T>();
