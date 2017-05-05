@@ -128,16 +128,14 @@ namespace AgXUnity
     /// <summary>
     /// Create a wire given route, radius, resolution and material.
     /// </summary>
-    /// <param name="route">Wire route.</param>
     /// <param name="radius">Radius if the wire.</param>
     /// <param name="resolutionPerUnitLength">Resolution of the wire.</param>
     /// <param name="material">Shape material of the wire.</param>
     /// <returns>A new game object with a Wire component.</returns>
-    public static Wire CreateWire( WireRoute route = null, float radius = 0.02f, float resolutionPerUnitLength = 1.5f, ShapeMaterial material = null )
+    public static Wire CreateWire( float radius = 0.02f, float resolutionPerUnitLength = 1.5f, ShapeMaterial material = null )
     {
       GameObject go = new GameObject( CreateName<Wire>() );
       Wire wire     = go.AddComponent<Wire>();
-      wire.Route    = route;
 
       wire.Radius                  = radius;
       wire.ResolutionPerUnitLength = resolutionPerUnitLength;

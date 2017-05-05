@@ -389,7 +389,7 @@ namespace AgXUnityEditor
                 }
                 GUILayout.EndHorizontal();
 
-                using ( Tools.WireTool.NodeListButtonColor ) {
+                using ( Utils.GUI.NodeListButtonColor ) {
                   if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementBefore.ToString(), false, "Insert new element before this" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     insertElementBefore = obj;
                   if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Insert new element after this" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
@@ -412,7 +412,7 @@ namespace AgXUnityEditor
         GUILayout.BeginHorizontal();
         {
           GUILayout.FlexibleSpace();
-          using ( Tools.WireTool.NodeListButtonColor )
+          using ( Utils.GUI.NodeListButtonColor )
             addElementToList = GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Add new element to list" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
         }
         GUILayout.EndHorizontal();

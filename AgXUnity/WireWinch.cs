@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity
 {
   [AddComponentMenu( "" )]
-  public class WireWinch : ScriptAsset
+  [HideInInspector]
+  public class WireWinch : ScriptComponent
   {
     [HideInInspector]
     public agxWire.WireWinchController Native { get; private set; }
@@ -98,11 +97,11 @@ namespace AgXUnity
         return false;
       }
 
-      RigidBody rb = winchNode.Frame.Parent != null ? winchNode.Frame.Parent.GetInitializedComponentInParent<RigidBody>() : null;
+      RigidBody rb = winchNode.Parent != null ? winchNode.Parent.GetInitializedComponentInParent<RigidBody>() : null;
       if ( rb == null )
-        Native = new agxWire.WireWinchController( null, winchNode.Frame.Position.ToHandedVec3(), ( winchNode.Frame.Rotation * Vector3.forward ).ToHandedVec3(), PulledInLength );
+        Native = new agxWire.WireWinchController( null, winchNode.Position.ToHandedVec3(), ( winchNode.Rotation * Vector3.forward ).ToHandedVec3(), PulledInLength );
       else
-        Native = new agxWire.WireWinchController( rb.Native, winchNode.Frame.CalculateLocalPosition( rb.gameObject ).ToHandedVec3(), ( winchNode.Frame.CalculateLocalRotation( rb.gameObject ) * Vector3.forward ).ToHandedVec3() );
+        Native = new agxWire.WireWinchController( rb.Native, winchNode.CalculateLocalPosition( rb.gameObject ).ToHandedVec3(), ( winchNode.CalculateLocalRotation( rb.gameObject ) * Vector3.forward ).ToHandedVec3() );
 
       return true;
     }
@@ -113,13 +112,11 @@ namespace AgXUnity
         m_pulledInLength = Convert.ToSingle( Native.getPulledInWireLength() );
     }
 
-    protected override void Construct()
-    {
-    }
-
-    public override void Destroy()
+    protected override void OnDestroy()
     {
       Native = null;
+
+      base.OnDestroy();
     }
   }
 }

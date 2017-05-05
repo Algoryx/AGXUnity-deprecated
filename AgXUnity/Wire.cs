@@ -8,6 +8,7 @@ namespace AgXUnity
   /// </summary>
   [AddComponentMenu( "" )]
   [RequireComponent( typeof( Rendering.WireRenderer ) )]
+  [RequireComponent( typeof( WireRoute ) )]
   public class Wire : ScriptComponent
   {
     /// <summary>
@@ -147,19 +148,18 @@ namespace AgXUnity
     /// <summary>
     /// Route to initialize this wire.
     /// </summary>
-    [SerializeField]
-    private WireRoute m_route = new WireRoute();
+    private WireRoute m_route = null;
 
     /// <summary>
     /// Get route to initialize this wire.
     /// </summary>
     public WireRoute Route
     {
-      get { return m_route; }
-      set
+      get
       {
-        m_route = value ?? new WireRoute();
-        m_route.Wire = this;
+        if ( m_route == null )
+          m_route = GetComponent<WireRoute>();
+        return m_route;
       }
     }
 
@@ -183,14 +183,10 @@ namespace AgXUnity
 
     public Wire()
     {
-      m_route.Wire = this;
     }
 
     protected override bool Initialize()
     {
-      if ( m_route == null )
-        return false;
-
       WireRoute.ValidatedRoute validatedRoute = Route.GetValidated();
       if ( !validatedRoute.Valid ) {
         Debug.LogError( validatedRoute.ErrorString, this );
@@ -205,7 +201,7 @@ namespace AgXUnity
         Native = new agxWire.Wire( Radius, ResolutionPerUnitLength );
         Material = m_material != null ? m_material.GetInitialized<ShapeMaterial>() : null;
         int nodeCounter = 0;
-        foreach ( WireRouteNode routeNode in m_route ) {
+        foreach ( WireRouteNode routeNode in Route ) {
           agxWire.Node node = routeNode.GetInitialized<WireRouteNode>().Native;
 
           bool success = true;

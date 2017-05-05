@@ -7,11 +7,56 @@ namespace AgXUnity
   public class Route<T> : ScriptComponent, IEnumerable<T>
     where T : RouteNode
   {
+    public class ValidatedNode
+    {
+      public T Node = null;
+      public bool Valid = true;
+      public string ErrorString = string.Empty;
+    }
+
+    public class ValidatedRoute : IEnumerable<ValidatedNode>
+    {
+      public bool Valid = true;
+      public string ErrorString = string.Empty;
+      public List<ValidatedNode> Nodes = new List<ValidatedNode>();
+
+      public IEnumerator<ValidatedNode> GetEnumerator()
+      {
+        return Nodes.GetEnumerator();
+      }
+
+      System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+      {
+        return GetEnumerator();
+      }
+    }
+
+    public virtual ValidatedRoute GetValidated()
+    {
+      ValidatedRoute validatedRoute = new ValidatedRoute();
+      foreach ( var node in this )
+        validatedRoute.Nodes.Add( new ValidatedNode() { Node = node, Valid = true } );
+
+      return validatedRoute;
+    }
+
     /// <summary>
     /// Route node list.
     /// </summary>
     [SerializeField]
     private List<T> m_nodes = new List<T>();
+
+    /// <summary>
+    /// Callback fired when a node has been added/inserted into this route.
+    /// Signature: OnNodeAdded( NodeT addedNode, int indexOfAddedNode ).
+    /// </summary>
+    public Action<T, int> OnNodeAdded = delegate { };
+
+    /// <summary>
+    /// Callback fired when a node has been removed from this route.
+    /// Signature: OnNodeRemoved( WireRouteNode removedNode, int indexOfRemovedNode ).
+    /// </summary>
+    public Action<T, int> OnNodeRemoved = delegate { };
 
     /// <summary>
     /// Number of nodes in route.
@@ -76,7 +121,15 @@ namespace AgXUnity
     /// <returns>True if removed, otherwise false.</returns>
     public bool Remove( T node )
     {
-      return m_nodes.Remove( node );
+      int index = IndexOf( node );
+      if ( index < 0 || index >= m_nodes.Count )
+        return false;
+
+      m_nodes.RemoveAt( index );
+
+      OnNodeRemoved( node, index );
+
+      return true;
     }
 
     protected override bool Initialize()
@@ -103,6 +156,8 @@ namespace AgXUnity
         return false;
 
       m_nodes.Insert( index, node );
+
+      OnNodeAdded( node, index );
 
       return true;
     }

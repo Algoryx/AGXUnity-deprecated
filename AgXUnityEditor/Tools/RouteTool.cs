@@ -132,6 +132,9 @@ namespace AgXUnityEditor.Tools
 
     private void RouteGUI( GUISkin skin )
     {
+      GUIStyle invalidNodeStyle = new GUIStyle( skin.label );
+      invalidNodeStyle.normal.background = GUI.CreateColoredTexture( 4, 4, Color.Lerp( UnityEngine.GUI.color, Color.red, 0.75f ) );
+
       bool addNewPressed        = false;
       bool insertBeforePressed  = false;
       bool insertAfterPressed   = false;
@@ -145,10 +148,19 @@ namespace AgXUnityEditor.Tools
       if ( GUI.Foldout( EditorData.Instance.GetData( Parent, "Route", ( entry ) => { entry.Bool = true; } ), GUI.MakeLabel( "Route", true ), skin ) ) {
         GUI.Separator();
 
-        foreach ( var node in Route ) {
+        Route<NodeT>.ValidatedRoute validatedRoute = Route.GetValidated();
+        foreach ( var validatedNode in validatedRoute ) {
+          var node = validatedNode.Node;
           using ( new GUI.Indent( 12 ) ) {
+            if ( validatedNode.Valid )
+              GUILayout.BeginVertical();
+            else
+              GUILayout.BeginVertical( invalidNodeStyle );
+
             if ( GUI.Foldout( GetFoldoutData( node ),
-                              GUI.MakeLabel( GetNodeTypeString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Parent ).text ),
+                              GUI.MakeLabel( GetNodeTypeString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Parent ).text,
+                                             !validatedNode.Valid,
+                                             validatedNode.ErrorString ),
                               skin,
                               ( newState ) =>
                               {
@@ -196,6 +208,8 @@ namespace AgXUnityEditor.Tools
               }
               GUILayout.EndHorizontal();
             }
+
+            GUILayout.EndVertical();
 
             GUI.Separator();
           }

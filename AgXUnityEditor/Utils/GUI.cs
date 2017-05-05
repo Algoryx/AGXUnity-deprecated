@@ -326,6 +326,8 @@ namespace AgXUnityEditor.Utils
       public static ColorBlock ColorBlock { get { return new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.yellow, 0.1f ) ); } }
     }
 
+    public static ColorBlock NodeListButtonColor { get { return new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }
+
     public static void ToolsLabel( GUISkin skin )
     {
       GUILayout.Label( GUI.MakeLabel( "Tools:", true ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );

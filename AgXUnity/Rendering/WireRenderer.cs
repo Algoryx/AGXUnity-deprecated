@@ -77,7 +77,7 @@ namespace AgXUnity.Rendering
       try {
         WireRouteNode[] nodes = route.ToArray();
         for ( int i = 1; i < nodes.Length; ++i )
-          m_segmentSpawner.CreateSegment( nodes[ i - 1 ].Frame.Position, nodes[ i ].Frame.Position, radius );
+          m_segmentSpawner.CreateSegment( nodes[ i - 1 ].Position, nodes[ i ].Position, radius );
       }
       catch ( System.Exception e ) {
         Debug.LogException( e );

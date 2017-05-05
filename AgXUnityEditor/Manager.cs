@@ -461,22 +461,39 @@ namespace AgXUnityEditor
         }
 
         // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
-        AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-        foreach ( var wire in wires ) {
-          AgXUnity.Rendering.SegmentSpawner ss = wire.GetComponent<AgXUnity.Rendering.WireRenderer>().SegmentSpawner;
-          if ( ss == null )
-            continue;
+        {
+          AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+          foreach ( var wire in wires ) {
+            AgXUnity.Rendering.SegmentSpawner ss = wire.GetComponent<AgXUnity.Rendering.WireRenderer>().SegmentSpawner;
+            if ( ss == null )
+              continue;
 
-          var segments = ss.Segments;
-          foreach ( var segment in segments ) {
-            OnSelectionProxy selectionProxy = segment.GetComponent<OnSelectionProxy>();
-            if ( selectionProxy != null && selectionProxy.Target == null )
-              selectionProxy.Component = wire;
+            var segments = ss.Segments;
+            foreach ( var segment in segments ) {
+              OnSelectionProxy selectionProxy = segment.GetComponent<OnSelectionProxy>();
+              if ( selectionProxy != null && selectionProxy.Target == null )
+                selectionProxy.Component = wire;
+            }
           }
         }
 
-        // Patching Cable to use Route and RouteNode as components.
+        // Patching Wire to use Route as component and RouteNode as Frame.
         {
+          AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+          foreach ( var wire in wires ) {
+            if ( wire.GetComponent<AgXUnity.WireRoute>() != null )
+              continue;
+
+            wire.gameObject.AddComponent<AgXUnity.WireRoute>();
+
+            Debug.LogWarning( "Wire: " + wire.name + " is not possible to load and has to be re-routed.", wire );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+          }
+        }
+
+          // Patching Cable to use Route as component and RouteNode as Frame.
+          {
           AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
           foreach ( var cable in cables ) {
             if ( cable.GetComponent<AgXUnity.CableRoute>() != null )
