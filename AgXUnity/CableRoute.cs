@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace AgXUnity
 {
@@ -7,7 +8,7 @@ namespace AgXUnity
   /// This object is an IEnumerable, add "using System.Linq" to
   /// get a wide range of "features" such as ToArray().
   /// </summary>
-  [Serializable]
+  [HideInInspector]
   public class CableRoute : Route<CableRouteNode>
   {
   }

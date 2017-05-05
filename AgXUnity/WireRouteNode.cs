@@ -104,7 +104,7 @@ namespace AgXUnity
 
     protected override void Construct()
     {
-      //m_frame = Create<Frame>();
+      m_frame = new Frame();
       m_type  = Wire.NodeType.BodyFixedNode;
     }
 

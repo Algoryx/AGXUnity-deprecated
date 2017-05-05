@@ -130,6 +130,8 @@ namespace AgXUnityEditor.Tools
     /// </summary>
     public UnityEngine.Object OnChangeDirtyTarget { get; set; }
 
+    public UnityEngine.Object UndoRedoRecordObject { get; set; }
+
     /// <summary>
     /// Construct given frame, size in scene view and transparency alpha.
     /// </summary>
@@ -164,10 +166,11 @@ namespace AgXUnityEditor.Tools
         return;
       }
 
-      Undo.RecordObject( Frame, "FrameTool" );
-
       if ( !TransformHandleActive )
         return;
+
+      if ( UndoRedoRecordObject != null )
+        Undo.RecordObject( UndoRedoRecordObject, "Frame Tool" );
 
       // Shows position handle if, e.g., scale or some other strange setting is used in the editor.
       bool isRotation = UnityEditor.Tools.current == UnityEditor.Tool.Rotate;

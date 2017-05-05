@@ -4,8 +4,7 @@ using UnityEngine;
 
 namespace AgXUnity
 {
-  [Serializable]
-  public class Route<T> : IEnumerable<T>
+  public class Route<T> : ScriptComponent, IEnumerable<T>
     where T : RouteNode
   {
     /// <summary>
@@ -18,6 +17,16 @@ namespace AgXUnity
     /// Number of nodes in route.
     /// </summary>
     public int NumNodes { get { return m_nodes.Count; } }
+
+    /// <summary>
+    /// Finds index of the node in the list.
+    /// </summary>
+    /// <param name="node">Node to find index of.</param>
+    /// <returns>Index of the node in route list - -1 if not found.</returns>
+    public int IndexOf( T node )
+    {
+      return m_nodes.IndexOf( node );
+    }
 
     /// <summary>
     /// Add new node to route.
@@ -68,6 +77,22 @@ namespace AgXUnity
     public bool Remove( T node )
     {
       return m_nodes.Remove( node );
+    }
+
+    protected override bool Initialize()
+    {
+      foreach ( var node in this )
+        node.GetInitialized<T>();
+
+      return true;
+    }
+
+    protected override void OnDestroy()
+    {
+      foreach ( var node in this )
+        node.OnDestroy();
+
+      base.OnDestroy();
     }
 
     private bool TryInsertAtIndex( int index, T node )

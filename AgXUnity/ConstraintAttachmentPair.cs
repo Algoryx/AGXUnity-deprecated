@@ -15,8 +15,8 @@ namespace AgXUnity
     public static ConstraintAttachmentPair Create( GameObject gameObject )
     {
       ConstraintAttachmentPair instance = gameObject.AddComponent<ConstraintAttachmentPair>();
-      instance.m_referenceFrame         = gameObject.AddComponent<Frame>();
-      instance.m_connectedFrame         = gameObject.AddComponent<Frame>();
+      instance.m_referenceFrame         = new Frame();
+      instance.m_connectedFrame         = new Frame();
 
       return instance;
     }

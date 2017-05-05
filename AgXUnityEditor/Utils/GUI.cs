@@ -343,7 +343,6 @@ namespace AgXUnityEditor.Utils
     {
       bool guiWasEnabled = UnityEngine.GUI.enabled;
 
-      Undo.RecordObject( frame, "HandleFrame" );
       using ( new Indent( numPixelsIndentation ) ) {
         UnityEngine.GUI.enabled = true;
         GameObject newParent = (GameObject)EditorGUILayout.ObjectField( MakeLabel( "Parent" ), frame.Parent, typeof( GameObject ), true );

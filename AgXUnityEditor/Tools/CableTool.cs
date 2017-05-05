@@ -30,6 +30,8 @@ namespace AgXUnityEditor.Tools
     {
       if ( !addPressed && refNode != null )
         newNode.Type = refNode.Type;
+      else
+        newNode.Type = Cable.NodeType.FreeNode;
     }
   }
 

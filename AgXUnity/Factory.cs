@@ -149,16 +149,14 @@ namespace AgXUnity
     /// <summary>
     /// Create a cable given route, radius, resolution and material.
     /// </summary>
-    /// <param name="route">Cable route.</param>
     /// <param name="radius">Radius of the cable.</param>
     /// <param name="resolutionPerUnitLength">Resolution of the cable.</param>
     /// <param name="material">Shape material of the cable.</param>
     /// <returns>Cable component.</returns>
-    public static Cable CreateCable( CableRoute route = null, float radius = 0.05f, float resolutionPerUnitLength = 5.0f, ShapeMaterial material = null )
+    public static Cable CreateCable( float radius = 0.05f, float resolutionPerUnitLength = 5.0f, ShapeMaterial material = null )
     {
       GameObject go = new GameObject( CreateName<Cable>() );
       Cable cable   = go.AddComponent<Cable>();
-      cable.Route   = route;
 
       cable.Radius                  = radius;
       cable.ResolutionPerUnitLength = resolutionPerUnitLength;

@@ -4,8 +4,8 @@ using AgXUnity.Utils;
 
 namespace AgXUnity
 {
-  [HideInInspector]
-  public class Frame : ScriptComponent
+  [Serializable]
+  public class Frame
   {
     [SerializeField]
     private GameObject m_parent = null;
@@ -146,11 +146,22 @@ namespace AgXUnity
       return ( gameObject.transform.rotation * localRotation ).Normalize();
     }
 
-    private Frame()
+    public Frame()
     {
     }
 
-    protected override bool Initialize()
+    public T GetInitialized<T>()
+      where T : Frame
+    {
+      Initialize();
+      return this as T;
+    }
+
+    public virtual void OnDestroy()
+    {
+    }
+
+    protected virtual bool Initialize()
     {
       return true;
     }

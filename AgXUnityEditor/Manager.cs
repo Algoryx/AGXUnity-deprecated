@@ -245,8 +245,15 @@ namespace AgXUnityEditor
     /// </summary>
     private static void UndoRedoPerformedCallback()
     {
-      if ( Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<AgXUnity.ScriptComponent>() != null )
-        EditorUtility.SetDirty( Selection.activeGameObject.GetComponent<AgXUnity.ScriptComponent>() );
+      if ( Selection.activeGameObject == null )
+        return;
+
+      var scriptComponents = Selection.activeGameObject.GetComponents<AgXUnity.ScriptComponent>();
+      foreach ( var scriptComponent in scriptComponents )
+        EditorUtility.SetDirty( scriptComponent );
+
+      if ( scriptComponents.Length > 0 )
+        SceneView.RepaintAll();
     }
 
     private static void OnSceneView( SceneView sceneView )
@@ -375,6 +382,8 @@ namespace AgXUnityEditor
           if ( !rb.PatchMassPropertiesAsComponent() )
             continue;
 
+          Debug.Log( "Updated RigidBody: " + rb.name + " to new MassProperties version.", rb );
+
           UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
         }
 
@@ -463,6 +472,25 @@ namespace AgXUnityEditor
             OnSelectionProxy selectionProxy = segment.GetComponent<OnSelectionProxy>();
             if ( selectionProxy != null && selectionProxy.Target == null )
               selectionProxy.Component = wire;
+          }
+        }
+
+        // Patching Cable to use Route and RouteNode as components.
+        {
+          AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
+          foreach ( var cable in cables ) {
+            if ( cable.GetComponent<AgXUnity.CableRoute>() != null )
+              continue;
+
+            var renderer = cable.GetComponent<AgXUnity.Rendering.CableRenderer>();
+            if ( renderer != null && renderer.SegmentSpawner != null )
+              renderer.SegmentSpawner.Destroy();
+
+            cable.gameObject.AddComponent<AgXUnity.CableRoute>();
+
+            Debug.LogWarning( "Cable: " + cable.name + " is not possible to load and has to be re-routed.", cable );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
       }

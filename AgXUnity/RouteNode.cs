@@ -3,7 +3,8 @@ using UnityEngine;
 
 namespace AgXUnity
 {
-  public abstract class RouteNode : ScriptAsset
+  [Serializable]
+  public abstract class RouteNode : Frame
   {
     /// <summary>
     /// Construct a route node given parent game object, local position to parent and
@@ -16,36 +17,18 @@ namespace AgXUnity
     public static T Create<T>( GameObject parent = null,
                                Vector3 localPosition = default( Vector3 ),
                                Quaternion localRotation = default( Quaternion ) )
-      where T : RouteNode
+      where T : RouteNode, new()
     {
-      T node = ScriptAsset.Create<T>();
+      T node = new T();
 
       if ( object.Equals( localRotation, default( Quaternion ) ) )
         localRotation = Quaternion.identity;
 
-      node.Frame.SetParent( parent );
-      node.Frame.LocalPosition = localPosition;
-      node.Frame.LocalRotation = localRotation;
+      node.SetParent( parent );
+      node.LocalPosition = localPosition;
+      node.LocalRotation = localRotation;
 
       return node;
-    }
-
-    /// <summary>
-    /// Frame of this node holding position, rotation and parenting.
-    /// The first rigid body (if any) will be the body added to the node.
-    /// </summary>
-    [SerializeField]
-    private Frame m_frame = null;
-
-    /// <summary>
-    /// Frame of this node holding position, rotation and parenting.
-    /// The first rigid body (if any) will be the body added to the node.
-    /// </summary>
-    public Frame Frame { get { return m_frame; } }
-
-    protected override void Construct()
-    {
-      //m_frame = ScriptAsset.Create<Frame>();
     }
   }
 }

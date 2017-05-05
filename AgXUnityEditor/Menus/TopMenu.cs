@@ -220,8 +220,8 @@ namespace AgXUnityEditor
     {
       Cable cable = Factory.CreateCable();
       cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3( -5, 0, 0 ) ) );
-      cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3(  0, 3, 0 ) ) );
-      cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3(  5, 0, 0 ) ) );
+      cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3( 0, 3, 0 ) ) );
+      cable.Route.Add( CableRouteNode.Create( Cable.NodeType.FreeNode, null, new Vector3( 5, 0, 0 ) ) );
       Undo.RegisterCreatedObjectUndo( cable.gameObject, "New test cable" );
 
       return Selection.activeGameObject = cable.gameObject;
