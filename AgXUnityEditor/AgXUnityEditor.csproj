@@ -47,6 +47,8 @@
     <Compile Include="EditorData.cs" />
     <Compile Include="EditorDataEntry.cs" />
     <Compile Include="EditorSettings.cs" />
+    <Compile Include="Legacy\CableRouteData.cs" />
+    <Compile Include="Legacy\WireRouteData.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="Menus\AssetsMenu.cs" />
     <Compile Include="Menus\TopMenu.cs" />
