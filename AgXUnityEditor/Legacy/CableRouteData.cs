@@ -22,27 +22,5 @@ namespace AgXUnityEditor.Legacy
   {
     [SerializeField]
     private List<CableRouteNodeData> m_data = new List<CableRouteNodeData>();
-
-    public static CableRouteData Create( CableRoute cableRoute )
-    {
-      return CreateInstance<CableRouteData>().Construct( cableRoute );
-    }
-
-    public CableRouteData Construct( CableRoute wireRoute )
-    {
-      m_data.Clear();
-
-      foreach ( var node in wireRoute ) {
-        m_data.Add( new CableRouteNodeData()
-        {
-          NodeType = node.Type,
-          Parent = node.Frame.Parent,
-          LocalPosition = node.Frame.LocalPosition,
-          LocalRotation = node.Frame.LocalRotation,
-        } );
-      }
-
-      return this;
-    }
   }
 }

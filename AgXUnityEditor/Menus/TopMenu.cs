@@ -288,12 +288,6 @@ namespace AgXUnityEditor
     {
       Utils.CustomEditorGenerator.Generate();
     }
-
-    [MenuItem( "AgXUnity/Utils/Save Wire and Cable routes future version" ) ]
-    public static void SaveWireCableRoutesForFutureVersion()
-    {
-      Manager.SaveWireCableRoutesToEditorData();
-    }
     #endregion
   }
 }

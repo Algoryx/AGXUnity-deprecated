@@ -38,35 +38,19 @@ namespace AgXUnityEditor.Legacy
     [SerializeField]
     private List<WireRouteNodeData> m_data = new List<WireRouteNodeData>();
 
-    public static WireRouteData Create( WireRoute wireRoute )
+    public bool Restore( WireRoute route )
     {
-      return CreateInstance<WireRouteData>().Construct( wireRoute );
-    }
-
-    public WireRouteData Construct( WireRoute wireRoute )
-    {
-      m_data.Clear();
-
-      foreach ( var node in wireRoute ) {
-        m_data.Add( new WireRouteNodeData()
-        {
-          NodeType      = node.Type,
-          Parent        = node.Frame.Parent,
-          LocalPosition = node.Frame.LocalPosition,
-          LocalRotation = node.Frame.LocalRotation,
-          WinchData     = node.Type == Wire.NodeType.WinchNode ?
-                          new WireRouteWinchData()
-                          {
-                            Speed = node.Winch.Speed,
-                            PulledInLength = node.Winch.PulledInLength,
-                            ForceRange = node.Winch.ForceRange,
-                            BrakeForceRange = node.Winch.BrakeForceRange
-                          } :
-                          null
-        } );
+      foreach ( var data in m_data ) {
+        var node = WireRouteNode.Create( data.NodeType, data.Parent, data.LocalPosition, data.LocalRotation );
+        if ( data.NodeType == Wire.NodeType.WinchNode && data.WinchData != null ) {
+          node.Winch.Speed           = data.WinchData.Speed;
+          node.Winch.PulledInLength  = data.WinchData.PulledInLength;
+          node.Winch.ForceRange      = data.WinchData.ForceRange;
+          node.Winch.BrakeForceRange = data.WinchData.BrakeForceRange;
+        }
+        route.Add( node );
       }
-
-      return this;
+      return true;
     }
   }
 }
