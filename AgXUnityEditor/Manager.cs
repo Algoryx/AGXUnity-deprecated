@@ -221,14 +221,14 @@ namespace AgXUnityEditor
     {
       {
         AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-        foreach ( var wire in wires ) {
-          var data = EditorData.Instance.GetData( wire.gameObject, "__WireRouteData" );
-          data.SetIsStatic( true );
+        for ( int i = 0; i < wires.Length; ++i ) {
+          var wire = wires[ i ];
+          var data = EditorData.Instance.GetStaticData( Legacy.WireRouteData.GetId( wire, i ) );
           data.ScriptableObject = data.ScriptableObject is Legacy.WireRouteData ?
                                     ( data.ScriptableObject as Legacy.WireRouteData ).Construct( wire.Route ) :
                                     Legacy.WireRouteData.Create( wire.Route );
           if ( !silent )
-            Debug.Log( "Saved data for wire route. Instance id: " + wire.gameObject.GetInstanceID(), wire );
+            Debug.Log( "Saved data for wire route.", wire );
         }
       }
 
@@ -470,7 +470,7 @@ namespace AgXUnityEditor
           }
         }
 
-        SaveWireCableRoutesToEditorData( true );
+        SaveWireCableRoutesToEditorData( false );
       }
     }
 

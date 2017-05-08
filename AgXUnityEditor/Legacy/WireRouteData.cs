@@ -38,6 +38,11 @@ namespace AgXUnityEditor.Legacy
     [SerializeField]
     private List<WireRouteNodeData> m_data = new List<WireRouteNodeData>();
 
+    public static string GetId( Wire wire, int counter )
+    {
+      return UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().name + "__" + wire.name + "__" + counter;
+    }
+
     public static WireRouteData Create( WireRoute wireRoute )
     {
       return CreateInstance<WireRouteData>().Construct( wireRoute );
@@ -45,6 +50,8 @@ namespace AgXUnityEditor.Legacy
 
     public WireRouteData Construct( WireRoute wireRoute )
     {
+      hideFlags = HideFlags.DontSave;
+
       m_data.Clear();
 
       foreach ( var node in wireRoute ) {
