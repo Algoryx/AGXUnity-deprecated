@@ -28,6 +28,8 @@ namespace AgXUnityEditor
     private float m_float = 0f;
     [SerializeField]
     private string m_string = string.Empty;
+    [SerializeField]
+    private ScriptableObject m_scriptableObject = null;
 
     public bool Bool
     {
@@ -85,6 +87,17 @@ namespace AgXUnityEditor
       }
     }
 
+    public ScriptableObject ScriptableObject
+    {
+      get { return m_scriptableObject; }
+      set
+      {
+        m_scriptableObject = value;
+
+        OnValueChanged();
+      }
+    }
+
     public uint Key { get { return m_key; } private set { m_key = value; } }
 
     public int InstanceId { get { return m_instanceId; } private set { m_instanceId = value; } }
@@ -98,6 +111,11 @@ namespace AgXUnityEditor
         InstanceId = target.GetInstanceID();
       else
         m_isStatic = true;
+    }
+
+    public void SetIsStatic( bool isStatic )
+    {
+      m_isStatic = isStatic;
     }
 
     private void OnValueChanged()
