@@ -181,14 +181,6 @@ namespace AgXUnity
       get { return Route.NumNodes > 1 ? Route.Last().Winch : null; }
     }
 
-    [SerializeField]
-    private string m_legacyRouteDataId = string.Empty;
-    public string LegacyRouteDataId
-    {
-      get { return m_legacyRouteDataId; }
-      set { m_legacyRouteDataId = value; }
-    }
-
     public Wire()
     {
       m_route.Wire = this;

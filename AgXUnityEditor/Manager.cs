@@ -222,14 +222,13 @@ namespace AgXUnityEditor
       {
         AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
         foreach ( var wire in wires ) {
-          if ( wire.LegacyRouteDataId == string.Empty )
-            wire.LegacyRouteDataId = wire.GetInstanceID().ToString() + "__WireRouteData";
-          var data = EditorData.Instance.GetStaticData( wire.LegacyRouteDataId );
+          var data = EditorData.Instance.GetData( wire.gameObject, "__WireRouteData" );
+          data.SetIsStatic( true );
           data.ScriptableObject = data.ScriptableObject is Legacy.WireRouteData ?
                                     ( data.ScriptableObject as Legacy.WireRouteData ).Construct( wire.Route ) :
                                     Legacy.WireRouteData.Create( wire.Route );
           if ( !silent )
-            Debug.Log( "Saved data for wire route.", wire );
+            Debug.Log( "Saved data for wire route. Instance id: " + wire.gameObject.GetInstanceID(), wire );
         }
       }
 
