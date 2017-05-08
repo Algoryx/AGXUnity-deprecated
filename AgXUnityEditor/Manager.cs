@@ -217,7 +217,7 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
-    public static void SaveWireCableRoutesToEditorData()
+    public static void SaveWireCableRoutesToEditorData( bool silent = false )
     {
       {
         AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
@@ -227,7 +227,8 @@ namespace AgXUnityEditor
           data.ScriptableObject = data.ScriptableObject is Legacy.WireRouteData ?
                                     ( data.ScriptableObject as Legacy.WireRouteData ).Construct( wire.Route ) :
                                     Legacy.WireRouteData.Create( wire.Route );
-          Debug.Log( "Saved data for wire route.", wire );
+          if ( !silent )
+            Debug.Log( "Saved data for wire route.", wire );
         }
       }
 
@@ -239,7 +240,8 @@ namespace AgXUnityEditor
           data.ScriptableObject = data.ScriptableObject is Legacy.CableRouteData ?
                                     ( data.ScriptableObject as Legacy.CableRouteData ).Construct( cable.Route ) :
                                     Legacy.CableRouteData.Create( cable.Route );
-          Debug.Log( "Saved data for cable route.", cable );
+          if ( !silent )
+            Debug.Log( "Saved data for cable route.", cable );
         }
       }
     }
@@ -467,6 +469,8 @@ namespace AgXUnityEditor
               selectionProxy.Component = wire;
           }
         }
+
+        SaveWireCableRoutesToEditorData( true );
       }
     }
 
