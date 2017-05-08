@@ -217,6 +217,35 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
+    public static void SaveWireCableRoutesToEditorData( bool silent = false )
+    {
+      {
+        AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+        foreach ( var wire in wires ) {
+          var data = EditorData.Instance.GetData( wire, "WireRouteData" );
+          data.SetIsStatic( true );
+          data.ScriptableObject = data.ScriptableObject is Legacy.WireRouteData ?
+                                    ( data.ScriptableObject as Legacy.WireRouteData ).Construct( wire.Route ) :
+                                    Legacy.WireRouteData.Create( wire.Route );
+          if ( !silent )
+            Debug.Log( "Saved data for wire route.", wire );
+        }
+      }
+
+      {
+        AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
+        foreach ( var cable in cables ) {
+          var data = EditorData.Instance.GetData( cable, "CableRouteData" );
+          data.SetIsStatic( true );
+          data.ScriptableObject = data.ScriptableObject is Legacy.CableRouteData ?
+                                    ( data.ScriptableObject as Legacy.CableRouteData ).Construct( cable.Route ) :
+                                    Legacy.CableRouteData.Create( cable.Route );
+          if ( !silent )
+            Debug.Log( "Saved data for cable route.", cable );
+        }
+      }
+    }
+
     private static string m_currentSceneName = string.Empty;
     private static bool m_requestSceneViewFocus = false;
     private static HijackLeftMouseClickData m_hijackLeftMouseClickData = null;
@@ -514,6 +543,8 @@ namespace AgXUnityEditor
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
+
+        SaveWireCableRoutesToEditorData( true );
       }
     }
 
