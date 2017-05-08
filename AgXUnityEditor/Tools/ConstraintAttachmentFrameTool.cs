@@ -7,7 +7,7 @@ namespace AgXUnityEditor.Tools
 {
   public class ConstraintAttachmentFrameTool : Tool
   {
-    public ConstraintAttachmentPair AttachmentPair { get; private set; }
+    public AttachmentPair AttachmentPair { get; private set; }
 
     public UnityEngine.Object OnChangeDirtyTarget { get; private set; }
 
@@ -15,7 +15,7 @@ namespace AgXUnityEditor.Tools
 
     public FrameTool ConnectedFrameTool { get; private set; }
 
-    public ConstraintAttachmentFrameTool( ConstraintAttachmentPair attachmentPair, UnityEngine.Object onChangeDirtyTarget = null )
+    public ConstraintAttachmentFrameTool( AttachmentPair attachmentPair, UnityEngine.Object onChangeDirtyTarget = null )
     {
       AttachmentPair = attachmentPair;
       OnChangeDirtyTarget = onChangeDirtyTarget;

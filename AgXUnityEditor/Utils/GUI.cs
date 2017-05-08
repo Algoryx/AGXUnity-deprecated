@@ -341,7 +341,7 @@ namespace AgXUnityEditor.Utils
                                ToolButtonData.Height );
     }
 
-    public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )
+    public static void HandleFrame( IFrame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )
     {
       bool guiWasEnabled = UnityEngine.GUI.enabled;
 

@@ -66,6 +66,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assembly.cs" />
+    <Compile Include="AttachmentPair.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="Cable.cs" />
     <Compile Include="CableProperties.cs" />
@@ -79,9 +80,11 @@
     <Compile Include="Collide\Plane.cs" />
     <Compile Include="Collide\Shape.cs" />
     <Compile Include="ConstraintAttachmentPair.cs" />
+    <Compile Include="ConstraintFrame.cs" />
     <Compile Include="ElementaryConstraint.cs" />
     <Compile Include="ElementaryConstraintRowData.cs" />
     <Compile Include="Frame.cs" />
+    <Compile Include="IFrame.cs" />
     <Compile Include="PickHandler.cs" />
     <Compile Include="Rendering\CableRenderer.cs" />
     <Compile Include="Rendering\PickHandlerRenderer.cs" />

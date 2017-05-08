@@ -4,7 +4,7 @@ using UnityEngine;
 namespace AgXUnity
 {
   [Serializable]
-  public abstract class RouteNode : Frame
+  public abstract class RouteNode : IFrame
   {
     /// <summary>
     /// Construct a route node given parent game object, local position to parent and

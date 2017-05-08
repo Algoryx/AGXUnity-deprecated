@@ -53,7 +53,7 @@ namespace AgXUnity
     /// <param name="type">Type of constraint.</param>
     /// <param name="givenAttachmentPair">Optional initial attachment pair. When given, values and fields will be copied to this objects attachment pair.</param>
     /// <returns>Constraint component, added to a new game object - null if unsuccessful.</returns>
-    public static Constraint Create( ConstraintType type, ConstraintAttachmentPair givenAttachmentPair = null )
+    public static Constraint Create( ConstraintType type, AttachmentPair givenAttachmentPair = null )
     {
       GameObject constraintGameObject = new GameObject( Factory.CreateName( "AgXUnity." + type ) );
       try {
@@ -108,25 +108,37 @@ namespace AgXUnity
       }
     }
 
+    [UnityEngine.Serialization.FormerlySerializedAs( "m_attachmentPair" )]
+    [SerializeField]
+    private ConstraintAttachmentPair m_attachmentPairLegacy = null;
+
     /// <summary>
     /// Attachment pair of this constraint, holding parent objects and transforms.
     /// Paired with property AttachmentPair.
     /// </summary>
     [SerializeField]
-    private ConstraintAttachmentPair m_attachmentPair = null;
+    private AttachmentPair m_attachmentPairComponent = null;
 
     /// <summary>
     /// Attachment pair of this constraint, holding parent objects and transforms.
     /// </summary>
     [HideInInspector]
-    public ConstraintAttachmentPair AttachmentPair
+    public AttachmentPair AttachmentPair
     {
       get
       {
-        if ( m_attachmentPair == null )
-          m_attachmentPair = ConstraintAttachmentPair.Create( gameObject );
+        if ( m_attachmentPairComponent == null )
+          m_attachmentPairComponent = GetComponent<AttachmentPair>();
 
-        return m_attachmentPair;
+        // Creates attachment pair if it doesn't exist.
+        if ( m_attachmentPairComponent == null ) {
+          // Will add itself as component to our game object.
+          m_attachmentPairComponent = AttachmentPair.Create( gameObject );
+          m_attachmentPairComponent.CopyFrom( m_attachmentPairLegacy );
+          m_attachmentPairLegacy = null;
+        }
+
+        return m_attachmentPairComponent;
       }
     }
 
@@ -415,9 +427,9 @@ namespace AgXUnity
       //       Do: GetComponentInParent<RigidBody>( true <- include inactive ) and wait
       //           for the body to become active?
       //       E.g., rb.AwaitInitialize += ThisConstraintInitialize.
-      RigidBody rb1 = m_attachmentPair.ReferenceObject.GetInitializedComponentInParent<RigidBody>();
+      RigidBody rb1 = AttachmentPair.ReferenceObject.GetInitializedComponentInParent<RigidBody>();
       if ( rb1 == null ) {
-        Debug.LogError( "Unable to initialize constraint. Reference object must contain a rigid body component.", m_attachmentPair.ReferenceObject );
+        Debug.LogError( "Unable to initialize constraint. Reference object must contain a rigid body component.", AttachmentPair.ReferenceObject );
         return false;
       }
 
@@ -427,19 +439,19 @@ namespace AgXUnity
 
       // Note that the native constraint want 'f1' given in rigid body frame, and that
       // 'ReferenceFrame' may be relative to any object in the children of the body.
-      f1.setLocalTranslate( m_attachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
-      f1.setLocalRotate( m_attachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
+      f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
+      f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
 
-      RigidBody rb2 = m_attachmentPair.ConnectedObject != null ? m_attachmentPair.ConnectedObject.GetInitializedComponentInParent<RigidBody>() : null;
+      RigidBody rb2 = AttachmentPair.ConnectedObject != null ? AttachmentPair.ConnectedObject.GetInitializedComponentInParent<RigidBody>() : null;
       if ( rb2 != null ) {
         // Note that the native constraint want 'f2' given in rigid body frame, and that
         // 'ReferenceFrame' may be relative to any object in the children of the body.
-        f2.setLocalTranslate( m_attachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
-        f2.setLocalRotate( m_attachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
       }
       else {
-        f2.setLocalTranslate( m_attachmentPair.ConnectedFrame.Position.ToHandedVec3() );
-        f2.setLocalRotate( m_attachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
       }
 
       try {
@@ -454,20 +466,20 @@ namespace AgXUnity
         Native.setEnable( IsEnabled );
 
         // Not possible to handle collisions if connected frame parent is null/world.
-        if ( CollisionsState != ECollisionsState.KeepExternalState && m_attachmentPair.ConnectedObject != null ) {
+        if ( CollisionsState != ECollisionsState.KeepExternalState && AttachmentPair.ConnectedObject != null ) {
           string groupName          = gameObject.name + gameObject.GetInstanceID().ToString();
           GameObject go1            = null;
           GameObject go2            = null;
           bool propagateToChildren1 = false;
           bool propagateToChildren2 = false;
           if ( CollisionsState == ECollisionsState.DisableReferenceVsConnected ) {
-            go1 = m_attachmentPair.ReferenceObject;
-            go2 = m_attachmentPair.ConnectedObject;
+            go1 = AttachmentPair.ReferenceObject;
+            go2 = AttachmentPair.ConnectedObject;
           }
           else {
             go1                  = rb1.gameObject;
             propagateToChildren1 = true;
-            go2                  = rb2 != null ? rb2.gameObject : m_attachmentPair.ConnectedObject;
+            go2                  = rb2 != null ? rb2.gameObject : AttachmentPair.ConnectedObject;
             propagateToChildren2 = true;
           }
 
@@ -573,7 +585,7 @@ namespace AgXUnity
       return m_gizmosMesh;
     }
 
-    private static void DrawGizmos( Color color, ConstraintAttachmentPair attachmentPair, bool selected )
+    private static void DrawGizmos( Color color, AttachmentPair attachmentPair, bool selected )
     {
       Gizmos.color = color;
       Gizmos.DrawMesh( GetOrCreateGizmosMesh(),

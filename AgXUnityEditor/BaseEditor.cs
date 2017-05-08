@@ -291,8 +291,8 @@ namespace AgXUnityEditor
       else if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof( List<> ) && wrapper.CanRead() ) {
         HandleList( wrapper, target, skin );
       }
-      else if ( type == typeof( Frame ) && wrapper.CanRead() ) {
-        Frame frame = wrapper.Get<Frame>();
+      else if ( type == typeof( IFrame ) && wrapper.CanRead() ) {
+        IFrame frame = wrapper.Get<IFrame>();
         Utils.GUI.HandleFrame( frame, skin );
       }
       else if ( ( type.BaseType == typeof( ScriptAsset ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {

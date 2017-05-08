@@ -145,9 +145,9 @@ namespace AgXUnityEditor.Tools
         set { EditorData.Instance.GetStaticData( "CreateConstraintData.SolveType", m_defaultSolveType ).Int = (int)value; }
       }
 
-      public string Name                             = string.Empty;
-      public ConstraintAttachmentPair AttachmentPair = null;
-      public GameObject TempGameObject               = null;
+      public string Name                   = string.Empty;
+      public AttachmentPair AttachmentPair = null;
+      public GameObject TempGameObject     = null;
 
       public void CreateInitialState( string name )
       {
@@ -158,7 +158,7 @@ namespace AgXUnityEditor.Tools
 
         TempGameObject           = new GameObject();
         TempGameObject.hideFlags = HideFlags.HideAndDontSave;
-        AttachmentPair           = ConstraintAttachmentPair.Create( TempGameObject );
+        AttachmentPair           = AttachmentPair.Create( TempGameObject );
         Name                     = Factory.CreateName( name + "_constraint" );
       }
 

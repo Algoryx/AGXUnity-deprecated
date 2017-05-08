@@ -432,6 +432,10 @@ namespace AgXUnityEditor
             if ( !isOldVersion )
               continue;
 
+            // Updating to new attachment pair.
+            var attachmentPair = constraint.AttachmentPair;
+
+            // Updating to where ElementaryConstraints are components.
             constraint.TransformToComponentVersion();
 
             Debug.Log( "Constraint: " + constraint.name + " updated to new version.", constraint );
