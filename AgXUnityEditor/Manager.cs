@@ -513,11 +513,12 @@ namespace AgXUnityEditor
         // Patching Wire to use Route as component and RouteNode as Frame.
         {
           AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-          foreach ( var wire in wires ) {
+          for ( int i = 0; i < wires.Length; ++i ) {
+            var wire = wires[ i ];
             if ( wire.GetComponent<AgXUnity.WireRoute>() != null )
               continue;
 
-            Legacy.WireRouteData data = EditorData.Instance.GetData( wire, "WireRouteData" ).ScriptableObject as Legacy.WireRouteData;
+            Legacy.WireRouteData data = EditorData.Instance.GetStaticData( Legacy.WireRouteData.GetId( wire, i ) ).ScriptableObject as Legacy.WireRouteData;
             var route = wire.gameObject.AddComponent<AgXUnity.WireRoute>();
             if ( data != null && data.Restore( route ) )
               Debug.Log( "Successfully restored " + route.NumNodes + " from local data.", wire );
@@ -528,8 +529,8 @@ namespace AgXUnityEditor
           }
         }
 
-          // Patching Cable to use Route as component and RouteNode as Frame.
-          {
+        // Patching Cable to use Route as component and RouteNode as Frame.
+        {
           AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
           foreach ( var cable in cables ) {
             if ( cable.GetComponent<AgXUnity.CableRoute>() != null )
