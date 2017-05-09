@@ -217,6 +217,31 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
+    public class OnAssetsModification : UnityEditor.AssetModificationProcessor
+    {
+      private static string[] OnWillSaveAssets( string[] paths )
+      {
+        foreach ( var path in paths ) {
+          FileInfo info = new FileInfo( path );
+          if ( info.Extension == ".unity" )
+            SaveWireCableRoutes();
+        }          
+
+        return paths;
+      }
+    }
+
+    public static void SaveWireCableRoutes()
+    {
+      AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+      foreach ( var wire in wires )
+        wire.gameObject.GetOrCreateComponent<AgXUnity.Legacy.WireRouteData>().Save();
+
+      AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
+      foreach ( var cable in cables )
+        cable.gameObject.GetOrCreateComponent<AgXUnity.Legacy.CableRouteData>().Save();
+    }
+
     private static string m_currentSceneName = string.Empty;
     private static bool m_requestSceneViewFocus = false;
     private static HijackLeftMouseClickData m_hijackLeftMouseClickData = null;
