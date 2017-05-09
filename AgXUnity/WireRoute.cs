@@ -86,6 +86,26 @@ namespace AgXUnity
       }
     }
 
+    /// <summary>
+    /// Add node to this route given type, parent, local position and local rotation.
+    /// </summary>
+    /// <param name="type">Node type.</param>
+    /// <param name="parent">Node parent object.</param>
+    /// <param name="localPosition">Local position relative parent.</param>
+    /// <param name="localRotation">Local rotation relative parent.</param>
+    /// <returns>Added route node.</returns>
+    public WireRouteNode Add( Wire.NodeType type,
+                              GameObject parent = null,
+                              Vector3 localPosition = default( Vector3 ),
+                              Quaternion localRotation = default( Quaternion ) )
+    {
+      var node = WireRouteNode.Create( type, parent, localPosition, localRotation );
+      if ( !Add( node ) )
+        return null;
+
+      return node;
+    }
+
     private WireRoute()
     {
       OnNodeAdded   += this.OnAddedToList;

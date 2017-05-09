@@ -217,31 +217,6 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
-    public class OnAssetsModification : UnityEditor.AssetModificationProcessor
-    {
-      private static string[] OnWillSaveAssets( string[] paths )
-      {
-        foreach ( var path in paths ) {
-          FileInfo info = new FileInfo( path );
-          if ( info.Extension == ".unity" )
-            SaveWireCableRoutes();
-        }          
-
-        return paths;
-      }
-    }
-
-    public static void SaveWireCableRoutes()
-    {
-      AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-      foreach ( var wire in wires )
-        wire.gameObject.GetOrCreateComponent<AgXUnity.Legacy.WireRouteData>().Save();
-
-      AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
-      foreach ( var cable in cables )
-        cable.gameObject.GetOrCreateComponent<AgXUnity.Legacy.CableRouteData>().Save();
-    }
-
     private static string m_currentSceneName = string.Empty;
     private static bool m_requestSceneViewFocus = false;
     private static HijackLeftMouseClickData m_hijackLeftMouseClickData = null;
@@ -506,47 +481,19 @@ namespace AgXUnityEditor
           }
         }
 
-        //public static void SaveWireCableRoutesToEditorData( bool silent = false )
-        //{
-        //  {
-        //    AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-        //    foreach ( var wire in wires ) {
-        //      var data = EditorData.Instance.GetData( wire, "WireRouteData" );
-        //      data.SetIsStatic( true );
-        //      data.ScriptableObject = data.ScriptableObject is Legacy.WireRouteData ?
-        //                                ( data.ScriptableObject as Legacy.WireRouteData ).Construct( wire.Route ) :
-        //                                Legacy.WireRouteData.Create( wire.Route );
-        //      if ( !silent )
-        //        Debug.Log( "Saved data for wire route.", wire );
-        //    }
-        //  }
-
-        //  {
-        //    AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
-        //    foreach ( var cable in cables ) {
-        //      var data = EditorData.Instance.GetData( cable, "CableRouteData" );
-        //      data.SetIsStatic( true );
-        //      data.ScriptableObject = data.ScriptableObject is Legacy.CableRouteData ?
-        //                                ( data.ScriptableObject as Legacy.CableRouteData ).Construct( cable.Route ) :
-        //                                Legacy.CableRouteData.Create( cable.Route );
-        //      if ( !silent )
-        //        Debug.Log( "Saved data for cable route.", cable );
-        //    }
-        //  }
-        //}
-
         // Patching Wire to use Route as component and RouteNode as Frame.
         {
           AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-          for ( int i = 0; i < wires.Length; ++i ) {
-            var wire = wires[ i ];
+          foreach ( var wire in wires ) {
             if ( wire.GetComponent<AgXUnity.WireRoute>() != null )
               continue;
 
-            Legacy.WireRouteData data = EditorData.Instance.GetStaticData( Legacy.WireRouteData.GetId( wire, i ) ).ScriptableObject as Legacy.WireRouteData;
+            var routeData = wire.GetComponent<AgXUnity.Legacy.WireRouteData>();
             var route = wire.gameObject.AddComponent<AgXUnity.WireRoute>();
-            if ( data != null && data.Restore( route ) )
+            if ( routeData != null && routeData.Restore() ) {
               Debug.Log( "Successfully restored " + route.NumNodes + " from local data.", wire );
+              AgXUnity.ScriptComponent.DestroyImmediate( routeData );
+            }
             else
               Debug.LogWarning( "Wire: " + wire.name + " is not possible to load and has to be re-routed.", wire );
 
@@ -561,13 +508,14 @@ namespace AgXUnityEditor
             if ( cable.GetComponent<AgXUnity.CableRoute>() != null )
               continue;
 
-            var renderer = cable.GetComponent<AgXUnity.Rendering.CableRenderer>();
-            if ( renderer != null && renderer.SegmentSpawner != null )
-              renderer.SegmentSpawner.Destroy();
-
-            cable.gameObject.AddComponent<AgXUnity.CableRoute>();
-
-            Debug.LogWarning( "Cable: " + cable.name + " is not possible to load and has to be re-routed.", cable );
+            var routeData = cable.GetComponent<AgXUnity.Legacy.CableRouteData>();
+            var route = cable.gameObject.AddComponent<AgXUnity.CableRoute>();
+            if ( routeData != null && routeData.Restore() ) {
+              Debug.Log( "Successfully restored " + route.NumNodes + " from local data.", cable );
+              AgXUnity.ScriptComponent.DestroyImmediate( routeData );
+            }
+            else
+              Debug.LogWarning( "Cable: " + cable.name + " is not possible to load and has to be re-routed.", cable );
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }

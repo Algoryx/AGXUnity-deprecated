@@ -19,7 +19,10 @@ namespace AgXUnity
     /// <param name="localPosition">Position in parent frame. If parent is null this is the position in world frame.</param>
     /// <param name="localRotation">Rotation in parent frame. If parent is null this is the rotation in world frame.</param>
     /// <returns>Wire route node instance.</returns>
-    public static WireRouteNode Create( Wire.NodeType type = Wire.NodeType.BodyFixedNode, GameObject parent = null, Vector3 localPosition = default( Vector3 ), Quaternion localRotation = default( Quaternion ) )
+    public static WireRouteNode Create( Wire.NodeType type = Wire.NodeType.BodyFixedNode,
+                                        GameObject parent = null,
+                                        Vector3 localPosition = default( Vector3 ),
+                                        Quaternion localRotation = default( Quaternion ) )
     {
       WireRouteNode node = Create<WireRouteNode>( parent, localPosition, localRotation );
       node.Type = type;

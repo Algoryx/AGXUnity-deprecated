@@ -37,34 +37,28 @@ namespace AgXUnity.Legacy
     [SerializeField]
     private List<WireRouteNodeData> m_data = new List<WireRouteNodeData>();
 
-    public void Save()
+    public bool Restore()
     {
-      hideFlags = HideFlags.HideInInspector;
+      var route = GetComponent<WireRoute>();
+      if ( route == null )
+        return false;
 
-      m_data.Clear();
+      foreach ( var nodeData in m_data ) {
+        var node = route.Add( nodeData.NodeType, nodeData.Parent, nodeData.LocalPosition, nodeData.LocalRotation );
+        if ( node == null ) {
+          Debug.LogWarning( "Unable to add node of type " + nodeData.NodeType + " to wire route.", route );
+          continue;
+        }
 
-      var wire = GetComponent<Wire>();
-      if ( wire == null )
-        return;
-
-      foreach ( var node in wire.Route ) {
-        m_data.Add( new WireRouteNodeData()
-        {
-          NodeType      = node.Type,
-          Parent        = node.Frame.Parent,
-          LocalPosition = node.Frame.LocalPosition,
-          LocalRotation = node.Frame.LocalRotation,
-          WinchData     = node.Type == Wire.NodeType.WinchNode ?
-                          new WireRouteWinchData()
-                          {
-                            Speed = node.Winch.Speed,
-                            PulledInLength = node.Winch.PulledInLength,
-                            ForceRange = node.Winch.ForceRange,
-                            BrakeForceRange = node.Winch.BrakeForceRange
-                          } :
-                          null
-        } );
+        if ( node.Type == Wire.NodeType.WinchNode && nodeData.WinchData != null ) {
+          node.Winch.Speed           = nodeData.WinchData.Speed;
+          node.Winch.PulledInLength  = nodeData.WinchData.PulledInLength;
+          node.Winch.ForceRange      = new RangeReal( nodeData.WinchData.ForceRange );
+          node.Winch.BrakeForceRange = new RangeReal( nodeData.WinchData.BrakeForceRange );
+        }
       }
+
+      return true;
     }
   }
 }
