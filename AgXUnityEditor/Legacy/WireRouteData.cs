@@ -38,6 +38,11 @@ namespace AgXUnityEditor.Legacy
     [SerializeField]
     private List<WireRouteNodeData> m_data = new List<WireRouteNodeData>();
 
+    public static string GetId( Wire wire, int counter )
+    {
+      return UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().name + "__" + wire.name + "__" + counter;
+    }
+    
     public bool Restore( WireRoute route )
     {
       foreach ( var data in m_data ) {
