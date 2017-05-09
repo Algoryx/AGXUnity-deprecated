@@ -72,7 +72,8 @@ namespace AgXUnity.Rendering
     {
       get
       {
-        return ( from segmentTransform in m_segments.GetComponentsInChildren<Transform>()
+        return m_segments == null ? new GameObject[] {} :
+               ( from segmentTransform in m_segments.GetComponentsInChildren<Transform>()
                  where segmentTransform != m_segments.transform
                  select segmentTransform.gameObject ).ToArray();
       }

@@ -51,7 +51,7 @@ namespace AgXUnityEditor.Tools
               GUILayout.BeginHorizontal();
               {
                 foldoutActive = GUI.Foldout( EditorData.Instance.GetData( Manager, contactMaterial.name ), GUI.MakeLabel( contactMaterial.name ), skin );
-                using ( WireTool.NodeListButtonColor )
+                using ( GUI.NodeListButtonColor )
                   if ( GUILayout.Button( GUI.MakeLabel( GUI.Symbols.ListEraseElement.ToString(), false, "Erase this element" ),
                                          skin.button,
                                          new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) )

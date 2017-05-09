@@ -73,6 +73,10 @@ namespace AgXUnityEditor
 
       Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
 
+      // Entire class/component marked as hidden - enable "hide in inspector".
+      if ( target.GetType().GetCustomAttributes( typeof( HideInInspector ), false ).Length > 0 )
+        target.hideFlags |= HideFlags.HideInInspector;
+
       // It's possible to detect when this editor/object becomes selected.
       //if ( Application.isEditor && target != null )
       //  Debug.Log( "Create!" );
@@ -287,8 +291,8 @@ namespace AgXUnityEditor
       else if ( type.IsGenericType && type.GetGenericTypeDefinition() == typeof( List<> ) && wrapper.CanRead() ) {
         HandleList( wrapper, target, skin );
       }
-      else if ( type == typeof( Frame ) && wrapper.CanRead() ) {
-        Frame frame = wrapper.Get<Frame>();
+      else if ( type == typeof( IFrame ) && wrapper.CanRead() ) {
+        IFrame frame = wrapper.Get<IFrame>();
         Utils.GUI.HandleFrame( frame, skin );
       }
       else if ( ( type.BaseType == typeof( ScriptAsset ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
@@ -385,7 +389,7 @@ namespace AgXUnityEditor
                 }
                 GUILayout.EndHorizontal();
 
-                using ( Tools.WireTool.NodeListButtonColor ) {
+                using ( Utils.GUI.NodeListButtonColor ) {
                   if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementBefore.ToString(), false, "Insert new element before this" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
                     insertElementBefore = obj;
                   if ( GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Insert new element after this" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } ) )
@@ -408,7 +412,7 @@ namespace AgXUnityEditor
         GUILayout.BeginHorizontal();
         {
           GUILayout.FlexibleSpace();
-          using ( Tools.WireTool.NodeListButtonColor )
+          using ( Utils.GUI.NodeListButtonColor )
             addElementToList = GUILayout.Button( Utils.GUI.MakeLabel( Utils.GUI.Symbols.ListInsertElementAfter.ToString(), false, "Add new element to list" ), skin.button, new GUILayoutOption[] { GUILayout.Width( 26 ), GUILayout.Height( 18 ) } );
         }
         GUILayout.EndHorizontal();

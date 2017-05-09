@@ -71,7 +71,6 @@
     <Compile Include="Tools\SelectGameObjectDropdownMenuTool.cs" />
     <Compile Include="Tools\ShapeCreateTool.cs" />
     <Compile Include="Tools\ShapeTool.cs" />
-    <Compile Include="Tools\WireRouteNodeTool.cs" />
     <Compile Include="Tools\SelectGameObjectTool.cs" />
     <Compile Include="Tools\ShapeResizeTool.cs" />
     <Compile Include="Tools\Tool.cs" />

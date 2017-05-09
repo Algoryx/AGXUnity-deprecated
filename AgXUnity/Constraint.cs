@@ -51,9 +51,9 @@ namespace AgXUnity
     /// Create a new constraint component given constraint type.
     /// </summary>
     /// <param name="type">Type of constraint.</param>
-    /// <param name="givenAttachmentPair">Optional initial attachment pair. If null, a new one will be created.</param>
+    /// <param name="givenAttachmentPair">Optional initial attachment pair. When given, values and fields will be copied to this objects attachment pair.</param>
     /// <returns>Constraint component, added to a new game object - null if unsuccessful.</returns>
-    public static Constraint Create( ConstraintType type, ConstraintAttachmentPair givenAttachmentPair = null )
+    public static Constraint Create( ConstraintType type, AttachmentPair givenAttachmentPair = null )
     {
       GameObject constraintGameObject = new GameObject( Factory.CreateName( "AgXUnity." + type ) );
       try {
@@ -61,7 +61,7 @@ namespace AgXUnity
         constraint.Type       = type;
 
         // Property AttachmentPair will create a new one if it doesn't exist.
-        constraint.m_attachmentPair = givenAttachmentPair ?? constraint.AttachmentPair;
+        constraint.AttachmentPair.CopyFrom( givenAttachmentPair );
 
         // Creating a temporary native instance of the constraint, including a rigid body and frames.
         // Given this native instance we copy the default configuration.
@@ -81,7 +81,7 @@ namespace AgXUnity
 
             using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
               for ( uint i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
-                ElementaryConstraint ec = ElementaryConstraint.Create( tmpConstraint.getElementaryConstraint( i ) );
+                ElementaryConstraint ec = ElementaryConstraint.Create( constraintGameObject, tmpConstraint.getElementaryConstraint( i ) );
                 if (ec == null)
                   throw new Exception( "Failed to configure elementary constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
 
@@ -89,7 +89,7 @@ namespace AgXUnity
               }
 
               for ( uint i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
-                ElementaryConstraint sc = ElementaryConstraint.Create( tmpConstraint.getSecondaryConstraint( i ) );
+                ElementaryConstraint sc = ElementaryConstraint.Create( constraintGameObject, tmpConstraint.getSecondaryConstraint( i ) );
                 if (sc == null)
                   throw new Exception( "Failed to configure elementary controller constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
 
@@ -108,24 +108,37 @@ namespace AgXUnity
       }
     }
 
+    [UnityEngine.Serialization.FormerlySerializedAs( "m_attachmentPair" )]
+    [SerializeField]
+    private ConstraintAttachmentPair m_attachmentPairLegacy = null;
+
     /// <summary>
     /// Attachment pair of this constraint, holding parent objects and transforms.
     /// Paired with property AttachmentPair.
     /// </summary>
     [SerializeField]
-    private ConstraintAttachmentPair m_attachmentPair = null;
+    private AttachmentPair m_attachmentPairComponent = null;
 
     /// <summary>
     /// Attachment pair of this constraint, holding parent objects and transforms.
     /// </summary>
     [HideInInspector]
-    public ConstraintAttachmentPair AttachmentPair
+    public AttachmentPair AttachmentPair
     {
       get
       {
-        if ( m_attachmentPair == null )
-          m_attachmentPair = ConstraintAttachmentPair.Create<ConstraintAttachmentPair>();
-        return m_attachmentPair;
+        if ( m_attachmentPairComponent == null )
+          m_attachmentPairComponent = GetComponent<AttachmentPair>();
+
+        // Creates attachment pair if it doesn't exist.
+        if ( m_attachmentPairComponent == null ) {
+          // Will add itself as component to our game object.
+          m_attachmentPairComponent = AttachmentPair.Create( gameObject );
+          m_attachmentPairComponent.CopyFrom( m_attachmentPairLegacy );
+          m_attachmentPairLegacy = null;
+        }
+
+        return m_attachmentPairComponent;
       }
     }
 
@@ -233,6 +246,14 @@ namespace AgXUnity
     [HideInInspector]
     public bool IsEnabled { get { return gameObject.activeInHierarchy && enabled; } }
 
+    [SerializeField]
+    private bool m_connectedFrameNativeSyncEnabled = false;
+    /// <summary>
+    /// True to enable synchronization of the connected frame to the native constraint (default: false/disabled).
+    /// </summary>
+    [HideInInspector]
+    public bool ConnectedFrameNativeSyncEnabled { get { return m_connectedFrameNativeSyncEnabled; } set { m_connectedFrameNativeSyncEnabled = value; } }
+
     /// <summary>
     /// List of elementary constraints in this constraint - controllers and ordinary.
     /// </summary>
@@ -286,6 +307,107 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Transforms this instance from a version where the ElementaryConstraint instances
+    /// were ScriptAsset to the new version where the ElementaryConstraint is ScriptComponent.
+    /// All values are copied.
+    /// </summary>
+    /// <returns></returns>
+    public bool TransformToComponentVersion()
+    {
+      if ( m_elementaryConstraints.Count == 0 || GetComponents<ElementaryConstraint>().Length > 0 )
+        return false;
+
+      List<ElementaryConstraint> newElementaryConstraints = new List<ElementaryConstraint>();
+      foreach ( var old in m_elementaryConstraints )
+        newElementaryConstraints.Add( old.FromLegacy( gameObject ) );
+
+      foreach ( var old in m_elementaryConstraints )
+        DestroyImmediate( old );
+      m_elementaryConstraints.Clear();
+
+      m_elementaryConstraints = newElementaryConstraints;
+
+      return true;
+    }
+
+    /// <summary>
+    /// Adopting hinge implementation to current version of AGX Dynamics (number
+    /// of elementary constraints may change). This method can hopefully be removed later.
+    /// </summary>
+    /// <param name="referenceHinge">Reference hinge for current version of AGX Dynamics.</param>
+    /// <returns>True if any changed were made - otherwise false.</returns>
+    public bool AdoptToReferenceHinge( Constraint referenceHinge )
+    {
+      if ( Type != ConstraintType.Hinge )
+        return false;
+
+      if ( referenceHinge.m_elementaryConstraints.Count == m_elementaryConstraints.Count )
+        return false;
+
+      bool refHasSwing  = referenceHinge.m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "SW" ) != null;
+      bool thisHasSwing = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "SW" ) != null;
+      if ( refHasSwing == thisHasSwing )
+        return false;
+
+      // Add all elementary constraints given reference. We now have both
+      // the old and the new reprecentation. The old is located in m_elementaryConstraints
+      // and the new in newElementaryConstraints.
+      List<ElementaryConstraint> newElementaryConstraints = new List<ElementaryConstraint>();
+      foreach ( var refEc in referenceHinge.m_elementaryConstraints )
+        newElementaryConstraints.Add( refEc.FromLegacy( gameObject ) );
+
+      // Different if we're going from Dot1 -> Swing or the other way around.
+      var listWithDot1 = refHasSwing ? m_elementaryConstraints : newElementaryConstraints;
+      var listWithSwing = refHasSwing ? newElementaryConstraints : m_elementaryConstraints;
+
+      // Fetching the two Dot1 and the Swing object.
+      var ecUn = listWithDot1.FirstOrDefault( ec => ec.NativeName == "D1_UN" );
+      var ecVn = listWithDot1.FirstOrDefault( ec => ec.NativeName == "D1_VN" );
+      var swing = listWithSwing.FirstOrDefault( ec => ec.NativeName == "SW" );
+
+      // If we didn't find both Dot1 or the Swing object we have to bail out.
+      if ( ecUn == null || ecVn == null || swing == null ) {
+        foreach ( var newEc in newElementaryConstraints )
+          DestroyImmediate( newEc );
+        newElementaryConstraints.Clear();
+        return false;
+      }
+
+      // Copy U and V row data to Swing[ U ] and Swing[ V ].
+      if ( refHasSwing ) {
+        swing.Enable = ecUn.Enable || ecVn.Enable;
+        swing.RowData[ 0 ].CopyFrom( ecUn.RowData[ 0 ] );
+        swing.RowData[ 1 ].CopyFrom( ecVn.RowData[ 0 ] );
+      }
+      // Copy Swing[ U ] and Swing[ V ] to U and V respectively.
+      else {
+        ecUn.Enable = swing.Enable;
+        ecVn.Enable = swing.Enable;
+        ecUn.RowData[ 0 ].CopyFrom( swing.RowData[ 0 ] );
+        ecVn.RowData[ 0 ].CopyFrom( swing.RowData[ 1 ] );
+      }
+
+      // Copy the elementary constraint state from the old ones to
+      // the new version for the resting matching elementary constraints.
+      for ( int i = 0; i < newElementaryConstraints.Count; ++i ) {
+        var old = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == newElementaryConstraints[ i ].NativeName );
+        // This will skip swing (old == null) if we're moving Dot1 -> Swing.
+        // This will skip U, V (old == null) if we're moving Swing -> Dot1.
+        if ( old != null )
+          newElementaryConstraints[ i ].CopyFrom( old );
+      }
+
+      // Destroy all old elementary constraints, the data has been copied.
+      foreach ( var old in m_elementaryConstraints )
+        DestroyImmediate( old );
+      m_elementaryConstraints.Clear();
+
+      m_elementaryConstraints = newElementaryConstraints;
+
+      return true;
+    }
+
+    /// <summary>
     /// Creates native instance and adds it to the simulation if this constraint
     /// is properly configured.
     /// </summary>
@@ -305,9 +427,9 @@ namespace AgXUnity
       //       Do: GetComponentInParent<RigidBody>( true <- include inactive ) and wait
       //           for the body to become active?
       //       E.g., rb.AwaitInitialize += ThisConstraintInitialize.
-      RigidBody rb1 = m_attachmentPair.ReferenceObject.GetInitializedComponentInParent<RigidBody>();
+      RigidBody rb1 = AttachmentPair.ReferenceObject.GetInitializedComponentInParent<RigidBody>();
       if ( rb1 == null ) {
-        Debug.LogError( "Unable to initialize constraint. Reference object must contain a rigid body component.", m_attachmentPair.ReferenceObject );
+        Debug.LogError( "Unable to initialize constraint. Reference object must contain a rigid body component.", AttachmentPair.ReferenceObject );
         return false;
       }
 
@@ -317,19 +439,19 @@ namespace AgXUnity
 
       // Note that the native constraint want 'f1' given in rigid body frame, and that
       // 'ReferenceFrame' may be relative to any object in the children of the body.
-      f1.setLocalTranslate( m_attachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
-      f1.setLocalRotate( m_attachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
+      f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
+      f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
 
-      RigidBody rb2 = m_attachmentPair.ConnectedObject != null ? m_attachmentPair.ConnectedObject.GetInitializedComponentInParent<RigidBody>() : null;
+      RigidBody rb2 = AttachmentPair.ConnectedObject != null ? AttachmentPair.ConnectedObject.GetInitializedComponentInParent<RigidBody>() : null;
       if ( rb2 != null ) {
         // Note that the native constraint want 'f2' given in rigid body frame, and that
         // 'ReferenceFrame' may be relative to any object in the children of the body.
-        f2.setLocalTranslate( m_attachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
-        f2.setLocalRotate( m_attachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
       }
       else {
-        f2.setLocalTranslate( m_attachmentPair.ConnectedFrame.Position.ToHandedVec3() );
-        f2.setLocalRotate( m_attachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
+        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
+        f2.setLocalRotate( AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
       }
 
       try {
@@ -344,20 +466,20 @@ namespace AgXUnity
         Native.setEnable( IsEnabled );
 
         // Not possible to handle collisions if connected frame parent is null/world.
-        if ( CollisionsState != ECollisionsState.KeepExternalState && m_attachmentPair.ConnectedObject != null ) {
+        if ( CollisionsState != ECollisionsState.KeepExternalState && AttachmentPair.ConnectedObject != null ) {
           string groupName          = gameObject.name + gameObject.GetInstanceID().ToString();
           GameObject go1            = null;
           GameObject go2            = null;
           bool propagateToChildren1 = false;
           bool propagateToChildren2 = false;
           if ( CollisionsState == ECollisionsState.DisableReferenceVsConnected ) {
-            go1 = m_attachmentPair.ReferenceObject;
-            go2 = m_attachmentPair.ConnectedObject;
+            go1 = AttachmentPair.ReferenceObject;
+            go2 = AttachmentPair.ConnectedObject;
           }
           else {
             go1                  = rb1.gameObject;
             propagateToChildren1 = true;
-            go2                  = rb2 != null ? rb2.gameObject : m_attachmentPair.ConnectedObject;
+            go2                  = rb2 != null ? rb2.gameObject : AttachmentPair.ConnectedObject;
             propagateToChildren2 = true;
           }
 
@@ -406,25 +528,34 @@ namespace AgXUnity
       if ( Native == null || !Native.getValid() )
         return;
 
-      RigidBody rb1 = AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>();
-      if ( rb1 == null )
-        return;
+      SynchronizeNativeFramesWithAttachmentPair();
+    }
 
-      RigidBody rb2 = AttachmentPair.ConnectedObject != null ? AttachmentPair.ConnectedObject.GetComponentInParent<RigidBody>() : null;
+    private void SynchronizeNativeFramesWithAttachmentPair()
+    {
+      // NOTE: It's not possible to update the constraint frames given the current
+      //       transforms since the actual constraint direction will change with the
+      //       violation.
+      //RigidBody rb1 = AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>();
+      //if ( rb1 == null )
+      //  return;
+      //
+      //agx.Frame f1 = Native.getAttachment( 0 ).getFrame();
+      //f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
+      //f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
 
-      agx.Frame f1 = Native.getAttachment( 0 ).getFrame();
-      agx.Frame f2 = Native.getAttachment( 1 ).getFrame();
+      if ( ConnectedFrameNativeSyncEnabled ) {
+        RigidBody rb2 = AttachmentPair.ConnectedObject != null ? AttachmentPair.ConnectedObject.GetComponentInParent<RigidBody>() : null;
+        agx.Frame f2 = Native.getAttachment( 1 ).getFrame();
 
-      f1.setLocalTranslate( AttachmentPair.ReferenceFrame.CalculateLocalPosition( rb1.gameObject ).ToHandedVec3() );
-      f1.setLocalRotate( AttachmentPair.ReferenceFrame.CalculateLocalRotation( rb1.gameObject ).ToHandedQuat() );
-
-      if ( rb2 != null ) {
-        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
-        f2.setLocalRotate( AttachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
-      }
-      else {
-        f2.setLocalTranslate( AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
-        f2.setLocalRotate( AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
+        if ( rb2 != null ) {
+          f2.setLocalTranslate( AttachmentPair.ConnectedFrame.CalculateLocalPosition( rb2.gameObject ).ToHandedVec3() );
+          f2.setLocalRotate( AttachmentPair.ConnectedFrame.CalculateLocalRotation( rb2.gameObject ).ToHandedQuat() );
+        }
+        else {
+          f2.setLocalTranslate( AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
+          f2.setLocalRotate( AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
+        }
       }
     }
 
@@ -454,7 +585,7 @@ namespace AgXUnity
       return m_gizmosMesh;
     }
 
-    private static void DrawGizmos( Color color, ConstraintAttachmentPair attachmentPair, bool selected )
+    private static void DrawGizmos( Color color, AttachmentPair attachmentPair, bool selected )
     {
       Gizmos.color = color;
       Gizmos.DrawMesh( GetOrCreateGizmosMesh(),

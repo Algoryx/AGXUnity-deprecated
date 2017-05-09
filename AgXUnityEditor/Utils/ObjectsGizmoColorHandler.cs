@@ -51,7 +51,7 @@ namespace AgXUnityEditor.Utils
 
     private Dictionary<MeshFilter, Color> m_meshColors           = new Dictionary<MeshFilter, Color>();
     private Dictionary<RigidBody, RigidBodyColorData> m_rbColors = new Dictionary<RigidBody, RigidBodyColorData>();
-    private int m_oldRandomSeed                                  = Int32.MaxValue;
+    private UnityEngine.Random.State m_oldRandomState            = default( UnityEngine.Random.State );
 
     public Color ShapeColor          = new Color( 0.05f, 0.85f, 0.15f, 0.15f );
     public Color MeshFilterColor     = new Color( 0.6f, 0.6f, 0.6f, 0.15f );
@@ -186,13 +186,13 @@ namespace AgXUnityEditor.Utils
 
     public void Begin()
     {
-      if ( m_oldRandomSeed != Int32.MaxValue || m_meshColors.Count > 0 || m_rbColors.Count > 0 ) {
+      if ( m_meshColors.Count > 0 || m_rbColors.Count > 0 ) {
         Debug.LogError( "Begin() called more than once before calling End()." );
         return;
       }
 
-      m_oldRandomSeed = UnityEngine.Random.seed;
-      UnityEngine.Random.seed = RandomSeed;
+      m_oldRandomState = UnityEngine.Random.state;
+      UnityEngine.Random.InitState( RandomSeed );
     }
 
     public void End()
@@ -200,10 +200,8 @@ namespace AgXUnityEditor.Utils
       m_meshColors.Clear();
       m_rbColors.Clear();
 
-      if ( m_oldRandomSeed < Int32.MaxValue ) {
-        UnityEngine.Random.seed = m_oldRandomSeed;
-        m_oldRandomSeed = Int32.MaxValue;
-      }
+      UnityEngine.Random.state = m_oldRandomState;
+      m_oldRandomState = default( UnityEngine.Random.State );
     }
 
     private RigidBodyColorData GetOrCreateColorData( RigidBody rb )

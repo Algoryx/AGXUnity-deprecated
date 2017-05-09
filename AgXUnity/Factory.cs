@@ -72,7 +72,7 @@ namespace AgXUnity
     /// <param name="constraintType">Constraint type.</param>
     /// <param name="givenAttachmentPair">Optional initial attachment pair. If null, a new one will be created.</param>
     /// <returns>Constraint game object if the configuration is valid.</returns>
-    public static GameObject Create( ConstraintType constraintType, ConstraintAttachmentPair givenAttachmentPair = null )
+    public static GameObject Create( ConstraintType constraintType, AttachmentPair givenAttachmentPair = null )
     {
       Constraint constraint = Constraint.Create( constraintType, givenAttachmentPair );
       return constraint != null ? constraint.gameObject : null;
@@ -128,16 +128,14 @@ namespace AgXUnity
     /// <summary>
     /// Create a wire given route, radius, resolution and material.
     /// </summary>
-    /// <param name="route">Wire route.</param>
     /// <param name="radius">Radius if the wire.</param>
     /// <param name="resolutionPerUnitLength">Resolution of the wire.</param>
     /// <param name="material">Shape material of the wire.</param>
     /// <returns>A new game object with a Wire component.</returns>
-    public static Wire CreateWire( WireRoute route = null, float radius = 0.02f, float resolutionPerUnitLength = 1.5f, ShapeMaterial material = null )
+    public static Wire CreateWire( float radius = 0.02f, float resolutionPerUnitLength = 1.5f, ShapeMaterial material = null )
     {
       GameObject go = new GameObject( CreateName<Wire>() );
       Wire wire     = go.AddComponent<Wire>();
-      wire.Route    = route;
 
       wire.Radius                  = radius;
       wire.ResolutionPerUnitLength = resolutionPerUnitLength;
@@ -149,16 +147,14 @@ namespace AgXUnity
     /// <summary>
     /// Create a cable given route, radius, resolution and material.
     /// </summary>
-    /// <param name="route">Cable route.</param>
     /// <param name="radius">Radius of the cable.</param>
     /// <param name="resolutionPerUnitLength">Resolution of the cable.</param>
     /// <param name="material">Shape material of the cable.</param>
     /// <returns>Cable component.</returns>
-    public static Cable CreateCable( CableRoute route = null, float radius = 0.05f, float resolutionPerUnitLength = 5.0f, ShapeMaterial material = null )
+    public static Cable CreateCable( float radius = 0.05f, float resolutionPerUnitLength = 5.0f, ShapeMaterial material = null )
     {
       GameObject go = new GameObject( CreateName<Cable>() );
       Cable cable   = go.AddComponent<Cable>();
-      cable.Route   = route;
 
       cable.Radius                  = radius;
       cable.ResolutionPerUnitLength = resolutionPerUnitLength;

@@ -37,6 +37,7 @@ namespace AgXUnity
       constraintGameObject.name       = gameObjectName;
 
       Constraint constraint                             = constraintGameObject.GetComponent<Constraint>();
+      constraint.ConnectedFrameNativeSyncEnabled        = true;
       constraint.AttachmentPair.ReferenceObject         = hit.Triangle.Target;
       constraint.AttachmentPair.ReferenceFrame.Position = hit.Triangle.Point;
 

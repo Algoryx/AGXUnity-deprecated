@@ -217,31 +217,6 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
-    public class OnAssetsModification : UnityEditor.AssetModificationProcessor
-    {
-      private static string[] OnWillSaveAssets( string[] paths )
-      {
-        foreach ( var path in paths ) {
-          FileInfo info = new FileInfo( path );
-          if ( info.Extension == ".unity" )
-            SaveWireCableRoutes();
-        }          
-
-        return paths;
-      }
-    }
-
-    public static void SaveWireCableRoutes()
-    {
-      AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-      foreach ( var wire in wires )
-        wire.gameObject.GetOrCreateComponent<AgXUnity.Legacy.WireRouteData>().Save();
-
-      AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
-      foreach ( var cable in cables )
-        cable.gameObject.GetOrCreateComponent<AgXUnity.Legacy.CableRouteData>().Save();
-    }
-
     private static string m_currentSceneName = string.Empty;
     private static bool m_requestSceneViewFocus = false;
     private static HijackLeftMouseClickData m_hijackLeftMouseClickData = null;
@@ -270,8 +245,15 @@ namespace AgXUnityEditor
     /// </summary>
     private static void UndoRedoPerformedCallback()
     {
-      if ( Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<AgXUnity.ScriptComponent>() != null )
-        EditorUtility.SetDirty( Selection.activeGameObject.GetComponent<AgXUnity.ScriptComponent>() );
+      if ( Selection.activeGameObject == null )
+        return;
+
+      var scriptComponents = Selection.activeGameObject.GetComponents<AgXUnity.ScriptComponent>();
+      foreach ( var scriptComponent in scriptComponents )
+        EditorUtility.SetDirty( scriptComponent );
+
+      if ( scriptComponents.Length > 0 )
+        SceneView.RepaintAll();
     }
 
     private static void OnSceneView( SceneView sceneView )
@@ -394,75 +376,148 @@ namespace AgXUnityEditor
           }
         }
 
-        // There shouldn't be any MassProperties components since we've
-        // changed them to be ScriptAssets.
+        // We're back to ScriptComponent version of MassProperties.
         AgXUnity.RigidBody[] bodies = UnityEngine.Object.FindObjectsOfType<AgXUnity.RigidBody>();
         foreach ( var rb in bodies ) {
-          Component[] components = rb.GetComponents<Component>();
-          foreach ( var component in components ) {
-            if ( component.GetType() == typeof( AgXUnity.MassProperties ) ) {
-              Debug.Log( "Updating RigidBody by removing MassProperties component - copying the values to the new MassProperties instance.", rb.gameObject );
-              AgXUnity.MassProperties currentMassProperties = rb.MassProperties;
-              FieldInfo[] fields = component.GetType().GetFields( BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly );
-              foreach ( var f in fields ) {
-                if ( !f.IsNotSerialized )
-                  f.SetValue( currentMassProperties, f.GetValue( component ) );
-              }
-              Component.DestroyImmediate( component );
+          if ( !rb.PatchMassPropertiesAsComponent() )
+            continue;
+
+          Debug.Log( "Updated RigidBody: " + rb.name + " to new MassProperties version.", rb );
+
+          UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+        }
+
+        // Patching constraints where we removed ElementaryConstraint as component.
+        // Now we're back and I hope the components will still show up as null now
+        // that AgXUnity.ElementaryConstraint is a component again.
+        {
+          AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
+          foreach ( var constraint in constraints ) {
+            bool isOldVersion = ( from component in constraint.GetComponents<Component>() where component == null select component ).ToArray().Length > 0 &&
+                                constraint.ElementaryConstraints.Length == 0;
+            if ( !isOldVersion )
+              continue;
+
+            if ( EditorUtility.DisplayDialog( "Update \"" + constraint.name + "\" (type: " + constraint.Type + ") to the new version?",
+                                              "The game object will be deleted and a new will be created with the same Reference/Connected setup. All data such as compliance, damping, motor speed etc. will be lost.",
+                                              "Update", "Ignore" ) ) {
+              AgXUnity.Constraint newConstraint = AgXUnity.Constraint.Create( constraint.Type );
+
+              newConstraint.AttachmentPair.ReferenceObject              = constraint.AttachmentPair.ReferenceObject;
+              newConstraint.AttachmentPair.ReferenceFrame.LocalPosition = constraint.AttachmentPair.ReferenceFrame.LocalPosition;
+              newConstraint.AttachmentPair.ReferenceFrame.LocalRotation = constraint.AttachmentPair.ReferenceFrame.LocalRotation;
+
+              newConstraint.AttachmentPair.Synchronized                 = constraint.AttachmentPair.Synchronized;
+
+              newConstraint.AttachmentPair.ConnectedObject              = constraint.AttachmentPair.ConnectedObject;
+              newConstraint.AttachmentPair.ConnectedFrame.LocalPosition = constraint.AttachmentPair.ConnectedFrame.LocalPosition;
+              newConstraint.AttachmentPair.ConnectedFrame.LocalRotation = constraint.AttachmentPair.ConnectedFrame.LocalRotation;
+
+              newConstraint.name = constraint.name;
+
+              GameObject.DestroyImmediate( constraint.gameObject );
+
+              Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
 
               UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
             }
           }
-
-          // 'm_rb' in MassProperties has been overwritten during the update. Update reference.
-          if ( rb.MassProperties.RigidBody == null )
-            rb.MassProperties.RigidBody = rb;
         }
 
-        AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
-        foreach ( var constraint in constraints ) {
-          bool isOldVersion = ( from component in constraint.GetComponents<Component>() where component == null select component ).ToArray().Length > 0 &&
-                              constraint.ElementaryConstraints.Length == 0;
-          if ( !isOldVersion )
-            continue;
+        // Patching constraints where ElementaryConstraint is a ScriptAsset.
+        {
+          AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
+          foreach ( var constraint in constraints ) {
+            bool isOldVersion = constraint.ElementaryConstraints.Length > 0 && constraint.GetComponents<AgXUnity.ElementaryConstraint>().Length == 0;
+            if ( !isOldVersion )
+              continue;
 
-          if ( EditorUtility.DisplayDialog( "Update \"" + constraint.name + "\" (type: " + constraint.Type + ") to the new version?",
-                                            "The game object will be deleted and a new will be created with the same Reference/Connected setup. All data such as compliance, damping, motor speed etc. will be lost.",
-                                            "Update", "Ignore" ) ) {
-            AgXUnity.Constraint newConstraint = AgXUnity.Constraint.Create( constraint.Type );
+            // Updating to new attachment pair.
+            var attachmentPair = constraint.AttachmentPair;
 
-            newConstraint.AttachmentPair.ReferenceObject              = constraint.AttachmentPair.ReferenceObject;
-            newConstraint.AttachmentPair.ReferenceFrame.LocalPosition = constraint.AttachmentPair.ReferenceFrame.LocalPosition;
-            newConstraint.AttachmentPair.ReferenceFrame.LocalRotation = constraint.AttachmentPair.ReferenceFrame.LocalRotation;
+            // Updating to where ElementaryConstraints are components.
+            constraint.TransformToComponentVersion();
 
-            newConstraint.AttachmentPair.Synchronized                 = constraint.AttachmentPair.Synchronized;
-
-            newConstraint.AttachmentPair.ConnectedObject              = constraint.AttachmentPair.ConnectedObject;
-            newConstraint.AttachmentPair.ConnectedFrame.LocalPosition = constraint.AttachmentPair.ConnectedFrame.LocalPosition;
-            newConstraint.AttachmentPair.ConnectedFrame.LocalRotation = constraint.AttachmentPair.ConnectedFrame.LocalRotation;
-
-            newConstraint.name = constraint.name;
-
-            GameObject.DestroyImmediate( constraint.gameObject );
-
-            Debug.Log( "Constraint: " + newConstraint.name + " updated.", newConstraint );
+            Debug.Log( "Constraint: " + constraint.name + " updated to new version.", constraint );
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
 
-        // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
-        AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-        foreach ( var wire in wires ) {
-          AgXUnity.Rendering.SegmentSpawner ss = wire.GetComponent<AgXUnity.Rendering.WireRenderer>().SegmentSpawner;
-          if ( ss == null )
-            continue;
+        // Patching old hinges with two Dot1 to new Swing.
+        {
+          var hingeGameObject = AgXUnity.Factory.Create( AgXUnity.ConstraintType.Hinge );
+          var refHinge = hingeGameObject.GetComponent<AgXUnity.Constraint>();
+          AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
+          foreach ( var constraint in constraints ) {
+            if ( constraint.Type != AgXUnity.ConstraintType.Hinge )
+              continue;
 
-          var segments = ss.Segments;
-          foreach ( var segment in segments ) {
-            OnSelectionProxy selectionProxy = segment.GetComponent<OnSelectionProxy>();
-            if ( selectionProxy != null && selectionProxy.Target == null )
-              selectionProxy.Component = wire;
+            if ( !constraint.AdoptToReferenceHinge( refHinge ) )
+              continue;
+
+            Debug.Log( "Hinge: " + constraint.name + " successfully updated to match AGX Dynamics Hinge.", constraint );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+          }
+
+          GameObject.DestroyImmediate( hingeGameObject );
+        }
+
+        // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
+        {
+          AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+          foreach ( var wire in wires ) {
+            AgXUnity.Rendering.SegmentSpawner ss = wire.GetComponent<AgXUnity.Rendering.WireRenderer>().SegmentSpawner;
+            if ( ss == null )
+              continue;
+
+            var segments = ss.Segments;
+            foreach ( var segment in segments ) {
+              OnSelectionProxy selectionProxy = segment.GetComponent<OnSelectionProxy>();
+              if ( selectionProxy != null && selectionProxy.Target == null )
+                selectionProxy.Component = wire;
+            }
+          }
+        }
+
+        // Patching Wire to use Route as component and RouteNode as Frame.
+        {
+          AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+          foreach ( var wire in wires ) {
+            if ( wire.GetComponent<AgXUnity.WireRoute>() != null )
+              continue;
+
+            var routeData = wire.GetComponent<AgXUnity.Legacy.WireRouteData>();
+            var route = wire.gameObject.AddComponent<AgXUnity.WireRoute>();
+            if ( routeData != null && routeData.Restore() ) {
+              Debug.Log( "Successfully restored " + route.NumNodes + " from local data.", wire );
+              AgXUnity.ScriptComponent.DestroyImmediate( routeData );
+            }
+            else
+              Debug.LogWarning( "Wire: " + wire.name + " is not possible to load and has to be re-routed.", wire );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+          }
+        }
+
+        // Patching Cable to use Route as component and RouteNode as Frame.
+        {
+          AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
+          foreach ( var cable in cables ) {
+            if ( cable.GetComponent<AgXUnity.CableRoute>() != null )
+              continue;
+
+            var routeData = cable.GetComponent<AgXUnity.Legacy.CableRouteData>();
+            var route = cable.gameObject.AddComponent<AgXUnity.CableRoute>();
+            if ( routeData != null && routeData.Restore() ) {
+              Debug.Log( "Successfully restored " + route.NumNodes + " from local data.", cable );
+              AgXUnity.ScriptComponent.DestroyImmediate( routeData );
+            }
+            else
+              Debug.LogWarning( "Cable: " + cable.name + " is not possible to load and has to be re-routed.", cable );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
       }

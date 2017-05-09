@@ -22,25 +22,21 @@ namespace AgXUnity.Legacy
     [SerializeField]
     private List<CableRouteNodeData> m_data = new List<CableRouteNodeData>();
 
-    public void Save()
+    public bool Restore()
     {
-      hideFlags = HideFlags.HideInInspector;
+      var route = GetComponent<CableRoute>();
+      if ( route == null )
+        return false;
 
-      m_data.Clear();
-
-      var cable = GetComponent<Cable>();
-      if ( cable == null )
-        return;
-
-      foreach ( var node in cable.Route ) {
-        m_data.Add( new CableRouteNodeData()
-        {
-          NodeType = node.Type,
-          Parent = node.Frame.Parent,
-          LocalPosition = node.Frame.LocalPosition,
-          LocalRotation = node.Frame.LocalRotation,
-        } );
+      foreach ( var nodeData in m_data ) {
+        var node = route.Add( nodeData.NodeType, nodeData.Parent, nodeData.LocalPosition, nodeData.LocalRotation );
+        if ( node == null ) {
+          Debug.LogWarning( "Unable to add node of type " + nodeData.NodeType + " to cable route.", route );
+          continue;
+        }
       }
+
+      return true;
     }
   }
 }

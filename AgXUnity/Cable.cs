@@ -5,6 +5,7 @@ namespace AgXUnity
 {
   [AddComponentMenu( "" )]
   [RequireComponent( typeof( Rendering.CableRenderer ) )]
+  [RequireComponent( typeof( CableRoute ) )]
   public class Cable : ScriptComponent
   {
     /// <summary>
@@ -153,22 +154,18 @@ namespace AgXUnity
       }
     }
 
-    /// <summary>
-    /// Route to initialize this cable.
-    /// </summary>
-    [SerializeField]
-    private CableRoute m_route = new CableRoute();
-
+    private CableRoute m_routeComponent = null;
     /// <summary>
     /// Get route to initialize this cable.
     /// </summary>
     public CableRoute Route
     {
-      get { return m_route; }
-      set
+      get
       {
-        m_route = value ?? new CableRoute();
-      }
+        if ( m_routeComponent == null )
+          m_routeComponent = GetComponent<CableRoute>();
+        return m_routeComponent;
+      }      
     }
 
     protected override void OnDestroy()
@@ -183,17 +180,23 @@ namespace AgXUnity
 
     protected override bool Initialize()
     {
-      if ( m_route == null )
-        return false;
+      if ( ResolutionPerUnitLength < 1.0-6f ) {
+        Debug.LogWarning( "Cable resolution is too low: " + ResolutionPerUnitLength + " segments per unit length. Ignoring cable.", this );
+      }
 
       try {
         if ( Route.NumNodes < 2 )
           throw new Exception( "Invalid number of nodes. Minimum number of route nodes is two." );
 
         var cable = new agxCable.Cable( Convert.ToDouble( Radius ), Convert.ToDouble( ResolutionPerUnitLength ) );
+        CableRouteNode prev = null;
         foreach ( var node in Route ) {
-          if ( !cable.add( node.GetInitialized<CableRouteNode>().Native ) )
+          bool tooClose = prev != null && Vector3.Distance( prev.Position, node.Position ) < 0.5f / ResolutionPerUnitLength;
+          if ( !tooClose && !cable.add( node.GetInitialized<CableRouteNode>().Native ) )
             throw new Exception( "Unable to add node to cable." );
+          if ( tooClose )
+            Debug.LogWarning( "Ignoring route node with index: " + Route.IndexOf( node ) + ", since it's too close to its neighbor.", this );
+          prev = node;
         }
 
         Native = cable;

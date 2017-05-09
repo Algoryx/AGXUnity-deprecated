@@ -326,6 +326,8 @@ namespace AgXUnityEditor.Utils
       public static ColorBlock ColorBlock { get { return new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.yellow, 0.1f ) ); } }
     }
 
+    public static ColorBlock NodeListButtonColor { get { return new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ); } }
+
     public static void ToolsLabel( GUISkin skin )
     {
       GUILayout.Label( GUI.MakeLabel( "Tools:", true ), Align( skin.label, TextAnchor.MiddleLeft ), new GUILayoutOption[] { GUILayout.Width( 64 ), GUILayout.Height( 25 ) } );
@@ -339,11 +341,10 @@ namespace AgXUnityEditor.Utils
                                ToolButtonData.Height );
     }
 
-    public static void HandleFrame( Frame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )
+    public static void HandleFrame( IFrame frame, GUISkin skin, float numPixelsIndentation = 0.0f, bool includeFrameToolIfPresent = true )
     {
       bool guiWasEnabled = UnityEngine.GUI.enabled;
 
-      Undo.RecordObject( frame, "HandleFrame" );
       using ( new Indent( numPixelsIndentation ) ) {
         UnityEngine.GUI.enabled = true;
         GameObject newParent = (GameObject)EditorGUILayout.ObjectField( MakeLabel( "Parent" ), frame.Parent, typeof( GameObject ), true );

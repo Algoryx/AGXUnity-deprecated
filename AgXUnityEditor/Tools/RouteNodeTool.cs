@@ -32,6 +32,7 @@ namespace AgXUnityEditor.Tools
 
     public RouteNodeTool( RouteNode node,
                           ScriptComponent parent,
+                          ScriptComponent undoRedoRecordObject,
                           Func<RouteNode> getSelected,
                           Action<RouteNode> setSelected,
                           Predicate<RouteNode> hasNode,
@@ -39,7 +40,12 @@ namespace AgXUnityEditor.Tools
     {
       Node = node;
       Parent = parent;
-      AddChild( new FrameTool( node.Frame ) { OnChangeDirtyTarget = Parent, TransformHandleActive = false } );
+      AddChild( new FrameTool( node )
+                {
+                  OnChangeDirtyTarget = Parent,
+                  TransformHandleActive = false,
+                  UndoRedoRecordObject = undoRedoRecordObject
+                } );
 
       m_getSelected = getSelected;
       m_setSelected = setSelected;
@@ -58,10 +64,10 @@ namespace AgXUnityEditor.Tools
         return;
       }
 
-      float radius = 3f * m_radius();
+      float radius = ( Selected ? 3.01f : 3.0f ) * m_radius();
       Visual.Visible = !EditorApplication.isPlaying;
       Visual.Color = Selected ? Visual.MouseOverColor : Color.yellow;
-      Visual.SetTransform( Node.Frame.Position, Node.Frame.Rotation, radius, true, 1.2f * m_radius(), Mathf.Max( 1.5f * m_radius(), 0.25f ) );
+      Visual.SetTransform( Node.Position, Node.Rotation, radius, true, 1.2f * m_radius(), Mathf.Max( 1.5f * m_radius(), 0.25f ) );
     }
 
     private void OnClick( AgXUnity.Utils.Raycast.Hit hit, Utils.VisualPrimitive primitive )

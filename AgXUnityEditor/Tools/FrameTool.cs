@@ -14,7 +14,7 @@ namespace AgXUnityEditor.Tools
     /// </summary>
     /// <param name="frame">Frame to search frame tool for.</param>
     /// <returns>First frame tool that matches <paramref name="frame"/>.</returns>
-    public static FrameTool FindActive( Frame frame )
+    public static FrameTool FindActive( IFrame frame )
     {
       return FindActive<FrameTool>( frameTool => frameTool.Frame == frame );
     }
@@ -22,7 +22,7 @@ namespace AgXUnityEditor.Tools
     /// <summary>
     /// Frame this tool controls.
     /// </summary>
-    public Frame Frame { get; set; }
+    public IFrame Frame { get; set; }
 
     /// <summary>
     /// Size/Scale of this tool, if 1.0f it'll be the size of the default
@@ -130,13 +130,15 @@ namespace AgXUnityEditor.Tools
     /// </summary>
     public UnityEngine.Object OnChangeDirtyTarget { get; set; }
 
+    public UnityEngine.Object UndoRedoRecordObject { get; set; }
+
     /// <summary>
     /// Construct given frame, size in scene view and transparency alpha.
     /// </summary>
     /// <param name="frame">Target frame to manipulate.</param>
     /// <param name="size">Size of position/rotation handle in scene view.</param>
     /// <param name="alpha">Transparency alpha.</param>
-    public FrameTool( Frame frame, float size = 0.6f, float alpha = 1.0f )
+    public FrameTool( IFrame frame, float size = 0.6f, float alpha = 1.0f )
     {
       Frame = frame;
       Size  = size;
@@ -164,10 +166,11 @@ namespace AgXUnityEditor.Tools
         return;
       }
 
-      Undo.RecordObject( Frame, "FrameTool" );
-
       if ( !TransformHandleActive )
         return;
+
+      if ( UndoRedoRecordObject != null )
+        Undo.RecordObject( UndoRedoRecordObject, "Frame Tool" );
 
       // Shows position handle if, e.g., scale or some other strange setting is used in the editor.
       bool isRotation = UnityEditor.Tools.current == UnityEditor.Tool.Rotate;

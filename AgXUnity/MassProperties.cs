@@ -8,16 +8,24 @@ namespace AgXUnity
   /// Mass properties of a RigidBody.
   /// </summary>
   [AddComponentMenu( "" )]
-  public class MassProperties : ScriptAsset
+  [HideInInspector]
+  [DisallowMultipleComponent]
+  public class MassProperties : ScriptComponent
   {
-    [SerializeField]
+    /// <summary>
+    /// Only caching reference to our body.
+    /// </summary>
     private RigidBody m_rb = null;
 
     [HideInInspector]
     public RigidBody RigidBody
     {
-      get { return m_rb; }
-      set { m_rb = value; }
+      get
+      {
+        if ( m_rb == null )
+          m_rb = GetComponent<RigidBody>();
+        return m_rb;
+      }
     }
 
     /// <summary>
@@ -104,14 +112,6 @@ namespace AgXUnity
       InertiaDiagonal.OnForcedUpdate += OnForcedMassInertiaUpdate;
     }
 
-    protected override void Construct()
-    {
-    }
-
-    public override void Destroy()
-    {
-    }
-
     public void SetDefaultCalculated( agx.RigidBody nativeRb )
     {
       if ( nativeRb == null )
@@ -121,10 +121,19 @@ namespace AgXUnity
       InertiaDiagonal.DefaultValue = nativeRb.getMassProperties().getPrincipalInertiae().ToVector3();
     }
 
+    public void CopyFrom( MassProperties source )
+    {
+      m_mass.CopyFrom( source.m_mass );
+      m_inertiaDiagonal.CopyFrom( source.m_inertiaDiagonal );
+
+      m_massCoefficients    = source.m_massCoefficients;
+      m_inertiaCoefficients = source.m_inertiaCoefficients;
+    }
+
     protected override bool Initialize()
     {
       if ( RigidBody == null ) {
-        Debug.LogError( "RigidBody instance not assigned to MassProperties object." );
+        Debug.LogError( "Unable to find RigidBody component.", this );
         return false;
       }
 

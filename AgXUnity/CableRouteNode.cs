@@ -4,23 +4,23 @@ using AgXUnity.Utils;
 
 namespace AgXUnity
 {
+  [Serializable]
   public class CableRouteNode : RouteNode
   {
     /// <summary>
-    /// Construct a route node given type, parent game object, local position to parent and
+    /// Construct a route node given parent game object, local position to parent and
     /// local rotation to parent.
     /// </summary>
-    /// <param name="type">Node type.</param>
     /// <param name="parent">Parent game object - world if null.</param>
     /// <param name="localPosition">Position in parent frame. If parent is null this is the position in world frame.</param>
     /// <param name="localRotation">Rotation in parent frame. If parent is null this is the rotation in world frame.</param>
-    /// <returns>Cable route node instance.</returns>
-    public static CableRouteNode Create( Cable.NodeType nodeType = Cable.NodeType.FreeNode,
+    /// <returns>Route node instance.</returns>
+    public static CableRouteNode Create( Cable.NodeType nodeType,
                                          GameObject parent = null,
                                          Vector3 localPosition = default( Vector3 ),
                                          Quaternion localRotation = default( Quaternion ) )
     {
-      CableRouteNode node = RouteNode.Create<CableRouteNode>( parent, localPosition, localRotation );
+      var node = Create<CableRouteNode>( parent, localPosition, localRotation );
       node.Type = nodeType;
 
       return node;
@@ -46,22 +46,27 @@ namespace AgXUnity
       set { m_type = value; }
     }
 
-    public override void Destroy()
+    public override void OnDestroy()
     {
       Native = null;
+
+      base.OnDestroy();
     }
 
     protected override bool Initialize()
     {
-      RigidBody rb = Frame.Parent != null ? Frame.Parent.GetInitializedComponentInParent<RigidBody>() : null;
+      if ( Native != null )
+        return true;
+
+      RigidBody rb = Parent != null ? Parent.GetInitializedComponentInParent<RigidBody>() : null;
 
       agx.Vec3 position = rb != null && Type == Cable.NodeType.BodyFixedNode ?
-                            Frame.CalculateLocalPosition( rb.gameObject ).ToHandedVec3() :
-                            Frame.Position.ToHandedVec3();
+                            CalculateLocalPosition( rb.gameObject ).ToHandedVec3() :
+                            Position.ToHandedVec3();
 
       agx.Quat rotation = rb != null && Type == Cable.NodeType.BodyFixedNode ?
-                            Frame.CalculateLocalRotation( rb.gameObject ).ToHandedQuat() :
-                            Frame.Rotation.ToHandedQuat();
+                            CalculateLocalRotation( rb.gameObject ).ToHandedQuat() :
+                            Rotation.ToHandedQuat();
 
       if ( Type == Cable.NodeType.BodyFixedNode )
         Native = new agxCable.BodyFixedNode( rb != null ? rb.Native : null, new agx.AffineMatrix4x4( rotation, position ) );

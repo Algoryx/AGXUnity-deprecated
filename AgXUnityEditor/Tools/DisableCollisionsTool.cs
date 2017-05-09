@@ -69,7 +69,7 @@ namespace AgXUnityEditor.Tools
               GUILayout.BeginHorizontal();
               {
                 GUILayout.Label( SelectGameObjectDropdownMenuTool.GetGUIContent( m_selected[ i ] ), GUI.Align( skin.textField, TextAnchor.MiddleLeft ), GUILayout.Height( 20 ) );
-                using ( WireTool.NodeListButtonColor )
+                using ( GUI.NodeListButtonColor )
                   if ( GUILayout.Button( GUI.MakeLabel( GUI.Symbols.ListEraseElement.ToString() ), skin.button, GUILayout.Width( 18 ), GUILayout.Height( 18 ) ) )
                     removeIndex = i;
               }

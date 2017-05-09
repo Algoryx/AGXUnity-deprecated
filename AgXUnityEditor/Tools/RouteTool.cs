@@ -9,7 +9,7 @@ namespace AgXUnityEditor.Tools
 {
   public class RouteTool<ParentT, NodeT> : Tool
     where ParentT : ScriptComponent
-    where NodeT : RouteNode
+    where NodeT : RouteNode, new()
   {
     public Func<float> NodeVisualRadius = null;
 
@@ -40,7 +40,7 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    RouteNodeTool SelectedTool { get { return FindActive<RouteNodeTool>( this, ( tool ) => { return tool.Node == m_selected; } ); } }
+    RouteNodeTool SelectedTool { get { return FindActive<RouteNodeTool>( this, tool => tool.Node == m_selected ); } }
 
     public bool DisableCollisionsTool
     {
@@ -69,6 +69,24 @@ namespace AgXUnityEditor.Tools
       if ( !EditorApplication.isPlaying ) {
         foreach ( var node in Route ) {
           CreateRouteNodeTool( node );
+          if ( GetFoldoutData( node ).Bool )
+            Selected = node;
+        }
+      }
+    }
+
+    public override void OnSceneViewGUI( SceneView sceneView )
+    {
+      if ( EditorApplication.isPlaying )
+        return;
+
+      // Something happens to our child tools when Unity is performing
+      // undo and redo. Try to restore the tools.
+      if ( GetChildren().Length == 0 ) {
+        m_selected = null;
+        foreach ( var node in Route ) {
+          if ( GetRouteNodeTool( node ) == null )
+            CreateRouteNodeTool( node );
           if ( GetFoldoutData( node ).Bool )
             Selected = node;
         }
@@ -107,25 +125,42 @@ namespace AgXUnityEditor.Tools
     protected virtual void OnPostFrameGUI( NodeT node, GUISkin skin ) { }
     protected virtual void OnNodeCreate( NodeT newNode, NodeT refNode, bool addPressed ) { }
 
+    protected RouteNodeTool GetRouteNodeTool( NodeT node )
+    {
+      return FindActive<RouteNodeTool>( this, tool => tool.Node == node );
+    }
+
     private void RouteGUI( GUISkin skin )
     {
+      GUIStyle invalidNodeStyle = new GUIStyle( skin.label );
+      invalidNodeStyle.normal.background = GUI.CreateColoredTexture( 4, 4, Color.Lerp( UnityEngine.GUI.color, Color.red, 0.75f ) );
+
       bool addNewPressed        = false;
       bool insertBeforePressed  = false;
       bool insertAfterPressed   = false;
       bool erasePressed         = false;
       NodeT listOpNode          = null;
 
+      Undo.RecordObject( Route, "Route changed" );
+
       GUI.Separator();
 
       if ( GUI.Foldout( EditorData.Instance.GetData( Parent, "Route", ( entry ) => { entry.Bool = true; } ), GUI.MakeLabel( "Route", true ), skin ) ) {
         GUI.Separator();
 
-        foreach ( var node in Route ) {
-          Undo.RecordObject( node, "RouteNode" );
-
+        Route<NodeT>.ValidatedRoute validatedRoute = Route.GetValidated();
+        foreach ( var validatedNode in validatedRoute ) {
+          var node = validatedNode.Node;
           using ( new GUI.Indent( 12 ) ) {
+            if ( validatedNode.Valid )
+              GUILayout.BeginVertical();
+            else
+              GUILayout.BeginVertical( invalidNodeStyle );
+
             if ( GUI.Foldout( GetFoldoutData( node ),
-                              GUI.MakeLabel( GetNodeTypeString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Frame.Parent ).text ),
+                              GUI.MakeLabel( GetNodeTypeString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Parent ).text,
+                                             !validatedNode.Valid,
+                                             validatedNode.ErrorString ),
                               skin,
                               ( newState ) =>
                               {
@@ -135,7 +170,7 @@ namespace AgXUnityEditor.Tools
 
               OnPreFrameGUI( node, skin );
 
-              GUI.HandleFrame( node.Frame, skin, 12 );
+              GUI.HandleFrame( node, skin, 12 );
 
               OnPostFrameGUI( node, skin );
 
@@ -150,14 +185,14 @@ namespace AgXUnityEditor.Tools
                                                                          "Insert a new node before this node" ),
                                                           skin.button,
                                                           GUILayout.Width( 20 ),
-                                                          GUILayout.Height( 16 ) );
+                                                          GUILayout.Height( 16 ) ) || insertBeforePressed;
                   insertAfterPressed  = GUILayout.Button( GUI.MakeLabel( GUI.Symbols.ListInsertElementAfter.ToString(),
                                                                          16,
                                                                          false,
                                                                          "Insert a new node after this node" ),
                                                           skin.button,
                                                           GUILayout.Width( 20 ),
-                                                          GUILayout.Height( 16 ) );
+                                                          GUILayout.Height( 16 ) ) || insertAfterPressed;
                 }
                 using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.red, 0.1f ) ) )
                   erasePressed        = GUILayout.Button( GUI.MakeLabel( GUI.Symbols.ListEraseElement.ToString(),
@@ -166,13 +201,15 @@ namespace AgXUnityEditor.Tools
                                                                          "Erase this node" ),
                                                           skin.button,
                                                           GUILayout.Width( 20 ),
-                                                          GUILayout.Height( 16 ) );
+                                                          GUILayout.Height( 16 ) ) || erasePressed;
 
                 if ( listOpNode == null && ( insertBeforePressed || insertAfterPressed || erasePressed ) )
                   listOpNode = node;
               }
               GUILayout.EndHorizontal();
             }
+
+            GUILayout.EndVertical();
 
             GUI.Separator();
           }
@@ -209,28 +246,22 @@ namespace AgXUnityEditor.Tools
         // Clicking "Add" will not copy data from last node.
         newRouteNode = listOpNode != null ?
                          addNewPressed ?
-                           RouteNode.Create<NodeT>( null, listOpNode.Frame.Position, listOpNode.Frame.Rotation ) :
-                           RouteNode.Create<NodeT>( listOpNode.Frame.Parent, listOpNode.Frame.LocalPosition, listOpNode.Frame.LocalRotation ) :
+                           RouteNode.Create<NodeT>( null, listOpNode.Position, listOpNode.Rotation ) :
+                           RouteNode.Create<NodeT>( listOpNode.Parent, listOpNode.LocalPosition, listOpNode.LocalRotation ) :
                          RouteNode.Create<NodeT>();
-
         OnNodeCreate( newRouteNode, listOpNode, addNewPressed );
 
-        bool success = false;
         if ( addNewPressed )
-          success = Route.Add( newRouteNode );
+          Route.Add( newRouteNode );
         if ( insertBeforePressed )
-          success = Route.InsertBefore( newRouteNode, listOpNode );
+          Route.InsertBefore( newRouteNode, listOpNode );
         if ( insertAfterPressed )
-          success = Route.InsertAfter( newRouteNode, listOpNode );
+          Route.InsertAfter( newRouteNode, listOpNode );
 
-        if ( success ) {
-          Undo.RegisterCreatedObjectUndo( newRouteNode, "New route node" );
-
+        if ( newRouteNode != null ) {
           CreateRouteNodeTool( newRouteNode );
           Selected = newRouteNode;
         }
-        else
-          ScriptAsset.DestroyImmediate( newRouteNode );
       }
       else if ( listOpNode != null && erasePressed ) {
         Selected = null;
@@ -242,6 +273,7 @@ namespace AgXUnityEditor.Tools
     {
       AddChild( new RouteNodeTool( node,
                                    Parent,
+                                   Route,
                                    () => { return Selected; },
                                    ( selected ) => { Selected = selected as NodeT; },
                                    ( n ) => { return Route.Contains( n as NodeT ); },
@@ -250,7 +282,7 @@ namespace AgXUnityEditor.Tools
 
     private EditorDataEntry GetData( NodeT node, string identifier, Action<EditorDataEntry> onCreate = null )
     {
-      return EditorData.Instance.GetData( node, identifier, onCreate );
+      return EditorData.Instance.GetData( Route, identifier + "_" + Route.IndexOf( node ), onCreate );
     }
 
     private EditorDataEntry GetFoldoutData( NodeT node )

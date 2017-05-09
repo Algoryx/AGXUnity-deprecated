@@ -38,15 +38,17 @@ namespace AgXUnity.Utils
 
         ElementaryConstraint[] ordinaryElementaryConstraints = constraint.GetOrdinaryElementaryConstraints();
         foreach ( ElementaryConstraint ec in ordinaryElementaryConstraints ) {
-          if ( ec.NumRows == 3 ) {
+          if ( ec.NumRows > 1 ) {
             // Only rotational QuatLock ("QL") and translational SphericalRel ("SR") with three rows.
             ConstraintRow[] rows = ec.NativeName == "QL" ? constraintRowParser.RotationalRows :
+                                   ec.NativeName == "SW" ? constraintRowParser.RotationalRows :
                                    ec.NativeName == "SR" ? constraintRowParser.TranslationalRows :
                                                            null;
             if ( rows == null )
               throw new Exception( "Unknown elementary constraint with name: " + ec.NativeName );
 
-            for ( int row = 0; row < 3; ++row )
+            // For Swing we should assign rows 0 and 1.
+            for ( int row = 0; row < ec.NumRows; ++row )
               AssignRow( rows, ec, row, row );
           }
           else if ( ec.NumRows == 1 ) {

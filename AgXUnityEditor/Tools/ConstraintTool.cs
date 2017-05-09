@@ -39,7 +39,7 @@ namespace AgXUnityEditor.Tools
       GUILayout.Label( GUI.MakeLabel( Constraint.Type.ToString(), 24, true ), GUI.Align( skin.label, TextAnchor.MiddleCenter ) );
       GUI.Separator();
 
-      // Render ConstraintAttachmentPair GUI.
+      // Render AttachmentPair GUI.
       base.OnPreTargetMembersGUI( skin );
 
       GUI.Separator();

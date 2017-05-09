@@ -8,7 +8,7 @@ namespace AgXUnity
   /// one user defined value. This object enables switching between
   /// the two, e.g., mass and inertia in MassProperties.
   /// </summary>
-  [System.Serializable]
+  [Serializable]
   public class DefaultAndUserValue<T> where T : struct
   {
     [SerializeField]
@@ -37,6 +37,13 @@ namespace AgXUnity
       OnForcedUpdate();
     }
 
+    public void CopyFrom( DefaultAndUserValue<T> source )
+    {
+      m_defaultToggle = source.m_defaultToggle;
+      m_defaultValue = source.m_defaultValue;
+      m_userValue = source.m_userValue;
+    }
+
     /// <summary>
     /// Assigning this property when UseDefault == true will NOT change any value.
     /// Use explicit DefaultValue and UserValue for that. If UseDefault == false
@@ -58,7 +65,7 @@ namespace AgXUnity
   /// one user defined value. This object enables switching between
   /// the two, e.g., mass and inertia in MassProperties.
   /// </summary>
-  [System.Serializable]
+  [Serializable]
   public class DefaultAndUserValueFloat : DefaultAndUserValue<float>
   {
     public DefaultAndUserValueFloat()
@@ -70,7 +77,7 @@ namespace AgXUnity
   /// one user defined value. This object enables switching between
   /// the two, e.g., mass and inertia in MassProperties.
   /// </summary>
-  [System.Serializable]
+  [Serializable]
   public class DefaultAndUserValueVector3 : DefaultAndUserValue<Vector3>
   {
     public DefaultAndUserValueVector3()

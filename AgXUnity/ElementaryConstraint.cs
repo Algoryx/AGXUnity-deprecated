@@ -6,14 +6,16 @@ namespace AgXUnity
   /// <summary>
   /// Base of controllers and object of ordinary elementary constraints.
   /// </summary>
-  public class ElementaryConstraint : ScriptAsset
+  [HideInInspector]
+  [AddComponentMenu( "" )]
+  public class ElementaryConstraint : ScriptComponent
   {
     /// <summary>
     /// Create instance given temporary native elementary constraint.
     /// </summary>
     /// <param name="tmpEc">Temporary elementary constraint.</param>
     /// <returns>New instance, as similar as possible, to the given native elementary constraint.</returns>
-    public static ElementaryConstraint Create( agx.ElementaryConstraint tmpEc )
+    public static ElementaryConstraint Create( GameObject gameObject, agx.ElementaryConstraint tmpEc )
     {
       if ( tmpEc == null )
         return null;
@@ -36,15 +38,29 @@ namespace AgXUnity
 
       // This is a controller, instantiate the controller.
       if ( controllerType != null )
-        elementaryConstraint = Create( Type.GetType( "AgXUnity." + controllerType.Name ) ) as ElementaryConstraint;
+        elementaryConstraint = gameObject.AddComponent( Type.GetType( "AgXUnity." + controllerType.Name ) ) as ElementaryConstraint;
       // This is an ordinary elementary constraint.
       else
-        elementaryConstraint = Create<ElementaryConstraint>();
+        elementaryConstraint = gameObject.AddComponent<ElementaryConstraint>();
 
       // Copies data from the native instance.
       elementaryConstraint.Construct( tmpEc );
 
       return elementaryConstraint;
+    }
+
+    /// <summary>
+    /// Takes this legacy elementary constraint, creates a new instance (added to gameObject) and
+    /// copies all values/objects to the new instance.
+    /// </summary>
+    /// <param name="gameObject">Game object to add the new version of the elementary constraint to.</param>
+    /// <returns>New added elementary constraint instance.</returns>
+    public ElementaryConstraint FromLegacy( GameObject gameObject )
+    {
+      ElementaryConstraint target = gameObject.AddComponent( GetType() ) as ElementaryConstraint;
+      target.Construct( this );
+
+      return target;
     }
 
     /// <summary>
@@ -119,6 +135,11 @@ namespace AgXUnity
       return GetInitialized<ElementaryConstraint>() != null;
     }
 
+    public void CopyFrom( ElementaryConstraint source )
+    {
+      Construct( source );
+    }
+
     protected virtual void Construct( agx.ElementaryConstraint tmpEc )
     {
       m_nativeName = tmpEc.getName();
@@ -128,8 +149,13 @@ namespace AgXUnity
         m_rowData[ i ] = new ElementaryConstraintRowData( this, Convert.ToInt32( i ), tmpEc );
     }
 
-    protected override void Construct()
+    protected virtual void Construct( ElementaryConstraint source )
     {
+      m_nativeName = source.m_nativeName;
+      m_enable = source.m_enable;
+      m_rowData = new ElementaryConstraintRowData[ source.NumRows ];
+      for ( int i = 0; i < source.NumRows; ++i )
+        m_rowData[ i ] = new ElementaryConstraintRowData( this, source.m_rowData[ i ] );
     }
 
     protected override bool Initialize()
@@ -141,18 +167,23 @@ namespace AgXUnity
       foreach ( ElementaryConstraintRowData data in m_rowData )
         Utils.PropertySynchronizer.Synchronize( data );
 
+      Utils.PropertySynchronizer.Synchronize( this );
+
       return true;
     }
 
-    public override void Destroy()
+    protected override void OnDestroy()
     {
       Native = null;
+
+      base.OnDestroy();
     }
   }
 
   /// <summary>
   /// Base class of controllers (such as motor, lock etc.).
   /// </summary>
+  [HideInInspector]
   public class ElementaryConstraintController : ElementaryConstraint
   {
     public T As<T>( Constraint.ControllerType controllerType ) where T : ElementaryConstraintController
@@ -182,6 +213,7 @@ namespace AgXUnity
   /// Range controller object, constraining the angle of the constraint to be
   /// within a given range.
   /// </summary>
+  [HideInInspector]
   public class RangeController : ElementaryConstraintController
   {
     /// <summary>
@@ -203,12 +235,20 @@ namespace AgXUnity
           agx.RangeController.safeCast( Native ).setRange( m_range.Native );
       }
     }
+
+    protected override void Construct( ElementaryConstraint source )
+    {
+      base.Construct( source );
+
+      m_range = new RangeReal( ( source as RangeController ).m_range );
+    }
   }
 
   /// <summary>
   /// Target speed controller object, constraining the angle of the constraint to
   /// be driven at a given speed.
   /// </summary>
+  [HideInInspector]
   public class TargetSpeedController : ElementaryConstraintController
   {
     /// <summary>
@@ -251,12 +291,21 @@ namespace AgXUnity
           agx.TargetSpeedController.safeCast( Native ).setLockedAtZeroSpeed( m_lockAtZeroSpeed );
       }
     }
+
+    protected override void Construct( ElementaryConstraint source )
+    {
+      base.Construct( source );
+
+      m_speed           = ( source as TargetSpeedController ).m_speed;
+      m_lockAtZeroSpeed = ( source as TargetSpeedController ).m_lockAtZeroSpeed;
+    }
   }
 
   /// <summary>
   /// Lock controller object, constraining the angle of the constraint to
   /// a given value.
   /// </summary>
+  [HideInInspector]
   public class LockController : ElementaryConstraintController
   {
     /// <summary>
@@ -285,8 +334,16 @@ namespace AgXUnity
 
       m_position = Convert.ToSingle( agx.LockController.safeCast( tmpEc ).getPosition() );
     }
+
+    protected override void Construct( ElementaryConstraint source )
+    {
+      base.Construct( source );
+
+      m_position = ( source as LockController ).m_position;
+    }
   }
 
+  [HideInInspector]
   public class ScrewController : ElementaryConstraintController
   {
     [SerializeField]
@@ -301,8 +358,16 @@ namespace AgXUnity
           agx.ScrewController.safeCast( Native ).setLead( m_lead );
       }
     }
+
+    protected override void Construct( ElementaryConstraint source )
+    {
+      base.Construct( source );
+
+      m_lead = ( source as ScrewController ).m_lead;
+    }
   }
 
+  [HideInInspector]
   public class ElectricMotorController : ElementaryConstraintController
   {
     [SerializeField]
@@ -351,6 +416,15 @@ namespace AgXUnity
       m_voltage            = Convert.ToSingle( agx.ElectricMotorController.safeCast( tmpEc ).getVoltage() );
       m_armatureResistance = Convert.ToSingle( agx.ElectricMotorController.safeCast( tmpEc ).getArmatureResistance() );
       m_torqueConstant     = Convert.ToSingle( agx.ElectricMotorController.safeCast( tmpEc ).getTorqueConstant() );
+    }
+
+    protected override void Construct( ElementaryConstraint source )
+    {
+      base.Construct( source );
+
+      m_voltage            = ( source as ElectricMotorController ).m_voltage;
+      m_armatureResistance = ( source as ElectricMotorController ).m_armatureResistance;
+      m_torqueConstant     = ( source as ElectricMotorController ).m_torqueConstant;
     }
   }
 }
