@@ -217,33 +217,29 @@ namespace AgXUnityEditor
       GameObject.DestroyImmediate( primitive.Node );
     }
 
-    public static void SaveWireCableRoutesToEditorData( bool silent = false )
+    public class OnAssetsModification : UnityEditor.AssetModificationProcessor
     {
+      private static string[] OnWillSaveAssets( string[] paths )
       {
-        AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
-        for ( int i = 0; i < wires.Length; ++i ) {
-          var wire = wires[ i ];
-          var data = EditorData.Instance.GetStaticData( Legacy.WireRouteData.GetId( wire, i ) );
-          data.ScriptableObject = data.ScriptableObject is Legacy.WireRouteData ?
-                                    ( data.ScriptableObject as Legacy.WireRouteData ).Construct( wire.Route ) :
-                                    Legacy.WireRouteData.Create( wire.Route );
-          if ( !silent )
-            Debug.Log( "Saved data for wire route.", wire );
-        }
-      }
+        foreach ( var path in paths ) {
+          FileInfo info = new FileInfo( path );
+          if ( info.Extension == ".unity" )
+            SaveWireCableRoutes();
+        }          
 
-      {
-        AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
-        foreach ( var cable in cables ) {
-          var data = EditorData.Instance.GetData( cable, "CableRouteData" );
-          data.SetIsStatic( true );
-          data.ScriptableObject = data.ScriptableObject is Legacy.CableRouteData ?
-                                    ( data.ScriptableObject as Legacy.CableRouteData ).Construct( cable.Route ) :
-                                    Legacy.CableRouteData.Create( cable.Route );
-          if ( !silent )
-            Debug.Log( "Saved data for cable route.", cable );
-        }
+        return paths;
       }
+    }
+
+    public static void SaveWireCableRoutes()
+    {
+      AgXUnity.Wire[] wires = UnityEngine.Object.FindObjectsOfType<AgXUnity.Wire>();
+      foreach ( var wire in wires )
+        wire.gameObject.GetOrCreateComponent<AgXUnity.Legacy.WireRouteData>().Save();
+
+      AgXUnity.Cable[] cables = UnityEngine.Object.FindObjectsOfType<AgXUnity.Cable>();
+      foreach ( var cable in cables )
+        cable.gameObject.GetOrCreateComponent<AgXUnity.Legacy.CableRouteData>().Save();
     }
 
     private static string m_currentSceneName = string.Empty;
@@ -469,8 +465,6 @@ namespace AgXUnityEditor
               selectionProxy.Component = wire;
           }
         }
-
-        SaveWireCableRoutesToEditorData( false );
       }
     }
 

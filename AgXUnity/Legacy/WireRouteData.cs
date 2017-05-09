@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using AgXUnity;
 
-namespace AgXUnityEditor.Legacy
+namespace AgXUnity.Legacy
 {
   [Serializable]
   public class WireRouteWinchData
@@ -33,28 +32,22 @@ namespace AgXUnityEditor.Legacy
     public WireRouteWinchData WinchData = null;
   }
 
-  public class WireRouteData : ScriptableObject
+  public class WireRouteData : ScriptComponent
   {
     [SerializeField]
     private List<WireRouteNodeData> m_data = new List<WireRouteNodeData>();
 
-    public static string GetId( Wire wire, int counter )
+    public void Save()
     {
-      return UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().name + "__" + wire.name + "__" + counter;
-    }
-
-    public static WireRouteData Create( WireRoute wireRoute )
-    {
-      return CreateInstance<WireRouteData>().Construct( wireRoute );
-    }
-
-    public WireRouteData Construct( WireRoute wireRoute )
-    {
-      hideFlags = HideFlags.DontSave;
+      hideFlags = HideFlags.HideInInspector;
 
       m_data.Clear();
 
-      foreach ( var node in wireRoute ) {
+      var wire = GetComponent<Wire>();
+      if ( wire == null )
+        return;
+
+      foreach ( var node in wire.Route ) {
         m_data.Add( new WireRouteNodeData()
         {
           NodeType      = node.Type,
@@ -72,8 +65,6 @@ namespace AgXUnityEditor.Legacy
                           null
         } );
       }
-
-      return this;
     }
   }
 }

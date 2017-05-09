@@ -84,6 +84,8 @@
     <Compile Include="ElementaryConstraint.cs" />
     <Compile Include="ElementaryConstraintRowData.cs" />
     <Compile Include="Frame.cs" />
+    <Compile Include="Legacy\CableRouteData.cs" />
+    <Compile Include="Legacy\WireRouteData.cs" />
     <Compile Include="PickHandler.cs" />
     <Compile Include="Rendering\CableRenderer.cs" />
     <Compile Include="Rendering\PickHandlerRenderer.cs" />

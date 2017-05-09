@@ -292,7 +292,7 @@ namespace AgXUnityEditor
     [MenuItem( "AgXUnity/Utils/Save Wire and Cable routes future version" ) ]
     public static void SaveWireCableRoutesForFutureVersion()
     {
-      Manager.SaveWireCableRoutesToEditorData();
+      Manager.SaveWireCableRoutes();
     }
     #endregion
   }

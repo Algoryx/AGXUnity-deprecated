@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
-using AgXUnity;
 
-namespace AgXUnityEditor.Legacy
+namespace AgXUnity.Legacy
 {
   [Serializable]
   public class CableRouteNodeData
@@ -18,21 +17,22 @@ namespace AgXUnityEditor.Legacy
     public Quaternion LocalRotation = Quaternion.identity;
   }
 
-  public class CableRouteData : ScriptableObject
+  public class CableRouteData : ScriptComponent
   {
     [SerializeField]
     private List<CableRouteNodeData> m_data = new List<CableRouteNodeData>();
 
-    public static CableRouteData Create( CableRoute cableRoute )
+    public void Save()
     {
-      return CreateInstance<CableRouteData>().Construct( cableRoute );
-    }
+      hideFlags = HideFlags.HideInInspector;
 
-    public CableRouteData Construct( CableRoute wireRoute )
-    {
       m_data.Clear();
 
-      foreach ( var node in wireRoute ) {
+      var cable = GetComponent<Cable>();
+      if ( cable == null )
+        return;
+
+      foreach ( var node in cable.Route ) {
         m_data.Add( new CableRouteNodeData()
         {
           NodeType = node.Type,
@@ -41,8 +41,6 @@ namespace AgXUnityEditor.Legacy
           LocalRotation = node.Frame.LocalRotation,
         } );
       }
-
-      return this;
     }
   }
 }
