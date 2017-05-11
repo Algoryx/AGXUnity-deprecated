@@ -33,6 +33,10 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="agxDotNet, Version=0.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\agx_unity\installed\bin\x64\agxDotNet.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEditor">
       <HintPath>..\..\..\..\Program Files\Unity\Editor\Data\Managed\UnityEditor.dll</HintPath>
@@ -42,11 +46,15 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssetPostprocessorHandler.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="BaseEditor.cs" />
     <Compile Include="EditorData.cs" />
     <Compile Include="EditorDataEntry.cs" />
     <Compile Include="EditorSettings.cs" />
+    <Compile Include="IO\InputAGXFile.cs" />
+    <Compile Include="IO\InputAGXFileTree.cs" />
+    <Compile Include="IO\InputAGXFileTreeNode.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="Menus\AssetsMenu.cs" />
     <Compile Include="Menus\TopMenu.cs" />

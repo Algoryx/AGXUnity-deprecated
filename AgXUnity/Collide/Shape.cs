@@ -32,6 +32,9 @@ namespace AgXUnity.Collide
     [HideInInspector]
     public float MinimumLength { get { return 1.0E-5f; } }
 
+    public Vector3 LocalPosition { get { return transform.localPosition; } }
+    public Vector3 WorldPosition { get { return transform.position; } }
+
     /// <summary>
     /// Shape material instance paired with property Material.
     /// </summary>

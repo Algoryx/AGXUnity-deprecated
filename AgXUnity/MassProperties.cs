@@ -130,6 +130,15 @@ namespace AgXUnity
       m_inertiaCoefficients = source.m_inertiaCoefficients;
     }
 
+    public void RestoreLocalDataFrom( agx.MassProperties native )
+    {
+      Mass.UserValue = Convert.ToSingle( native.getMass() );
+      InertiaDiagonal.UserValue = native.getPrincipalInertiae().ToVector3();
+
+      Mass.UseDefault = false;
+      InertiaDiagonal.UseDefault = false;
+    }
+
     protected override bool Initialize()
     {
       if ( RigidBody == null ) {

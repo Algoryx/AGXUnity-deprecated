@@ -17,7 +17,7 @@ namespace AgXUnity.Utils
     public void Dispose()
     {
       Native.stop();
-      Debug.Log( "(TimerBlock): " + Name + ": " + Native.getTime() + " ms." );
+      Debug.Log( "(Timed): " + Name + ": " + Native.getTime() + " ms." );
     }
   }
 }
