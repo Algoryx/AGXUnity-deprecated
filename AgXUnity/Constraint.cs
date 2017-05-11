@@ -488,6 +488,8 @@ namespace AgXUnity
           CollisionGroupsManager.Instance.GetInitialized<CollisionGroupsManager>().SetEnablePair( groupName, groupName, false );
         }
 
+        Native.setName( name );
+
         bool valid = added && Native.getValid();
         Simulation.Instance.StepCallbacks.PreSynchronizeTransforms += OnPreStepForwardUpdate;
 
