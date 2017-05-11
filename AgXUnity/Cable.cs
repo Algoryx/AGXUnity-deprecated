@@ -207,6 +207,8 @@ namespace AgXUnity
         return false;
       }
 
+      Native.setName( name );
+
       GetSimulation().add( Native );
 
       SynchronizeProperties();
