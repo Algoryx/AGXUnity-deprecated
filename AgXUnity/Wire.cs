@@ -232,6 +232,8 @@ namespace AgXUnity
           ++nodeCounter;
         }
 
+        Native.setName( name );
+
         GetSimulation().add( Native );
         Simulation.Instance.StepCallbacks.PostStepForward += OnPostStepForward;
       }
