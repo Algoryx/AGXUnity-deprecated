@@ -32,8 +32,25 @@ namespace AgXUnity.Collide
     [HideInInspector]
     public float MinimumLength { get { return 1.0E-5f; } }
 
-    public Vector3 LocalPosition { get { return transform.localPosition; } }
-    public Vector3 WorldPosition { get { return transform.position; } }
+    /// <summary>
+    /// Collisions of shape enabled/disabled. Default enabled.
+    /// </summary>
+    [SerializeField]
+    private bool m_collisionsEnabled = true;
+
+    /// <summary>
+    /// Enable/disable collisions for this shape.
+    /// </summary>
+    public bool CollisionsEnabled
+    {
+      get { return m_collisionsEnabled; }
+      set
+      {
+        m_collisionsEnabled = value;
+        if ( NativeGeometry != null )
+          NativeGeometry.setEnableCollisions( m_collisionsEnabled );
+      }
+    }
 
     /// <summary>
     /// Shape material instance paired with property Material.

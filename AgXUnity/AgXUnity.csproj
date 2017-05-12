@@ -92,6 +92,7 @@
     <Compile Include="Rendering\CableRenderer.cs" />
     <Compile Include="Rendering\PickHandlerRenderer.cs" />
     <Compile Include="Rendering\SegmentSpawner.cs" />
+    <Compile Include="Rendering\ShapeVisual.cs" />
     <Compile Include="Rendering\SpawnerUtils.cs" />
     <Compile Include="Route.cs" />
     <Compile Include="RouteNode.cs" />

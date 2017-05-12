@@ -521,6 +521,9 @@ namespace AgXUnityEditor
           }
         }
       }
+      else if ( Selection.activeGameObject != null && PrefabUtility.GetPrefabType( Selection.activeGameObject ) == PrefabType.PrefabInstance ) {
+        AssetPostprocessorHandler.OnPrefabAddedToScene( Selection.activeGameObject );
+      }
     }
 
     private static void HandleWindowsGUI( SceneView sceneView )

@@ -11,8 +11,20 @@ using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
 namespace AgXUnityEditor.IO
 {
+  // TODO: Disable collisions (complete shape/geometry)
+  // TODO: Disable collisions between objects
+  // TODO: Group id and space disabled pairs.
+  // TODO: OnPrefabAddedToScene directory hell cleanup.
   public class InputAGXFile : IDisposable
   {
+    public static string MakeRelative( string full, string root )
+    {
+      Uri fullUri = new Uri( full );
+      Uri rootUri = new Uri( root );
+      Uri relUri = rootUri.MakeRelativeUri( fullUri );
+      return relUri.ToString();
+    }
+
     public string Name { get; private set; }
 
     public string RelDirectoryPath { get; private set; }
@@ -69,7 +81,7 @@ namespace AgXUnityEditor.IO
         AssetDatabase.CreateFolder( RelDirectoryPath, Name + "_Data" );
 
       using ( new TimerBlock( "Generating: " + AGXFileInfo.Name ) ) {
-        Parent = new GameObject( Name );
+        Parent                    = new GameObject( Name );
         Parent.transform.position = Vector3.zero;
         Parent.transform.rotation = Quaternion.identity;
 
@@ -240,7 +252,8 @@ namespace AgXUnityEditor.IO
 
     private bool CreateShape( Node node )
     {
-      var nativeShape = m_tree.GetShape( node.Uuid );
+      var nativeGeometry  = m_tree.GetGeometry( node.Parent.Uuid );
+      var nativeShape     = m_tree.GetShape( node.Uuid );
       var nativeShapeType = (agxCollide.Shape.Type)nativeShape.getType();
 
       if ( nativeShapeType == agxCollide.Shape.Type.BOX ) {
@@ -296,12 +309,98 @@ namespace AgXUnityEditor.IO
         return false;
       }
 
+      var shape = node.GameObject.GetComponent<AgXUnity.Collide.Shape>();
       var shapeMaterials = node.GetReferences( Node.NodeType.Material );
       if ( shapeMaterials.Length > 0 ) {
-        node.GameObject.GetComponent<AgXUnity.Collide.Shape>().Material = shapeMaterials[ 0 ].Asset as ShapeMaterial;
+        shape.Material = shapeMaterials[ 0 ].Asset as ShapeMaterial;
         if ( shapeMaterials.Length > 1 )
           Debug.LogWarning( "More than one material referenced to shape: " + node.GameObject.name );
       }
+
+      shape.CollisionsEnabled = nativeGeometry.getEnableCollisions();
+
+      if ( nativeShape.getRenderData() != null )
+        CreateRenderData( node );
+
+      return true;
+    }
+
+    private bool CreateRenderData( Node node )
+    {
+      var nativeShape = m_tree.GetShape( node.Uuid );
+      var renderData  = nativeShape.getRenderData();
+      if ( renderData == null )
+        return false;
+
+      var nativeGeometry       = m_tree.GetGeometry( node.Parent.Uuid );
+      var shape                = node.GameObject.GetComponent<AgXUnity.Collide.Shape>();
+      var renderDataGameObject = new GameObject( shape.name + "_Visual" );
+      var shapeVisual          = renderDataGameObject.AddComponent<AgXUnity.Rendering.ShapeVisual>();
+
+      shape.gameObject.AddChild( renderDataGameObject );
+      renderDataGameObject.transform.localPosition = Vector3.zero;
+      renderDataGameObject.transform.localRotation = Quaternion.identity;
+      renderDataGameObject.transform.localScale    = Vector3.one;
+
+      var renderer = shapeVisual.MeshRenderer;
+      var filter   = shapeVisual.MeshFilter;
+      var toWorld  = nativeGeometry.getTransform();
+      var toLocal  = renderDataGameObject.transform.worldToLocalMatrix;
+      var mesh     = new Mesh();
+      mesh.name    = shapeVisual.name + "_Mesh";
+
+      // Assigning and converting vertices.
+      // Note: RenderData vertices assumed to be given in geometry coordinates.
+      mesh.SetVertices( ( from v
+                          in renderData.getVertexArray()
+                          select toLocal.MultiplyPoint3x4( toWorld.preMult( v ).ToHandedVector3() ) ).ToList() );
+
+      // Assigning and converting colors.
+      mesh.SetColors( ( from c
+                        in renderData.getColorArray()
+                        select c.ToColor() ).ToList() );
+
+      // Unsure about this one.
+      mesh.SetUVs( 0,
+                    ( from uv
+                      in renderData.getTexCoordArray()
+                      select uv.ToVector2() ).ToList() );
+
+      // Converting counter clockwise -> clockwise.
+      var triangles = new List<int>();
+      var indexArray = renderData.getIndexArray();
+      for ( int i = 0; i < indexArray.Count; i += 3 ) {
+        triangles.Add( Convert.ToInt32( indexArray[ i + 0 ] ) );
+        triangles.Add( Convert.ToInt32( indexArray[ i + 2 ] ) );
+        triangles.Add( Convert.ToInt32( indexArray[ i + 1 ] ) );
+      }
+      mesh.SetTriangles( triangles, 0, false );
+
+      mesh.RecalculateBounds();
+      mesh.RecalculateNormals();
+      mesh.RecalculateTangents();
+
+      var shader = Shader.Find( "Standard" ) ?? Shader.Find( "Diffuse" );
+      if ( shader == null )
+        Debug.LogError( "Unable to find standard shaders." );
+
+      var renderMaterial = renderData.getRenderMaterial();
+      var material       = new Material( shader );
+      material.name      = shapeVisual.name + "_Material";
+
+      if ( renderMaterial.hasDiffuseColor() )
+        material.SetVector( "_Color", renderMaterial.getDiffuseColor().ToColor() );
+      if ( renderMaterial.hasEmissiveColor() )
+        material.SetVector( "_EmissionColor", renderMaterial.getEmissiveColor().ToColor() );
+
+      material.SetFloat( "_Metallic", 0.3f );
+      material.SetFloat( "_Glossiness", 0.8f );
+
+      AddAsset( mesh );
+      AddAsset( material );
+
+      filter.sharedMesh       = mesh;
+      renderer.sharedMaterial = material;
 
       return true;
     }
@@ -432,14 +531,6 @@ namespace AgXUnityEditor.IO
       m_names.Add( result );
 
       return result;
-    }
-
-    private string MakeRelative( string full, string root )
-    {
-      Uri fullUri = new Uri( full );
-      Uri rootUri = new Uri( root );
-      Uri relUri  = rootUri.MakeRelativeUri( fullUri );
-      return relUri.ToString();
     }
 
     private Tree m_tree = new Tree();
