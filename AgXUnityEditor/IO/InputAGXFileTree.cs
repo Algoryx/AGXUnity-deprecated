@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using AgXUnity.Utils;
 using NodeType = AgXUnityEditor.IO.InputAGXFileTreeNode.NodeType;
 using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
@@ -44,6 +45,10 @@ namespace AgXUnityEditor.IO
 
     public Node[] ContactMaterials { get { return m_contactMaterialRoot.Children; } }
 
+    public InputAGXFileTree()
+    {
+    }
+
     public Node GetNode( agx.Uuid uuid )
     {
       Node node;
@@ -76,6 +81,14 @@ namespace AgXUnityEditor.IO
       return null;
     }
 
+    public agxCollide.Shape GetShape( agx.Uuid uuid )
+    {
+      agxCollide.Shape shape;
+      if ( m_shapes.TryGetValue( uuid, out shape ) )
+        return shape;
+      return null;
+    }
+
     public agx.Constraint GetConstraint( agx.Uuid uuid )
     {
       agx.Constraint constraint;
@@ -105,8 +118,12 @@ namespace AgXUnityEditor.IO
       if ( simulation == null )
         throw new ArgumentNullException( "simulation", "agxSDK.Simulation instance is null." );
 
-      m_roots.Clear();
-      m_nodeCache.Clear();
+      if ( m_roots.Count > 0 )
+        throw new AgXUnity.Exception( "Calling InputAGXFileTree::Parse multiple times is not supported." );
+
+      // Generating assets first.
+      m_roots.Add( m_materialRoot );
+      m_roots.Add( m_contactMaterialRoot );
 
       // RigidBody nodes.
       foreach ( var nativeRb in simulation.getRigidBodies() ) {
@@ -168,6 +185,9 @@ namespace AgXUnityEditor.IO
           cmNode.AddReference( GetNode( m2.getUuid() ) );
         }
       }
+
+      // Generating constraints last.
+      m_roots.Add( m_constraintRoot );
     }
 
     private void Parse( agxCollide.Geometry geometry, Node parent )
@@ -175,6 +195,11 @@ namespace AgXUnityEditor.IO
       var geometryNode = GetOrCreateGeometry( geometry, parent == null );
       if ( parent != null )
         parent.AddChild( geometryNode );
+
+      foreach ( var shape in geometry.getShapes() ) {
+        var shapeNode = GetOrCreateShape( shape.get() );
+        geometryNode.AddChild( shapeNode );
+      }
 
       if ( geometry.getMaterial() != null ) {
         var materialNode = GetOrCreateMaterial( geometry.getMaterial() );
@@ -214,6 +239,14 @@ namespace AgXUnityEditor.IO
                               geometry.getUuid(),
                               isRoot,
                               () => m_geometries.Add( geometry.getUuid(), geometry ) );
+    }
+
+    private Node GetOrCreateShape( agxCollide.Shape shape )
+    {
+      return GetOrCreateNode( NodeType.Shape,
+                              shape.getUuid(),
+                              false,
+                              () => m_shapes.Add( shape.getUuid(), shape ) );
     }
 
     private Node GetOrCreateConstraint( agx.Constraint constraint )
@@ -271,17 +304,31 @@ namespace AgXUnityEditor.IO
       return node;
     }
 
-    private Dictionary<agx.Uuid, Node>                m_nodeCache        = new Dictionary<agx.Uuid, Node>();
-    private Dictionary<agx.Uuid, agx.Frame>           m_assemblies       = new Dictionary<agx.Uuid, agx.Frame>();
-    private Dictionary<agx.Uuid, agx.RigidBody>       m_bodies           = new Dictionary<agx.Uuid, agx.RigidBody>();
-    private Dictionary<agx.Uuid, agxCollide.Geometry> m_geometries       = new Dictionary<agx.Uuid, agxCollide.Geometry>();
-    private Dictionary<agx.Uuid, agx.Constraint>      m_constraints      = new Dictionary<agx.Uuid, agx.Constraint>();
-    private Dictionary<agx.Uuid, agx.Material>        m_materials        = new Dictionary<agx.Uuid, agx.Material>();
-    private Dictionary<agx.Uuid, agx.ContactMaterial> m_contactMaterials = new Dictionary<agx.Uuid, agx.ContactMaterial>();
+    private class UuidComparer : IEqualityComparer<agx.Uuid>
+    {
+      public bool Equals( agx.Uuid id1, agx.Uuid id2 )
+      {
+        return id1.EqualWith( id2 );
+      }
+
+      public int GetHashCode( agx.Uuid id )
+      {
+        return id.str().GetHashCode();
+      }
+    }
+
+    private Dictionary<agx.Uuid, Node>                m_nodeCache        = new Dictionary<agx.Uuid, Node>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agx.Frame>           m_assemblies       = new Dictionary<agx.Uuid, agx.Frame>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agx.RigidBody>       m_bodies           = new Dictionary<agx.Uuid, agx.RigidBody>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agxCollide.Geometry> m_geometries       = new Dictionary<agx.Uuid, agxCollide.Geometry>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agxCollide.Shape>    m_shapes           = new Dictionary<agx.Uuid, agxCollide.Shape>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agx.Constraint>      m_constraints      = new Dictionary<agx.Uuid, agx.Constraint>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agx.Material>        m_materials        = new Dictionary<agx.Uuid, agx.Material>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agx.ContactMaterial> m_contactMaterials = new Dictionary<agx.Uuid, agx.ContactMaterial>( new UuidComparer() );
 
     private List<Node> m_roots = new List<Node>();
-    private Node m_constraintRoot = new Node();
-    private Node m_materialRoot = new Node();
-    private Node m_contactMaterialRoot = new Node();
+    private Node m_constraintRoot = new Node() { Type = NodeType.Placeholder };
+    private Node m_materialRoot = new Node() { Type = NodeType.Placeholder };
+    private Node m_contactMaterialRoot = new Node() { Type = NodeType.Placeholder };
   }
 }

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace AgXUnity
 {
@@ -102,6 +103,15 @@ namespace AgXUnity
       Utils.PropertySynchronizer.Synchronize( this );
       m_material = null;
       return tmpMaterial;
+    }
+
+    public ShapeMaterial RestoreLocalDataFrom( agx.Material native )
+    {
+      Density           = Convert.ToSingle( native.getBulkMaterial().getDensity() );
+      YoungsWireStretch = Convert.ToSingle( native.getWireMaterial().getYoungsModulusStretch() );
+      YoungsWireBend    = Convert.ToSingle( native.getWireMaterial().getYoungsModulusBend() );
+
+      return this;
     }
 
     protected override void Construct()

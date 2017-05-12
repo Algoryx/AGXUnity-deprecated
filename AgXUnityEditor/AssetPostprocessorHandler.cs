@@ -140,6 +140,7 @@ namespace AgXUnityEditor
           inputFile.TryLoad();
           inputFile.TryParse();
           inputFile.TryGenerate();
+          inputFile.TryCreatePrefab();
         }
       }
       catch ( System.Exception e ) {

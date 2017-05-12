@@ -10,6 +10,8 @@ namespace AgXUnityEditor.IO
   {
     public enum NodeType
     {
+      Placeholder,
+      Shape,
       Geometry,
       RigidBody,
       Assembly,
@@ -30,10 +32,12 @@ namespace AgXUnityEditor.IO
 
     public GameObject GameObject { get; set; }
 
+    public ScriptableObject Asset { get; set; }
+
     public void AddChild( InputAGXFileTreeNode child )
     {
       if ( child == null ) {
-        Debug.LogWarning( "Trying to add null child to parent: " + Type + ", (UUID: " + Uuid.ToString() + ")" );
+        Debug.LogWarning( "Trying to add null child to parent: " + Type + ", (UUID: " + Uuid.str() + ")" );
         return;
       }
 
@@ -48,13 +52,16 @@ namespace AgXUnityEditor.IO
 
     public void AddReference( InputAGXFileTreeNode reference )
     {
-      if ( reference == null )
+      if ( reference == null || m_references.Contains( reference ) )
         return;
 
-      if ( !m_references.Contains( reference ) )
-        m_references.Add( reference );
-
+      m_references.Add( reference );
       reference.m_references.Add( this );
+    }
+
+    public InputAGXFileTreeNode[] GetReferences( NodeType type )
+    {
+      return ( from node in m_references where node.Type == type select node ).ToArray();
     }
 
     private List<InputAGXFileTreeNode> m_children   = new List<InputAGXFileTreeNode>();

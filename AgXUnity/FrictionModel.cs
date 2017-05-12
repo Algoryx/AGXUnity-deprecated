@@ -42,6 +42,23 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Converts native solve type to ESolveType.
+    /// </summary>
+    /// <param name="solveType">Native solve type.</param>
+    /// <returns>ESolveType given native solve type.</returns>
+    public static ESolveType Convert( agx.FrictionModel.SolveType solveType )
+    {
+      if ( solveType == agx.FrictionModel.SolveType.DIRECT )
+        return ESolveType.Direct;
+      else if ( solveType == agx.FrictionModel.SolveType.ITERATIVE )
+        return ESolveType.Iterative;
+      else if ( solveType == agx.FrictionModel.SolveType.DIRECT_AND_ITERATIVE )
+        return ESolveType.DirectAndIterative;
+
+      return ESolveType.Split;
+    }
+
+    /// <summary>
     /// Create native friction model given solve type and friction model type.
     /// </summary>
     /// <param name="type">Friction model type.</param>
@@ -58,6 +75,21 @@ namespace AgXUnity
         frictionModel = new agx.BoxFrictionModel( Convert( solveType ) );
 
       return frictionModel;
+    }
+
+    /// <summary>
+    /// Finds friction model type given native instance.
+    /// </summary>
+    /// <param name="native">Native friction model.</param>
+    /// <returns>Native friction model type.</returns>
+    public static EType FindType( agx.FrictionModel native )
+    {
+      if ( native == null || native.asIterativeProjectedConeFriction() != null )
+        return EType.IterativeProjectedFriction;
+      else if ( native.asBoxFrictionModel() != null )
+        return EType.BoxFriction;
+
+      return EType.ScaleBoxFriction;
     }
 
     /// <summary>
@@ -128,6 +160,14 @@ namespace AgXUnity
 
         OnNativeInstanceChanged( m_frictionModel );
       }
+    }
+
+    public FrictionModel RestoreLocalDataFrom( agx.FrictionModel native )
+    {
+      SolveType = Convert( native.getSolveType() );
+      Type      = FindType( native );
+
+      return this;
     }
 
     private FrictionModel()

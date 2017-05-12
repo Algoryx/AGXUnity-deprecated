@@ -18,7 +18,8 @@ namespace AgXUnity
     BallJoint,
     DistanceJoint,
     AngularLockJoint,
-    PlaneJoint
+    PlaneJoint,
+    Unknown
   }
 
   [AddComponentMenu( "" )]
@@ -80,21 +81,7 @@ namespace AgXUnity
             tmpF2.setLocalRotate( constraint.AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
 
             using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
-              for ( uint i = 0; i < tmpConstraint.getNumElementaryConstraints(); ++i ) {
-                ElementaryConstraint ec = ElementaryConstraint.Create( constraintGameObject, tmpConstraint.getElementaryConstraint( i ) );
-                if (ec == null)
-                  throw new Exception( "Failed to configure elementary constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
-
-                constraint.m_elementaryConstraints.Add( ec );
-              }
-
-              for ( uint i = 0; i < tmpConstraint.getNumSecondaryConstraints(); ++i ) {
-                ElementaryConstraint sc = ElementaryConstraint.Create( constraintGameObject, tmpConstraint.getSecondaryConstraint( i ) );
-                if (sc == null)
-                  throw new Exception( "Failed to configure elementary controller constraint with name: " + tmpConstraint.getElementaryConstraint( i ).getName() + "." );
-
-                constraint.m_elementaryConstraints.Add( sc );
-              }
+              constraint.TryAddElementaryConstraints( tmpConstraint );
             }
           }
         }
@@ -106,6 +93,49 @@ namespace AgXUnity
         DestroyImmediate( constraintGameObject );
         return null;
       }
+    }
+
+    /// <summary>
+    /// Finds constraint type given native instance.
+    /// </summary>
+    /// <param name="native">Native instance.</param>
+    /// <returns>ConstraintType of the native instance.</returns>
+    public static ConstraintType FindType( agx.Constraint native )
+    {
+      return native                      == null ? ConstraintType.Unknown :
+             native.asHinge()            != null ? ConstraintType.Hinge :
+             native.asPrismatic()        != null ? ConstraintType.Prismatic :
+             native.asLockJoint()        != null ? ConstraintType.LockJoint :
+             native.asCylindricalJoint() != null ? ConstraintType.CylindricalJoint :
+             native.asBallJoint()        != null ? ConstraintType.BallJoint :
+             native.asDistanceJoint()    != null ? ConstraintType.DistanceJoint :
+             native.asAngularLockJoint() != null ? ConstraintType.AngularLockJoint :
+             native.asPlaneJoint()       != null ? ConstraintType.PlaneJoint :
+                                                   ConstraintType.Unknown;
+    }
+
+    /// <summary>
+    /// Converts native solve type to ESolveType.
+    /// </summary>
+    /// <param name="solveType">Native solve type.</param>
+    /// <returns>ESolveType</returns>
+    public static ESolveType Convert( agx.Constraint.SolveType solveType )
+    {
+      return solveType == agx.Constraint.SolveType.DIRECT    ? ESolveType.Direct :
+             solveType == agx.Constraint.SolveType.ITERATIVE ? ESolveType.Iterative :
+                                                               ESolveType.DirectAndIterative;
+    }
+
+    /// <summary>
+    /// Converts constraint solve type to native version.
+    /// </summary>
+    /// <param name="solveType">Constraint solve type.</param>
+    /// <returns>Native solve type.</returns>
+    public static agx.Constraint.SolveType Convert( ESolveType solveType )
+    {
+      return solveType == ESolveType.Direct    ? agx.Constraint.SolveType.DIRECT :
+             solveType == ESolveType.Iterative ? agx.Constraint.SolveType.ITERATIVE :
+                                                 agx.Constraint.SolveType.DIRECT_AND_ITERATIVE;
     }
 
     [UnityEngine.Serialization.FormerlySerializedAs( "m_attachmentPair" )]
@@ -212,9 +242,7 @@ namespace AgXUnity
       {
         m_solveType = value;
         if ( Native != null )
-          Native.setSolveType( m_solveType == ESolveType.Direct    ? agx.Constraint.SolveType.DIRECT :
-                               m_solveType == ESolveType.Iterative ? agx.Constraint.SolveType.ITERATIVE :
-                                                                     agx.Constraint.SolveType.DIRECT_AND_ITERATIVE );
+          Native.setSolveType( Convert( m_solveType ) );
       }
     }
 
@@ -350,7 +378,7 @@ namespace AgXUnity
         return false;
 
       // Add all elementary constraints given reference. We now have both
-      // the old and the new reprecentation. The old is located in m_elementaryConstraints
+      // the old and the new representation. The old is located in m_elementaryConstraints
       // and the new in newElementaryConstraints.
       List<ElementaryConstraint> newElementaryConstraints = new List<ElementaryConstraint>();
       foreach ( var refEc in referenceHinge.m_elementaryConstraints )
@@ -405,6 +433,39 @@ namespace AgXUnity
       m_elementaryConstraints = newElementaryConstraints;
 
       return true;
+    }
+
+    /// <summary>
+    /// Internal method which constructs this constraint given elementary constraints
+    /// in the native instance. Throws if an elementary constraint fails to initialize.
+    /// </summary>
+    /// <param name="native">Native instance.</param>
+    public void TryAddElementaryConstraints( agx.Constraint native )
+    {
+      if ( native == null )
+        throw new ArgumentNullException( "native", "Native constraint is null." );
+
+      for ( uint i = 0; i < native.getNumElementaryConstraints(); ++i ) {
+        if ( native.getElementaryConstraint( i ).getName() == "" )
+          throw new AgXUnity.Exception( "Native elementary constraint doesn't have a name." );
+
+        var ec = ElementaryConstraint.Create( gameObject, native.getElementaryConstraint( i ) );
+        if ( ec == null )
+          throw new Exception( "Failed to configure elementary constraint with name: " + native.getElementaryConstraint( i ).getName() + "." );
+
+        m_elementaryConstraints.Add( ec );
+      }
+
+      for ( uint i = 0; i < native.getNumSecondaryConstraints(); ++i ) {
+        if ( native.getSecondaryConstraint( i ).getName() == "" )
+          throw new AgXUnity.Exception( "Native secondary constraint doesn't have a name." );
+
+        var sc = ElementaryConstraint.Create( gameObject, native.getSecondaryConstraint( i ) );
+        if ( sc == null )
+          throw new Exception( "Failed to configure elementary controller constraint with name: " + native.getElementaryConstraint( i ).getName() + "." );
+
+        m_elementaryConstraints.Add( sc );
+      }
     }
 
     /// <summary>

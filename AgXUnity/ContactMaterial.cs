@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace AgXUnity
 {
@@ -166,6 +167,18 @@ namespace AgXUnity
         if ( Native != null )
           Native.setRestitution( m_restitution );
       }
+    }
+
+    public ContactMaterial RestoreLocalDataFrom( agx.ContactMaterial contactMaterial )
+    {
+      YoungsModulus        = Convert.ToSingle( contactMaterial.getYoungsModulus() );
+      SurfaceViscosity     = new Vector2( Convert.ToSingle( contactMaterial.getSurfaceViscosity( agx.ContactMaterial.FrictionDirection.PRIMARY_DIRECTION ) ),
+                                          Convert.ToSingle( contactMaterial.getSurfaceViscosity( agx.ContactMaterial.FrictionDirection.SECONDARY_DIRECTION ) ) );
+      FrictionCoefficients = new Vector2( Convert.ToSingle( contactMaterial.getFrictionCoefficient( agx.ContactMaterial.FrictionDirection.PRIMARY_DIRECTION ) ),
+                                          Convert.ToSingle( contactMaterial.getFrictionCoefficient( agx.ContactMaterial.FrictionDirection.SECONDARY_DIRECTION ) ) );
+      Restitution          = Convert.ToSingle( contactMaterial.getRestitution() );
+
+      return this;
     }
 
     private ContactMaterial()
