@@ -37,6 +37,9 @@ namespace AgXUnityEditor
       bool agxFileFound = false;
       foreach ( var obj in Selection.objects ) {
         var assetPath = AssetDatabase.GetAssetPath( obj );
+        if ( assetPath == "" )
+          continue;
+
         agxFileFound = agxFileFound ||
                        IO.AGXFileInfo.IsExistingAGXFile( new System.IO.FileInfo( assetPath ) );
       }

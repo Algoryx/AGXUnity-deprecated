@@ -16,6 +16,7 @@ namespace AgXUnityEditor.IO
       RigidBody,
       Assembly,
       Constraint,
+      Wire,
       Material,
       ContactMaterial,
       GroupId

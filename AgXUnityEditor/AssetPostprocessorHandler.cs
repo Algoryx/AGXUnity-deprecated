@@ -13,6 +13,9 @@ namespace AgXUnityEditor
 
     public static UnityEngine.Object ReadAGXFile( IO.AGXFileInfo info )
     {
+      if ( info == null || !info.IsValid )
+        return null;
+
       try {
         UnityEngine.Object prefab = null;
         using ( var inputFile = new IO.InputAGXFile( info ) ) {
@@ -34,7 +37,7 @@ namespace AgXUnityEditor
     public static void OnPrefabAddedToScene( GameObject instance )
     {
       var fileInfo = new IO.AGXFileInfo( instance );
-      if ( fileInfo.Type != IO.AGXFileInfo.FileType.AGXPrefab )
+      if ( !fileInfo.IsValid || fileInfo.Type != IO.AGXFileInfo.FileType.AGXPrefab )
         return;
 
       if ( fileInfo.Parent == null ) {

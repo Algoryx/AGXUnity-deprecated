@@ -87,6 +87,11 @@ namespace AgXUnityEditor.IO
                FileType.AGXPrefab :
                FileType.Unknown;
     }
+    
+    /// <summary>
+    /// True if valid path was given.
+    /// </summary>
+    public bool IsValid { get { return m_fileInfo != null; } }
 
     /// <summary>
     /// Name of the file - without extension.
@@ -232,6 +237,9 @@ namespace AgXUnityEditor.IO
 
     private void Construct( string path )
     {
+      if ( path == "" )
+        return;
+
       m_fileInfo    = new FileInfo( path );
       Name          = Path.GetFileNameWithoutExtension( m_fileInfo.Name );
       Type          = FindType( m_fileInfo );

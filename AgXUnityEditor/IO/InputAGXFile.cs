@@ -166,6 +166,9 @@ namespace AgXUnityEditor.IO
             Add( node );
             node.GameObject.transform.position = frame.getTranslate().ToHandedVector3();
             node.GameObject.transform.rotation = frame.getRotate().ToHandedQuaternion();
+
+            node.GameObject.AddComponent<Assembly>();
+
             break;
           case Node.NodeType.RigidBody:
             agx.RigidBody nativeRb = m_tree.GetRigidBody( node.Uuid );
@@ -246,6 +249,16 @@ namespace AgXUnityEditor.IO
             Add( node );
 
             if ( !CreateConstraint( node ) )
+              GameObject.DestroyImmediate( node.GameObject );
+
+            break;
+          case Node.NodeType.Wire:
+            var nativeWire = m_tree.GetWire( node.Uuid );
+            node.GameObject = new GameObject( FindName( nativeWire.getName(), "AgXUnity.Wire" ) );
+
+            Add( node );
+
+            if ( !CreateWire( node ) )
               GameObject.DestroyImmediate( node.GameObject );
 
             break;
@@ -550,6 +563,83 @@ namespace AgXUnityEditor.IO
       constraint.AttachmentPair.ConnectedFrame.LocalRotation = nativeConstraint.getAttachment( 1ul ).getFrame().getLocalRotate().ToHandedQuaternion();
 
       constraint.AttachmentPair.Synchronized = constraintType != ConstraintType.DistanceJoint;
+
+      return true;
+    }
+
+    private bool CreateWire( Node node )
+    {
+      var nativeWire = m_tree.GetWire( node.Uuid );
+      if ( nativeWire == null ) {
+        Debug.LogWarning( "Unable to find native instance of wire: " + node.GameObject.name +
+                          " (UUID: " + node.Uuid.str() + ")" );
+        return false;
+      }
+
+      Func<agx.RigidBody, GameObject> findRigidBody = ( nativeRb ) =>
+      {
+        if ( nativeRb == null )
+          return null;
+
+        // Do not reference lumped nodes!
+        if ( agxWire.Wire.isLumpedNode( nativeRb ) )
+          return null;
+
+        Node rbNode = m_tree.GetNode( nativeRb.getUuid() );
+        if ( rbNode == null ) {
+          Debug.LogWarning( "Unable to find reference rigid body: " + nativeRb.getName() + " (UUID: " + nativeRb.getUuid().str() + ")" );
+          return null;
+        }
+        if ( rbNode.GameObject == null ) {
+          Debug.LogWarning( "Referenced native rigid body hasn't a game object: " + nativeRb.getName() + " (UUID: " + rbNode.Uuid.str() + ")" );
+          return null;
+        }
+
+        return rbNode.GameObject;
+      };
+
+      var wire  = node.GameObject.AddComponent<Wire>();
+      var route = wire.Route;
+
+      wire.RestoreLocalDataFrom( nativeWire );
+
+      var nativeIt         = nativeWire.getRenderBeginIterator();
+      var nativeEndIt      = nativeWire.getRenderEndIterator();
+      var nativeBeginWinch = nativeWire.getWinchController( 0u );
+      var nativeEndWinch   = nativeWire.getWinchController( 1u );
+
+      if ( nativeBeginWinch != null ) {
+        route.Add( nativeBeginWinch,
+                   findRigidBody( nativeBeginWinch.getRigidBody() ) );
+      }
+      // Connecting nodes will show up in render iterators.
+      else if ( nativeIt.get().getNodeType() != agxWire.Node.Type.CONNECTING && nativeWire.getFirstNode().getNodeType() == agxWire.Node.Type.BODY_FIXED )
+        route.Add( nativeWire.getFirstNode(), findRigidBody( nativeWire.getFirstNode().getRigidBody() ) );
+
+      while ( !nativeIt.EqualWith( nativeEndIt ) ) {
+        var nativeNode = nativeIt.get();
+        route.Add( nativeNode, findRigidBody( nativeNode.getRigidBody() ) );
+        nativeIt.inc();
+      }
+
+      // Remove last node if we should have a winch or a body fixed node there.
+      if ( route.Last().Type == Wire.NodeType.FreeNode && nativeWire.getLastNode().getNodeType() == agxWire.Node.Type.BODY_FIXED )
+        route.Remove( route.Last() );
+
+      if ( nativeEndWinch != null ) {
+        route.Add( nativeEndWinch,
+                   findRigidBody( nativeEndWinch.getRigidBody() ) );
+      }
+      else if ( nativeIt.prev().get().getNodeType() != agxWire.Node.Type.CONNECTING && nativeWire.getLastNode().getNodeType() == agxWire.Node.Type.BODY_FIXED )
+        route.Add( nativeWire.getLastNode(), findRigidBody( nativeWire.getLastNode().getRigidBody() ) );
+
+      var materials = node.GetReferences( Node.NodeType.Material );
+      if ( materials.Length > 0 )
+        wire.Material = materials[ 0 ].Asset as ShapeMaterial;
+
+      wire.GetComponent<AgXUnity.Rendering.WireRenderer>().InitializeRenderer();
+      // Reset to assign default material.
+      wire.GetComponent<AgXUnity.Rendering.WireRenderer>().Material = null;
 
       return true;
     }

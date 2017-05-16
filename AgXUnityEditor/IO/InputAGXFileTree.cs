@@ -97,6 +97,14 @@ namespace AgXUnityEditor.IO
       return null;
     }
 
+    public agxWire.Wire GetWire( agx.Uuid uuid )
+    {
+      agxWire.Wire wire;
+      if ( m_wires.TryGetValue( uuid, out wire ) )
+        return wire;
+      return null;
+    }
+
     public agx.Material GetMaterial( agx.Uuid uuid )
     {
       agx.Material material;
@@ -130,6 +138,7 @@ namespace AgXUnityEditor.IO
         if ( !IsValid( nativeRb.get() ) )
           continue;
 
+        // TODO: Recursive assembly creation.
         var assemblyNode = TryGetOrCreateAssembly( nativeRb.getFrame() );
         var rbNode       = GetOrCreateRigidBody( nativeRb.get(), assemblyNode == null );
         if ( assemblyNode != null )
@@ -151,6 +160,7 @@ namespace AgXUnityEditor.IO
           continue;
         }
 
+        // TODO: Recursive assembly creation.
         Parse( nativeGeometry.get(), TryGetOrCreateAssembly( nativeGeometry.getFrame() ) );
       }
 
@@ -173,6 +183,16 @@ namespace AgXUnityEditor.IO
           constraintNode.AddReference( rb2Node );
       }
 
+      var wires = agxWire.Wire.findAll( simulation );
+      foreach ( var wire in wires ) {
+        // TODO: Handle wires in assemblies?
+        var wireNode = GetOrCreateWire( wire );
+        if ( wire.getMaterial() != null ) {
+          var materialNode = GetOrCreateMaterial( wire.getMaterial() );
+          wireNode.AddReference( materialNode );
+        }
+      }
+
       var mm = simulation.getMaterialManager();
       foreach ( var m1 in m_materials.Values ) {
         foreach ( var m2 in m_materials.Values ) {
@@ -186,6 +206,7 @@ namespace AgXUnityEditor.IO
         }
       }
 
+      m_roots.Add( m_wireRoot );
       // Generating constraints last.
       m_roots.Add( m_constraintRoot );
     }
@@ -263,6 +284,14 @@ namespace AgXUnityEditor.IO
                               () => m_constraints.Add( constraint.getUuid(), constraint ) );
     }
 
+    private Node GetOrCreateWire( agxWire.Wire wire )
+    {
+      return GetOrCreateNode( NodeType.Wire,
+                              wire.getUuid(),
+                              true,
+                              () => m_wires.Add( wire.getUuid(), wire ) );
+    }
+
     private Node GetOrCreateMaterial( agx.Material material )
     {
       return GetOrCreateNode( NodeType.Material,
@@ -299,6 +328,8 @@ namespace AgXUnityEditor.IO
           m_materialRoot.AddChild( node );
         else if ( type == NodeType.ContactMaterial )
           m_contactMaterialRoot.AddChild( node );
+        else if ( type == NodeType.Wire )
+          m_wireRoot.AddChild( node );
         else if ( m_roots.FindIndex( n => n.Uuid == uuid ) >= 0 )
           Debug.LogError( "Node already present as root." );
         else
@@ -329,11 +360,13 @@ namespace AgXUnityEditor.IO
     private Dictionary<agx.Uuid, agxCollide.Geometry> m_geometries       = new Dictionary<agx.Uuid, agxCollide.Geometry>( new UuidComparer() );
     private Dictionary<agx.Uuid, agxCollide.Shape>    m_shapes           = new Dictionary<agx.Uuid, agxCollide.Shape>( new UuidComparer() );
     private Dictionary<agx.Uuid, agx.Constraint>      m_constraints      = new Dictionary<agx.Uuid, agx.Constraint>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agxWire.Wire>        m_wires            = new Dictionary<agx.Uuid, agxWire.Wire>( new UuidComparer() );
     private Dictionary<agx.Uuid, agx.Material>        m_materials        = new Dictionary<agx.Uuid, agx.Material>( new UuidComparer() );
     private Dictionary<agx.Uuid, agx.ContactMaterial> m_contactMaterials = new Dictionary<agx.Uuid, agx.ContactMaterial>( new UuidComparer() );
 
     private List<Node> m_roots = new List<Node>();
     private Node m_constraintRoot = new Node() { Type = NodeType.Placeholder };
+    private Node m_wireRoot = new Node() { Type = NodeType.Placeholder };
     private Node m_materialRoot = new Node() { Type = NodeType.Placeholder };
     private Node m_contactMaterialRoot = new Node() { Type = NodeType.Placeholder };
   }
