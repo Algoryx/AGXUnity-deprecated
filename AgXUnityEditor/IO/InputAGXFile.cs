@@ -641,6 +641,11 @@ namespace AgXUnityEditor.IO
       // Reset to assign default material.
       wire.GetComponent<AgXUnity.Rendering.WireRenderer>().Material = null;
 
+      // Adding collision group from restored instance since the disabled pair
+      // will be read from Space (wire.setEnableCollisions( foo, false ) will
+      // work out of the box).
+      wire.gameObject.GetOrCreateComponent<CollisionGroups>().AddGroup( nativeWire.getGeometryController().getDisabledCollisionsGroupId().ToString(), false );
+
       return true;
     }
 
