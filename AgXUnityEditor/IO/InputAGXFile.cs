@@ -645,6 +645,8 @@ namespace AgXUnityEditor.IO
       // will be read from Space (wire.setEnableCollisions( foo, false ) will
       // work out of the box).
       wire.gameObject.GetOrCreateComponent<CollisionGroups>().AddGroup( nativeWire.getGeometryController().getDisabledCollisionsGroupId().ToString(), false );
+      foreach ( var id in nativeWire.getGeometryController().getGroupIds() )
+        wire.gameObject.GetOrCreateComponent<CollisionGroups>().AddGroup( id.ToString(), false );
 
       return true;
     }
