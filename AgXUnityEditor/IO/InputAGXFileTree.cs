@@ -205,6 +205,12 @@ namespace AgXUnityEditor.IO
         var materialNode = GetOrCreateMaterial( geometry.getMaterial() );
         geometryNode.AddReference( materialNode );
       }
+
+      var groupsCollection = geometry.findGroupIdCollection();
+      foreach ( var name in groupsCollection.getNames() )
+        geometryNode.AddReference( new Node() { Type = NodeType.GroupId, Object = name } );
+      foreach ( var id in groupsCollection.getIds() )
+        geometryNode.AddReference( new Node() { Type = NodeType.GroupId, Object = id.ToString() } );
     }
 
     private Node TryGetOrCreateAssembly( agx.Frame child )

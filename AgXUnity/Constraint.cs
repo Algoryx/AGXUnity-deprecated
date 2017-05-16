@@ -469,6 +469,20 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Assign constraint type given this constraint hasn't been constructed yet.
+    /// </summary>
+    /// <param name="type">Constraint type.</param>
+    public void SetType( ConstraintType type )
+    {
+      if ( m_elementaryConstraints.Count > 0 ) {
+        Debug.LogWarning( "Not possible to change constraint type when the constraint has been constructed. Ignoring new type.", this );
+        return;
+      }
+
+      Type = type;
+    }
+
+    /// <summary>
     /// Creates native instance and adds it to the simulation if this constraint
     /// is properly configured.
     /// </summary>
@@ -521,14 +535,14 @@ namespace AgXUnity
         // Assigning native elementary constraints to our elementary constraint instances.
         foreach ( ElementaryConstraint ec in ElementaryConstraints )
           if ( !ec.OnConstraintInitialize( this ) )
-            throw new Exception( "Unable to initialize elementary constraint: " + ec.NativeName + " (not present in native constraint)." );
+            throw new Exception( "Unable to initialize elementary constraint: " + ec.NativeName + " (not present in native constraint). ConstraintType: " + Type );
 
         bool added = GetSimulation().add( Native );
         Native.setEnable( IsEnabled );
 
         // Not possible to handle collisions if connected frame parent is null/world.
         if ( CollisionsState != ECollisionsState.KeepExternalState && AttachmentPair.ConnectedObject != null ) {
-          string groupName          = gameObject.name + gameObject.GetInstanceID().ToString();
+          string groupName          = gameObject.name + "_" + gameObject.GetInstanceID().ToString();
           GameObject go1            = null;
           GameObject go2            = null;
           bool propagateToChildren1 = false;

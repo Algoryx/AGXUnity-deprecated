@@ -521,7 +521,7 @@ namespace AgXUnityEditor
           }
         }
       }
-      else if ( Selection.activeGameObject != null && PrefabUtility.GetPrefabType( Selection.activeGameObject ) == PrefabType.PrefabInstance ) {
+      else if ( Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<AgXUnity.IO.RestoredAGXFile>() != null ) {
         AssetPostprocessorHandler.OnPrefabAddedToScene( Selection.activeGameObject );
       }
     }

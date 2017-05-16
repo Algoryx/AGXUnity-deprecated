@@ -17,7 +17,8 @@ namespace AgXUnityEditor.IO
       Assembly,
       Constraint,
       Material,
-      ContactMaterial
+      ContactMaterial,
+      GroupId
     }
 
     public NodeType Type { get; set; }
@@ -34,6 +35,8 @@ namespace AgXUnityEditor.IO
 
     public ScriptableObject Asset { get; set; }
 
+    public object Object { get; set; }
+
     public void AddChild( InputAGXFileTreeNode child )
     {
       if ( child == null ) {
@@ -48,6 +51,11 @@ namespace AgXUnityEditor.IO
 
       child.Parent = this;
       m_children.Add( child );
+    }
+
+    public InputAGXFileTreeNode[] GetChildren( NodeType type )
+    {
+      return ( from node in m_children where node.Type == type select node ).ToArray();
     }
 
     public void AddReference( InputAGXFileTreeNode reference )

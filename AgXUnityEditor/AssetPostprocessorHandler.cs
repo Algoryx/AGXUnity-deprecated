@@ -1,57 +1,61 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.IO;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using AgXUnity;
-using AgXUnity.Utils;
 
 namespace AgXUnityEditor
 {
   public class AssetPostprocessorHandler : AssetPostprocessor
   {
-    public static void OnPrefabAddedToScene( GameObject instance )
+    public static UnityEngine.Object ReadAGXFile( string path )
     {
-      var prefab = PrefabUtility.GetPrefabParent( instance ) as GameObject;
-      var prefabPath = AssetDatabase.GetAssetPath( prefab );
-      var prefabInfo = new FileInfo( Application.dataPath + prefabPath.Remove( 0, "Assets".Length ) );
-      var prefabDataPath = IO.InputAGXFile.MakeRelative( prefabInfo.DirectoryName, Application.dataPath )
-                           .Replace( '\\', '/' ) + "/" + Path.GetFileNameWithoutExtension( prefabInfo.Name ) + "_Data";
-      var contactMaterialsGuids = AssetDatabase.FindAssets( "t:AgXUnity.ContactMaterial", new string[]{ prefabDataPath } );
-      foreach ( var guid in contactMaterialsGuids ) {
-        var cm = AssetDatabase.LoadAssetAtPath<ContactMaterial>( AssetDatabase.GUIDToAssetPath( guid ) );
-        if ( cm != null )
-          ContactMaterialManager.Instance.Add( cm );
-      }
+      return ReadAGXFile( new IO.AGXFileInfo( path ) );
     }
 
-    private static void OnPostprocessAllAssets( string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths )
-    {
-      foreach ( var import in importedAssets ) {
-        FileInfo info = new FileInfo( import );
-        if ( info.Extension == ".agx" || info.Extension == ".aagx" )
-          ReadAGXFile( info );
-      }
-    }
-
-    private void OnPreprocessModel()
-    {
-    }
-
-    private static void ReadAGXFile( FileInfo file )
+    public static UnityEngine.Object ReadAGXFile( IO.AGXFileInfo info )
     {
       try {
-        using ( var inputFile = new IO.InputAGXFile( file ) ) {
+        UnityEngine.Object prefab = null;
+        using ( var inputFile = new IO.InputAGXFile( info ) ) {
           inputFile.TryLoad();
           inputFile.TryParse();
           inputFile.TryGenerate();
-          inputFile.TryCreatePrefab();
+          prefab = inputFile.TryCreatePrefab();
         }
+
+        return prefab;
       }
       catch ( System.Exception e ) {
         Debug.LogException( e );
       }
+
+      return null;
+    }
+
+    public static void OnPrefabAddedToScene( GameObject instance )
+    {
+      var fileInfo = new IO.AGXFileInfo( instance );
+      if ( fileInfo.Type != IO.AGXFileInfo.FileType.AGXPrefab )
+        return;
+
+      if ( fileInfo.Parent == null ) {
+        Debug.LogWarning( "Unable to load parent prefab from file: " + fileInfo.NameWithExtension );
+        return;
+      }
+
+      foreach ( var cm in fileInfo.GetAssets<ContactMaterial>() )
+        ContactMaterialManager.Instance.Add( cm );
+
+      var fileData = fileInfo.Parent.GetComponent<AgXUnity.IO.RestoredAGXFile>();
+      foreach ( var disabledGroup in fileData.DisabledGroups )
+        CollisionGroupsManager.Instance.SetEnablePair( disabledGroup.First, disabledGroup.Second, false );
+    }
+
+    private static void OnPostprocessAllAssets( string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths )
+    {
+    }
+
+    private void OnPreprocessModel()
+    {
     }
   }
 }

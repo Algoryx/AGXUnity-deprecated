@@ -11,99 +11,138 @@ using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
 namespace AgXUnityEditor.IO
 {
-  // TODO: Disable collisions (complete shape/geometry)
-  // TODO: Disable collisions between objects
-  // TODO: Group id and space disabled pairs.
-  // TODO: OnPrefabAddedToScene directory hell cleanup.
+  /// <summary>
+  /// Load .agx/.aagx file to an prefab with the same name in the same directory.
+  /// 1. TryLoad - loading file into native simulation (restoring file)
+  /// 2. TryParse - parsing simulation creating the simulation tree
+  /// 3. TryGenerate - generates game objects and assets given simulation tree
+  /// 4. TryCreatePrefab - creates a prefab of the generated objects, the instance
+  ///                      is destroyed when this object is disposed
+  /// </summary>
   public class InputAGXFile : IDisposable
   {
-    public static string MakeRelative( string full, string root )
-    {
-      Uri fullUri = new Uri( full );
-      Uri rootUri = new Uri( root );
-      Uri relUri = rootUri.MakeRelativeUri( fullUri );
-      return relUri.ToString();
-    }
+    /// <summary>
+    /// AGX file info.
+    /// </summary>
+    public AGXFileInfo FileInfo { get; private set; }
 
-    public string Name { get; private set; }
-
-    public string RelDirectoryPath { get; private set; }
-
-    public string RelPrefabDataPath { get; private set; }
-
-    public FileInfo AGXFileInfo { get; private set; }
-
-    public string PrefabFilename { get; private set; }
-
+    /// <summary>
+    /// Native simulation the file is loaded into.
+    /// </summary>
     public agxSDK.Simulation Simulation { get; private set; }
 
+    /// <summary>
+    /// Parent game object the simulation tree adds objects to. This
+    /// object is destroyed when this object is disposed.
+    /// </summary>
     public GameObject Parent { get; private set; }
 
+    /// <summary>
+    /// True when the prefab has been successfully created.
+    /// </summary>
     public bool Successful { get; private set; }
 
-    public InputAGXFile( FileInfo file )
+    /// <summary>
+    /// Construct given AGX file info.
+    /// </summary>
+    /// <param name="info">AGX file info.</param>
+    public InputAGXFile( AGXFileInfo info )
     {
-      if ( file == null )
-        throw new ArgumentNullException( "file", "File info object is null." );
+      FileInfo = info ?? throw new ArgumentNullException( "info", "File info object is null." );
 
-      if ( !file.Exists )
-        throw new FileNotFoundException( "File not found: " + file.FullName );
+      if ( !FileInfo.Exists )
+        throw new FileNotFoundException( "File not found: " + FileInfo.FullName );
 
-      if ( file.Extension != ".agx" && file.Extension != ".aagx" )
-        throw new AgXUnity.Exception( "Unsupported file format: " + file.Extension + " (file: " + file.FullName + ")" );
-
-      AGXFileInfo       = file;
-      Name              = Path.GetFileNameWithoutExtension( AGXFileInfo.Name );
-      RelDirectoryPath  = MakeRelative( AGXFileInfo.Directory.FullName, Application.dataPath ).Replace( '\\', '/' );
-      RelPrefabDataPath = RelDirectoryPath + "/" + Name + "_Data";
-      PrefabFilename    = RelDirectoryPath + "/" + Name + ".prefab";
+      if ( FileInfo.Type == AGXFileInfo.FileType.Unknown || FileInfo.Type == AGXFileInfo.FileType.AGXPrefab )
+        throw new AgXUnity.Exception( "Unsupported file format: " + FileInfo.FullName );
 
       Successful = false;
       Simulation = new agxSDK.Simulation();
     }
 
+    /// <summary>
+    /// Trying to read AGX file. Throws if something goes wrong.
+    /// </summary>
     public void TryLoad()
     {
-      using ( new TimerBlock( "Loading: " + AGXFileInfo.Name ) )
-        if ( !agxIO.agxIOSWIG.readFile( AGXFileInfo.FullName, Simulation ) )
-          throw new AgXUnity.Exception( "Unable to load " + AGXFileInfo.Extension + " file: " + AGXFileInfo.FullName );
+      using ( new TimerBlock( "Loading: " + FileInfo.NameWithExtension ) )
+        if ( !agxIO.agxIOSWIG.readFile( FileInfo.FullName, Simulation ) )
+          throw new AgXUnity.Exception( "Unable to load file:" + FileInfo.FullName );
     }
 
+    /// <summary>
+    /// Trying to parse the simulation, creating the simulation tree.
+    /// Throws if something goes wrong.
+    /// </summary>
     public void TryParse()
     {
-      using ( new TimerBlock( "Parsing: " + AGXFileInfo.Name ) )
+      using ( new TimerBlock( "Parsing: " + FileInfo.NameWithExtension ) )
         m_tree.Parse( Simulation );
     }
 
+    /// <summary>
+    /// Trying to generate the objects given the simulation tree.
+    /// Throws if something goes wrong.
+    /// </summary>
     public void TryGenerate()
     {
-      if ( !Directory.Exists( AGXFileInfo.DirectoryName + "/" + Name + "_Data" ) )
-        AssetDatabase.CreateFolder( RelDirectoryPath, Name + "_Data" );
+      FileInfo.GetOrCreateDataDirectory();
 
-      using ( new TimerBlock( "Generating: " + AGXFileInfo.Name ) ) {
-        Parent                    = new GameObject( Name );
+      using ( new TimerBlock( "Generating: " + FileInfo.NameWithExtension ) ) {
+        Parent                    = new GameObject( FileInfo.Name );
         Parent.transform.position = Vector3.zero;
         Parent.transform.rotation = Quaternion.identity;
+        var fileData              = Parent.AddComponent<AgXUnity.IO.RestoredAGXFile>();
 
         foreach ( var root in m_tree.Roots )
           Generate( root );
+
+        var disabledCollisionsState = Simulation.getSpace().findDisabledCollisionsState();
+        foreach ( var namePair in disabledCollisionsState.getDisabledNames() )
+          fileData.AddDisabledPair( namePair.first, namePair.second );
+        foreach ( var idPair in disabledCollisionsState.getDisabledIds() )
+          fileData.AddDisabledPair( idPair.first.ToString(), idPair.second.ToString() );
+        foreach ( var geometryPair in disabledCollisionsState.getDisabledGeometyPairs() ) {
+          var geometry1Node = m_tree.GetNode( geometryPair.first.getUuid() );
+          var geometry2Node = m_tree.GetNode( geometryPair.second.getUuid() );
+          if ( geometry1Node == null || geometry2Node == null ) {
+            Debug.LogWarning( "Unreferenced geometry in disabled collisions pair." );
+            continue;
+          }
+
+          var geometry1Id = geometry2Node.Uuid.str();
+          foreach ( var shapeNode in geometry1Node.GetChildren( Node.NodeType.Shape ) )
+            shapeNode.GameObject.GetOrCreateComponent<CollisionGroups>().AddGroup( geometry1Id, false );
+          var geometry2Id = geometry1Node.Uuid.str();
+          foreach ( var shapeNode in geometry2Node.GetChildren( Node.NodeType.Shape ) )
+            shapeNode.GameObject.GetOrCreateComponent<CollisionGroups>().AddGroup( geometry2Id, false );
+
+          fileData.AddDisabledPair( geometry1Id, geometry2Id );
+        }
       }
     }
 
-    public void TryCreatePrefab()
+    /// <summary>
+    /// Trying to create and save a prefab given the generated object(s).
+    /// Throws if something goes wrong.
+    /// </summary>
+    /// <returns>Prefab parent.</returns>
+    public UnityEngine.Object TryCreatePrefab()
     {
-      var prefab = PrefabUtility.CreateEmptyPrefab( PrefabFilename );
-      if ( prefab == null )
-        throw new AgXUnity.Exception( "Unable to create prefab: " + PrefabFilename );
+      if ( FileInfo.CreatePrefab( Parent ) == null )
+        throw new AgXUnity.Exception( "Unable to create prefab: " + FileInfo.PrefabPath );
 
-      PrefabUtility.ReplacePrefab( Parent, prefab );
-
-      AssetDatabase.SaveAssets();
-      AssetDatabase.Refresh();
+      FileInfo.Save();
 
       Successful = true;
+
+      return FileInfo.Parent;
     }
 
+    /// <summary>
+    /// Disposes the native simulation and destroys any created instances
+    /// that hasn't been saved as assets.
+    /// </summary>
     public void Dispose()
     {
       if ( Simulation != null )
@@ -163,7 +202,9 @@ namespace AgXUnityEditor.IO
             var nativeMaterial = m_tree.GetMaterial( node.Uuid );
             node.Asset         = ScriptAsset.Create<ShapeMaterial>().RestoreLocalDataFrom( nativeMaterial );
             node.Asset.name    = FindName( nativeMaterial.getName(), node.Type.ToString() );
-            AddAsset( node );
+
+            FileInfo.AddAsset( node.Asset );
+
             break;
           case Node.NodeType.ContactMaterial:
             var nativeContactMaterial = m_tree.GetContactMaterial( node.Uuid );
@@ -191,11 +232,11 @@ namespace AgXUnityEditor.IO
             if ( nativeFrictionModel != null ) {
               var frictionModelAsset = ScriptAsset.Create<FrictionModel>().RestoreLocalDataFrom( nativeFrictionModel );
               frictionModelAsset.name = "FrictionModel_" + contactMaterial.name;
-              AddAsset( frictionModelAsset );
+              FileInfo.AddAsset( frictionModelAsset );
               contactMaterial.FrictionModel = frictionModelAsset;
             }
 
-            AddAsset( node );
+            FileInfo.AddAsset( node.Asset );
 
             break;
           case Node.NodeType.Constraint:
@@ -233,21 +274,6 @@ namespace AgXUnityEditor.IO
         localParent.GameObject.AddChild( node.GameObject );
       else
         Parent.AddChild( node.GameObject );
-    }
-
-    private void AddAsset( Node node )
-    {
-      if ( node.Asset == null ) {
-        Debug.LogWarning( "Trying to add null reference asset." );
-        return;
-      }
-
-      AddAsset( node.Asset );
-    }
-
-    private void AddAsset( UnityEngine.Object obj )
-    {
-      AssetDatabase.CreateAsset( obj, RelPrefabDataPath + "/" + obj.name + ".asset" );
     }
 
     private bool CreateShape( Node node )
@@ -300,7 +326,7 @@ namespace AgXUnityEditor.IO
         source.RecalculateNormals();
         source.RecalculateTangents();
 
-        AddAsset( source );
+        FileInfo.AddAsset( source );
 
         mesh.SourceObject = source;
       }
@@ -318,6 +344,15 @@ namespace AgXUnityEditor.IO
       }
 
       shape.CollisionsEnabled = nativeGeometry.getEnableCollisions();
+
+      // Groups referenced in geometry node.
+      var groups = node.Parent.GetReferences( Node.NodeType.GroupId );
+      if ( groups.Length > 0 ) {
+        var groupsComponent = shape.gameObject.GetOrCreateComponent<CollisionGroups>();
+        foreach ( var group in groups )
+          if ( group.Object is string )
+            groupsComponent.AddGroup( group.Object as string, false );
+      }
 
       if ( nativeShape.getRenderData() != null )
         CreateRenderData( node );
@@ -396,8 +431,8 @@ namespace AgXUnityEditor.IO
       material.SetFloat( "_Metallic", 0.3f );
       material.SetFloat( "_Glossiness", 0.8f );
 
-      AddAsset( mesh );
-      AddAsset( material );
+      FileInfo.AddAsset( mesh );
+      FileInfo.AddAsset( material );
 
       filter.sharedMesh       = mesh;
       renderer.sharedMaterial = material;
@@ -432,6 +467,7 @@ namespace AgXUnityEditor.IO
       }
 
       Constraint constraint = node.GameObject.AddComponent<Constraint>();
+      constraint.SetType( constraintType );
 
       try {
         // Patching non-serialized elementary constraint names.

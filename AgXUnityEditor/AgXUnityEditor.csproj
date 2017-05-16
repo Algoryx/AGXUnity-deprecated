@@ -52,6 +52,7 @@
     <Compile Include="EditorData.cs" />
     <Compile Include="EditorDataEntry.cs" />
     <Compile Include="EditorSettings.cs" />
+    <Compile Include="IO\AGXFileInfo.cs" />
     <Compile Include="IO\InputAGXFile.cs" />
     <Compile Include="IO\InputAGXFileTree.cs" />
     <Compile Include="IO\InputAGXFileTreeNode.cs" />
