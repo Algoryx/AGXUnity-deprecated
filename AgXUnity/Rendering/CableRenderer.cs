@@ -30,9 +30,8 @@ namespace AgXUnity.Rendering
       }
     }
 
-    protected override bool Initialize()
+    public void InitializeRenderer( bool destructLast = false )
     {
-      // Note that this is called in the editor as well [ExecuteInEditMode].
       if ( m_segmentSpawner != null ) {
         m_segmentSpawner.Destroy();
         m_segmentSpawner = null;
@@ -40,6 +39,12 @@ namespace AgXUnity.Rendering
 
       m_segmentSpawner = new SegmentSpawner( GetComponent<Cable>(), @"Cable/CableSegment", @"Cable/CableSegmentBegin" );
       m_segmentSpawner.Initialize( gameObject );
+    }
+
+    protected override bool Initialize()
+    {
+      // Note that this is called in the editor as well [ExecuteInEditMode].
+      InitializeRenderer( true );
 
       // Use post step forward callback to render while simulating.
       if ( Application.isPlaying )

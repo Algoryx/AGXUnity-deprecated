@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using AgXUnity.Utils;
 
 namespace AgXUnity
 {
@@ -15,6 +16,19 @@ namespace AgXUnity
     {
       BodyFixedNode,
       FreeNode
+    }
+
+    public enum RouteType
+    {
+      /// <summary>
+      /// The added route nodes is the actual route.
+      /// </summary>
+      Identity,
+      /// <summary>
+      /// The route will try to fulfill the given route as good as possible
+      /// given the resolution per unit length.
+      /// </summary>
+      Segmenting
     }
 
     /// <summary>
@@ -87,7 +101,7 @@ namespace AgXUnity
       {
         m_linearVelocityDamping = value;
         if ( Native != null )
-          agxCable.Cable.setLinearVelocityDamping( Native.begin(), Native.end(), new agx.Vec3f( m_linearVelocityDamping, m_linearVelocityDamping, 0f ) );
+          Native.setLinearVelocityDamping( new agx.Vec3( m_linearVelocityDamping, m_linearVelocityDamping, 0f ) );
       }
     }
 
@@ -108,7 +122,7 @@ namespace AgXUnity
       {
         m_angularVelocityDamping = value;
         if ( Native != null )
-          agxCable.Cable.setAngularVelocityDamping( Native.begin(), Native.end(), new agx.Vec3f( m_angularVelocityDamping, m_angularVelocityDamping, 0f ) );
+          Native.setAngularVelocityDamping( new agx.Vec3( m_angularVelocityDamping, m_angularVelocityDamping, 0f ) );
       }
     }
 
@@ -154,6 +168,18 @@ namespace AgXUnity
       }
     }
 
+    [SerializeField]
+    private RouteType m_routeAlgorithm = RouteType.Segmenting;
+    /// <summary>
+    /// Route algorithm used by restored cables.
+    /// </summary>
+    [HideInInspector]
+    public RouteType RouteAlgorithm
+    {
+      get { return m_routeAlgorithm; }
+      set { m_routeAlgorithm = value; }
+    }
+
     private CableRoute m_routeComponent = null;
     /// <summary>
     /// Get route to initialize this cable.
@@ -166,6 +192,17 @@ namespace AgXUnity
           m_routeComponent = GetComponent<CableRoute>();
         return m_routeComponent;
       }      
+    }
+
+    public void RestoreLocalDataFrom( agxCable.Cable native )
+    {
+      if ( native == null )
+        return;
+
+      Radius                  = Convert.ToSingle( native.getRadius() );
+      ResolutionPerUnitLength = Convert.ToSingle( native.getResolution() );
+      LinearVelocityDamping   = Convert.ToSingle( native.getLinearVelocityDamping().maxComponent() );
+      AngularVelocityDamping  = Convert.ToSingle( native.getAngularVelocityDamping().maxComponent() );
     }
 
     protected override void OnDestroy()
@@ -188,7 +225,12 @@ namespace AgXUnity
         if ( Route.NumNodes < 2 )
           throw new Exception( "Invalid number of nodes. Minimum number of route nodes is two." );
 
-        var cable = new agxCable.Cable( Convert.ToDouble( Radius ), Convert.ToDouble( ResolutionPerUnitLength ) );
+        var cable = RouteAlgorithm == RouteType.Segmenting ?
+                      new agxCable.Cable( Convert.ToDouble( Radius ), Convert.ToDouble( ResolutionPerUnitLength ) ) :
+                      new agxCable.Cable( Convert.ToDouble( Radius ), new agxCable.IdentityRoute( ResolutionPerUnitLength ) );
+        cable.addComponent( new agxCable.CablePlasticity() );
+        cable.getCablePlasticity().setYieldPoint( double.PositiveInfinity, agxCable.Direction.ALL_DIRECTIONS );
+
         CableRouteNode prev = null;
         foreach ( var node in Route ) {
           bool tooClose = prev != null && Vector3.Distance( prev.Position, node.Position ) < 0.5f / ResolutionPerUnitLength;
@@ -232,8 +274,12 @@ namespace AgXUnity
     {
       if ( Native != null ) {
         Native.getCableProperties().setYoungsModulus( Convert.ToDouble( Properties[ dir ].YoungsModulus ), CableProperties.ToNative( dir ) );
-        Native.getCableProperties().setYieldPoint( Convert.ToDouble( Properties[ dir ].YieldPoint ), CableProperties.ToNative( dir ) );
         Native.getCableProperties().setDamping( Convert.ToDouble( Properties[ dir ].Damping ), CableProperties.ToNative( dir ) );
+        Native.getCableProperties().setPoissonsRatio( Convert.ToDouble( Properties[ dir ].PoissonsRatio ), CableProperties.ToNative( dir ) );
+
+        var plasticityComponent = Native.getCablePlasticity();
+        if ( plasticityComponent != null )
+          plasticityComponent.setYieldPoint( Convert.ToDouble( Properties[ dir ].YieldPoint ), CableProperties.ToNative( dir ) );
       }
     }
   }

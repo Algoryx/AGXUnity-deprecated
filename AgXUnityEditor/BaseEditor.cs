@@ -64,6 +64,9 @@ namespace AgXUnityEditor
 
     public void OnEnable()
     {
+      if ( target == null )
+        return;
+
       GUISkin guiSkin = EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector );
       guiSkin.label.richText = true;
       guiSkin.toggle.richText = true;

@@ -39,6 +39,18 @@ namespace AgXUnity
     }
 
     [SerializeField]
+    private float m_poissonsRatio = 0.333f;
+    public float PoissonsRatio
+    {
+      get { return m_poissonsRatio; }
+      set
+      {
+        m_poissonsRatio = value;
+        OnValueCanged( Direction );
+      }
+    }
+
+    [SerializeField]
     private float m_yieldPoint = float.PositiveInfinity;
     public float YieldPoint
     {
@@ -77,9 +89,9 @@ namespace AgXUnity
 
     public static Array Directions { get { return Enum.GetValues( typeof( Direction ) ); } }
 
-    public static agxCable.CableProperties.Direction ToNative( Direction dir )
+    public static agxCable.Direction ToNative( Direction dir )
     {
-      return (agxCable.CableProperties.Direction)dir;
+      return (agxCable.Direction)dir;
     }
 
     [SerializeField]
@@ -91,6 +103,21 @@ namespace AgXUnity
     }
 
     public Action<Direction> OnPropertyUpdated = delegate { };
+
+    public void RestoreLocalDataFrom( agxCable.CableProperties native, agxCable.CablePlasticity plasticity )
+    {
+      if ( native == null )
+        return;
+
+      foreach ( Direction dir in Directions ) {
+        this[ dir ].YoungsModulus = Convert.ToSingle( native.getYoungsModulus( ToNative( dir ) ) );
+        this[ dir ].Damping       = Convert.ToSingle( native.getDamping( ToNative( dir ) ) );
+        this[ dir ].PoissonsRatio = Convert.ToSingle( native.getPoissonsRatio( ToNative( dir ) ) );
+        this[ dir ].YieldPoint    = plasticity != null ?
+                                      Convert.ToSingle( plasticity.getYieldPoint( ToNative( dir ) ) ) :
+                                      float.PositiveInfinity;
+      }
+    }
 
     public bool IsListening( Cable cable )
     {

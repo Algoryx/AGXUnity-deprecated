@@ -17,6 +17,7 @@ namespace AgXUnityEditor.IO
       Assembly,
       Constraint,
       Wire,
+      Cable,
       Material,
       ContactMaterial,
       GroupId

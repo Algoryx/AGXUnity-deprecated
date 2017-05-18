@@ -103,6 +103,9 @@ namespace AgXUnityEditor.IO
         foreach ( var idPair in disabledCollisionsState.getDisabledIds() )
           fileData.AddDisabledPair( idPair.first.ToString(), idPair.second.ToString() );
         foreach ( var geometryPair in disabledCollisionsState.getDisabledGeometyPairs() ) {
+          if ( !Tree.IsValid( geometryPair.first ) || !Tree.IsValid( geometryPair.second ) )
+            continue;
+
           var geometry1Node = m_tree.GetNode( geometryPair.first.getUuid() );
           var geometry2Node = m_tree.GetNode( geometryPair.second.getUuid() );
           if ( geometry1Node == null || geometry2Node == null ) {
@@ -259,6 +262,16 @@ namespace AgXUnityEditor.IO
             Add( node );
 
             if ( !CreateWire( node ) )
+              GameObject.DestroyImmediate( node.GameObject );
+
+            break;
+          case Node.NodeType.Cable:
+            var nativeCable = m_tree.GetCable( node.Uuid );
+            node.GameObject = new GameObject( FindName( nativeCable.getName(), "AgXUnity.Cable" ) );
+
+            Add( node );
+
+            if ( !CreateCable( node ) )
               GameObject.DestroyImmediate( node.GameObject );
 
             break;
@@ -644,9 +657,69 @@ namespace AgXUnityEditor.IO
       // Adding collision group from restored instance since the disabled pair
       // will be read from Space (wire.setEnableCollisions( foo, false ) will
       // work out of the box).
-      wire.gameObject.GetOrCreateComponent<CollisionGroups>().AddGroup( nativeWire.getGeometryController().getDisabledCollisionsGroupId().ToString(), false );
+      var collisionGroups = wire.gameObject.GetOrCreateComponent<CollisionGroups>();
+      collisionGroups.AddGroup( nativeWire.getGeometryController().getDisabledCollisionsGroupId().ToString(), false );
       foreach ( var id in nativeWire.getGeometryController().getGroupIds() )
-        wire.gameObject.GetOrCreateComponent<CollisionGroups>().AddGroup( id.ToString(), false );
+        collisionGroups.AddGroup( id.ToString(), false );
+
+      return true;
+    }
+
+    private bool CreateCable( Node node )
+    {
+      var nativeCable = m_tree.GetCable( node.Uuid );
+      if ( nativeCable == null ) {
+        Debug.LogWarning( "Unable to find native instance of cable: " + node.GameObject.name +
+                          " (UUID: " + node.Uuid.str() + ")" );
+        return false;
+      }
+
+      var cable = node.GameObject.AddComponent<Cable>();
+      var route = cable.Route;
+
+      cable.RestoreLocalDataFrom( nativeCable );
+      cable.RouteAlgorithm = Cable.RouteType.Identity;
+
+      var properties  = ScriptAsset.Create<CableProperties>();
+      properties.name = cable.name + "_properties";
+
+      properties.RestoreLocalDataFrom( nativeCable.getCableProperties(), nativeCable.getCablePlasticity() );
+
+      FileInfo.AddAsset( properties );
+
+      cable.Properties = properties;
+
+      for ( var it = nativeCable.getSegments().begin(); !it.EqualWith( nativeCable.getSegments().end() ); it.inc() ) {
+        var segment = it.get();
+        route.Add( segment, attachment =>
+                            {
+                              if ( attachment.getRigidBody() == null )
+                                return null;
+                              var rbNode = m_tree.GetNode( attachment.getRigidBody().getUuid() );
+                              if ( rbNode == null ) {
+                                Debug.LogWarning( "Unable to find rigid body in cable attachment." );
+                                return null;
+                              }
+                              return rbNode.GameObject;
+                            } );
+      }
+
+      var materials = node.GetReferences( Node.NodeType.Material );
+      if ( materials.Length > 0 )
+        cable.Material = materials[ 0 ].Asset as ShapeMaterial;
+
+      cable.GetComponent<AgXUnity.Rendering.CableRenderer>().InitializeRenderer();
+      cable.GetComponent<AgXUnity.Rendering.CableRenderer>().Material = null;
+
+      // Adding collision group from restored instance since the disabled pair
+      // will be read from Space (cable.setEnableCollisions( foo, false ) will
+      // work out of the box).
+      var collisionGroups = cable.gameObject.GetOrCreateComponent<CollisionGroups>();
+      collisionGroups.AddGroup( nativeCable.getDisabledCollisionGroupId().ToString(), false );
+      var referencedGroups = node.GetReferences( Node.NodeType.GroupId );
+      foreach ( var group in referencedGroups )
+        if ( group.Object is string )
+          collisionGroups.AddGroup( group.Object as string, false );
 
       return true;
     }

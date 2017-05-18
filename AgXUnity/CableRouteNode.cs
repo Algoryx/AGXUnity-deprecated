@@ -29,7 +29,7 @@ namespace AgXUnity
     /// <summary>
     /// Native instance of this node - present after Initialize has been called.
     /// </summary>
-    public agxCable.Node Native { get; private set; }
+    public agxCable.RoutingNode Native { get; private set; }
 
     /// <summary>
     /// Type of this node. Paired with property Type.
@@ -70,8 +70,10 @@ namespace AgXUnity
 
       if ( Type == Cable.NodeType.BodyFixedNode )
         Native = new agxCable.BodyFixedNode( rb != null ? rb.Native : null, new agx.AffineMatrix4x4( rotation, position ) );
-      else if ( Type == Cable.NodeType.FreeNode )
+      else if ( Type == Cable.NodeType.FreeNode ) {
         Native = new agxCable.FreeNode( position );
+        Native.getRigidBody().setRotation( agx.Quat.rotate( agx.Vec3.Z_AXIS(), ( Rotation * Vector3.forward ).ToHandedVec3() ) );
+      }
       else
         return false;
 

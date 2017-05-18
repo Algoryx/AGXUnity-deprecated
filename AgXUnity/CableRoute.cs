@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using AgXUnity.Utils;
 
 namespace AgXUnity
 {
@@ -29,6 +30,38 @@ namespace AgXUnity
         return null;
 
       return node;
+    }
+
+    public CableRouteNode Add( agxCable.CableSegment nativeSegment, Func<agxCable.SegmentAttachment, GameObject> attachmentParentCallback )
+    {
+      if ( nativeSegment == null )
+        return null;
+
+      // TODO: Use attachments instead of node type when we're reading from native?
+      Cable.NodeType nodeType = nativeSegment.getAttachments().Count > 0 ?
+                                  Cable.NodeType.BodyFixedNode :
+                                  Cable.NodeType.FreeNode;
+
+      CableRouteNode node = null;
+      if ( nodeType == Cable.NodeType.BodyFixedNode ) {
+        var attachment = nativeSegment.getAttachments()[ 0 ].get();
+        var parent = attachmentParentCallback( attachment );
+        node = CableRouteNode.Create( Cable.NodeType.BodyFixedNode,
+                                      parent,
+                                      attachment.getFrame().getLocalTranslate().ToHandedVector3(),
+                                      attachment.getFrame().getLocalRotate().ToHandedQuaternion() );
+      }
+      else {
+        node = CableRouteNode.Create( Cable.NodeType.FreeNode,
+                                      null,
+                                      nativeSegment.getBeginPosition().ToHandedVector3(),
+                                      Quaternion.LookRotation( nativeSegment.getDirection().ToHandedVector3(), Vector3.up ) );
+      }
+
+      if ( !Add( node ) )
+        return null;
+
+      return null;
     }
   }
 }

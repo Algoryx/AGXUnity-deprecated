@@ -12,15 +12,18 @@ namespace AgXUnityEditor.IO
   {
     public static bool IsCableRigidBody( agx.RigidBody rb )
     {
-      return rb != null &&
-             rb.getGeometries().Count > 0 &&
-             agxCable.Cable.getCableForGeometry( rb.getGeometries()[ 0 ].get() ) != null;
+      return agxCable.Cable.getCableForBody( rb ) != null;
+    }
+
+    public static bool IsWireRigidBody( agx.RigidBody rb )
+    {
+      return agxWire.Wire.isLumpedNode( rb );
     }
 
     public static bool IsValid( agx.RigidBody rb )
     {
       return rb != null &&
-             !agxWire.Wire.isLumpedNode( rb ) &&
+             !IsWireRigidBody( rb ) &&
              !IsCableRigidBody( rb );
     }
 
@@ -105,6 +108,14 @@ namespace AgXUnityEditor.IO
       return null;
     }
 
+    public agxCable.Cable GetCable( agx.Uuid uuid )
+    {
+      agxCable.Cable cable;
+      if ( m_cables.TryGetValue( uuid, out cable ) )
+        return cable;
+      return null;
+    }
+
     public agx.Material GetMaterial( agx.Uuid uuid )
     {
       agx.Material material;
@@ -169,14 +180,21 @@ namespace AgXUnityEditor.IO
         if ( !IsValid( nativeConstraint.get() ) )
           continue;
 
-        var constraintNode = GetOrCreateConstraint( nativeConstraint.get() );
-        var rb1Node = nativeConstraint.getBodyAt( 0 ) != null ?
-                        GetNode( nativeConstraint.getBodyAt( 0 ).getUuid() ) :
-                        null;
-        var rb2Node = nativeConstraint.getBodyAt( 1 ) != null ?
-                        GetNode( nativeConstraint.getBodyAt( 1 ).getUuid() ) :
-                        null;
+        var nativeRb1 = nativeConstraint.getBodyAt( 0 );
+        var nativeRb2 = nativeConstraint.getBodyAt( 1 );
+        if ( !IsValid( nativeRb1 ) )
+          continue;
+        if ( nativeRb2 != null && !IsValid( nativeRb2 ) )
+          continue;
 
+        var rb1Node = nativeRb1 != null ? GetNode( nativeRb1.getUuid() ) : null;
+        var rb2Node = nativeRb2 != null ? GetNode( nativeRb2.getUuid() ) : null;
+
+        // Could be ignored bodies due to Wire and Cable.
+        if ( rb1Node == null && rb2Node == null )
+          continue;
+
+        var constraintNode = GetOrCreateConstraint( nativeConstraint.get() );
         if ( rb1Node != null )
           constraintNode.AddReference( rb1Node );
         if ( rb2Node != null )
@@ -193,6 +211,32 @@ namespace AgXUnityEditor.IO
         }
       }
 
+      var cables = agxCable.Cable.getAll( simulation );
+      foreach ( var cable in cables ) {
+        var cableNode = GetOrCreateCable( cable );
+        if ( cable.getMaterial() != null ) {
+          var materialNode = GetOrCreateMaterial( cable.getMaterial() );
+          cableNode.AddReference( materialNode );
+        }
+
+        var groupsCollection = cable.findGroupIdCollection();
+        foreach ( var name in groupsCollection.getNames() )
+          cableNode.AddReference( new Node() { Type = NodeType.GroupId, Object = name } );
+        foreach ( var id in groupsCollection.getIds() )
+          cableNode.AddReference( new Node() { Type = NodeType.GroupId, Object = id.ToString() } );
+
+        agxCable.CableIterator it = cable.getSegments().begin();
+        while ( !it.EqualWith( cable.getSegments().end() ) ) {
+          var constraint = it.getConstraint();
+          if ( constraint != null && GetConstraint( constraint.getUuid() ) != null )
+            Debug.LogWarning( "Cable constraint has a constraint node in the simulation tree." );
+          foreach ( var attachment in it.getAttachments() )
+            if ( attachment.getConstraint() != null && GetConstraint( attachment.getConstraint().getUuid() ) != null )
+              Debug.LogWarning( "Cable attachment has a constraint node in the simulation tree." );
+          it.inc();
+        }
+      }
+
       var mm = simulation.getMaterialManager();
       foreach ( var m1 in m_materials.Values ) {
         foreach ( var m2 in m_materials.Values ) {
@@ -206,8 +250,9 @@ namespace AgXUnityEditor.IO
         }
       }
 
+      // Generating wires, cables and constraints last when all bodies has been generated.
       m_roots.Add( m_wireRoot );
-      // Generating constraints last.
+      m_roots.Add( m_cableRoot );
       m_roots.Add( m_constraintRoot );
     }
 
@@ -292,6 +337,14 @@ namespace AgXUnityEditor.IO
                               () => m_wires.Add( wire.getUuid(), wire ) );
     }
 
+    private Node GetOrCreateCable( agxCable.Cable cable )
+    {
+      return GetOrCreateNode( NodeType.Cable,
+                              cable.getUuid(),
+                              true,
+                              () => m_cables.Add( cable.getUuid(), cable ) );
+    }
+
     private Node GetOrCreateMaterial( agx.Material material )
     {
       return GetOrCreateNode( NodeType.Material,
@@ -330,6 +383,8 @@ namespace AgXUnityEditor.IO
           m_contactMaterialRoot.AddChild( node );
         else if ( type == NodeType.Wire )
           m_wireRoot.AddChild( node );
+        else if ( type == NodeType.Cable )
+          m_cableRoot.AddChild( node );
         else if ( m_roots.FindIndex( n => n.Uuid == uuid ) >= 0 )
           Debug.LogError( "Node already present as root." );
         else
@@ -361,12 +416,14 @@ namespace AgXUnityEditor.IO
     private Dictionary<agx.Uuid, agxCollide.Shape>    m_shapes           = new Dictionary<agx.Uuid, agxCollide.Shape>( new UuidComparer() );
     private Dictionary<agx.Uuid, agx.Constraint>      m_constraints      = new Dictionary<agx.Uuid, agx.Constraint>( new UuidComparer() );
     private Dictionary<agx.Uuid, agxWire.Wire>        m_wires            = new Dictionary<agx.Uuid, agxWire.Wire>( new UuidComparer() );
+    private Dictionary<agx.Uuid, agxCable.Cable>      m_cables           = new Dictionary<agx.Uuid, agxCable.Cable>( new UuidComparer() );
     private Dictionary<agx.Uuid, agx.Material>        m_materials        = new Dictionary<agx.Uuid, agx.Material>( new UuidComparer() );
     private Dictionary<agx.Uuid, agx.ContactMaterial> m_contactMaterials = new Dictionary<agx.Uuid, agx.ContactMaterial>( new UuidComparer() );
 
     private List<Node> m_roots = new List<Node>();
     private Node m_constraintRoot = new Node() { Type = NodeType.Placeholder };
     private Node m_wireRoot = new Node() { Type = NodeType.Placeholder };
+    private Node m_cableRoot = new Node() { Type = NodeType.Placeholder };
     private Node m_materialRoot = new Node() { Type = NodeType.Placeholder };
     private Node m_contactMaterialRoot = new Node() { Type = NodeType.Placeholder };
   }

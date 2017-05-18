@@ -120,7 +120,8 @@ namespace AgXUnityEditor.Tools
         DisableCollisionsTool = !DisableCollisionsTool;
     }
 
-    protected virtual string GetNodeTypeString() { return string.Empty; }
+    protected virtual string GetNodeTypeString( RouteNode node ) { return string.Empty; }
+    protected virtual Color GetNodeColor( RouteNode node ) { return Color.yellow; }
     protected virtual void OnPreFrameGUI( NodeT node, GUISkin skin ) { }
     protected virtual void OnPostFrameGUI( NodeT node, GUISkin skin ) { }
     protected virtual void OnNodeCreate( NodeT newNode, NodeT refNode, bool addPressed ) { }
@@ -158,7 +159,7 @@ namespace AgXUnityEditor.Tools
               GUILayout.BeginVertical( invalidNodeStyle );
 
             if ( GUI.Foldout( GetFoldoutData( node ),
-                              GUI.MakeLabel( GetNodeTypeString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Parent ).text,
+                              GUI.MakeLabel( GetNodeTypeString( node ) + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Parent ).text,
                                              !validatedNode.Valid,
                                              validatedNode.ErrorString ),
                               skin,
@@ -277,7 +278,8 @@ namespace AgXUnityEditor.Tools
                                    () => { return Selected; },
                                    ( selected ) => { Selected = selected as NodeT; },
                                    ( n ) => { return Route.Contains( n as NodeT ); },
-                                   NodeVisualRadius ) );
+                                   NodeVisualRadius,
+                                   GetNodeColor ) );
     }
 
     private EditorDataEntry GetData( NodeT node, string identifier, Action<EditorDataEntry> onCreate = null )
