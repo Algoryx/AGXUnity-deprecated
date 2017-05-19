@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEditor;
 using AgXUnity;
 using AgXUnity.Collide;
@@ -9,6 +10,8 @@ namespace AgXUnityEditor.Tools
   [CustomTool( typeof( RigidBody ) )]
   public class RigidBodyTool : Tool
   {
+    private List<Constraint> m_constraints = new List<Constraint>();
+
     public RigidBody RigidBody { get; private set; }
 
     public bool FindTransformGivenPointTool
@@ -114,6 +117,12 @@ namespace AgXUnityEditor.Tools
     public RigidBodyTool( RigidBody rb )
     {
       RigidBody = rb;
+
+      var allConstraints = GameObject.FindObjectsOfType<Constraint>();
+      foreach ( var constraint in allConstraints ) {
+        if ( constraint.AttachmentPair.Contains( RigidBody ) )
+          m_constraints.Add( constraint );
+      }
     }
 
     public override void OnPreTargetMembersGUI( GUISkin skin )
@@ -206,6 +215,7 @@ namespace AgXUnityEditor.Tools
       GUI.Separator();
 
       OnShapeListGUI( skin );
+      OnConstraintListGUI( skin );
     }
 
     private void OnShapeListGUI( GUISkin skin )
@@ -234,6 +244,33 @@ namespace AgXUnityEditor.Tools
             shape.enabled = GUI.Toggle( GUI.MakeLabel( "Enable" ), shape.enabled, skin.button, skin.label );
             GUI.Separator();
             BaseEditor<Shape>.Update( shape, shape, skin );
+          }
+        }
+      }
+    }
+
+    private void OnConstraintListGUI( GUISkin skin )
+    {
+      if ( m_constraints.Count == 0 )
+        return;
+
+      GUI.Separator();
+
+      if ( !GUI.Foldout( EditorData.Instance.GetData( RigidBody, "Constraints" ), GUI.MakeLabel( "Constraints", true ), skin ) )
+        return;
+
+      using ( new GUI.Indent( 12 ) ) {
+        foreach ( var constraint in m_constraints ) {
+          GUI.Separator();
+          if ( !GUI.Foldout( EditorData.Instance.GetData( RigidBody, constraint.GetInstanceID().ToString() ),
+                             GUI.MakeLabel( "[" + GUI.AddColorTag( constraint.Type.ToString(), Color.Lerp( Color.magenta, Color.black, 0.4f ) ) + "] " + constraint.name ),
+                             skin ) )
+            continue;
+
+          GUI.Separator();
+          var constraintTool = new ConstraintTool( constraint ) { OnFoldoutStateChange = state => EditorUtility.SetDirty( RigidBody ) };
+          using ( new GUI.Indent( 12 ) ) {
+            constraintTool.OnPreTargetMembersGUI( skin );
           }
         }
       }

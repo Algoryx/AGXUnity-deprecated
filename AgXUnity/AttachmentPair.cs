@@ -116,12 +116,28 @@ namespace AgXUnity
       m_synchronized = source.m_synchronized;
     }
 
+    /// <summary>
+    /// Copies all values and objects from legacy constraint attachment pair.
+    /// </summary>
+    /// <param name="legacySource">Legacy constraint attachment pair.</param>
     public void CopyFrom( ConstraintAttachmentPair legacySource )
     {
       if ( legacySource == null )
         return;
 
       legacySource.CopyTo( this );
+    }
+
+    /// <summary>
+    /// True if this attachment contains <paramref name="rb"/>.
+    /// </summary>
+    /// <param name="rb">Rigid body instance.</param>
+    /// <returns>True if <paramref name="rb"/> is included in this attachment pair.</returns>
+    public bool Contains( RigidBody rb )
+    {
+      return rb != null &&
+             ( ReferenceFrame.Parent?.GetComponentInParent<RigidBody>() == rb ||
+               ConnectedFrame.Parent?.GetComponentInParent<RigidBody>() == rb );
     }
 
     /// <summary>

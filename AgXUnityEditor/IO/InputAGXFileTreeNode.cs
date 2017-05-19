@@ -39,6 +39,8 @@ namespace AgXUnityEditor.IO
 
     public object Object { get; set; }
 
+    public string Name { get; set; }
+
     public void AddChild( InputAGXFileTreeNode child )
     {
       if ( child == null ) {

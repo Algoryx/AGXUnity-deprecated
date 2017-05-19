@@ -15,6 +15,8 @@ namespace AgXUnity
     /// </summary>
     private agxSDK.Simulation m_simulation = null;
     private double m_stepForwardTime = 0.0;
+    
+    public static float DefaultTimeStep { get { return Time.fixedDeltaTime; } }
 
     /// <summary>
     /// Gravity, default -9.82 in y-direction. Paired with property Gravity.
@@ -79,6 +81,9 @@ namespace AgXUnity
     protected void FixedUpdate()
     {
       if ( m_simulation != null ) {
+        //if ( m_simulation.getTimeStamp() < 0.5f * TimeStep )
+        //  OpenInAgXViewer();
+
         StepCallbacks.PreStepForward?.Invoke();
         StepCallbacks.PreSynchronizeTransforms?.Invoke();
 

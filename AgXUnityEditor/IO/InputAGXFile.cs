@@ -9,12 +9,12 @@ using AgXUnity.Utils;
 using Tree = AgXUnityEditor.IO.InputAGXFileTree;
 using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
+// TODO: RestoredAGXFile tool.
+//       Create visual.
+//       Constraint animation.
+
 namespace AgXUnityEditor.IO
 {
-  // TODO: RestoredAGXFile tool.
-  //       Create visual.
-  //       Constraint animation.
-
   /// <summary>
   /// Load .agx/.aagx file to an prefab with the same name in the same directory.
   /// 1. TryLoad - loading file into native simulation (restoring file)
@@ -69,7 +69,9 @@ namespace AgXUnityEditor.IO
     /// </summary>
     public void TryLoad()
     {
-      using ( new TimerBlock( "Loading: " + FileInfo.NameWithExtension ) )
+      m_progressBar = new ProgressBar() { Title = "Creating prefab from: " + FileInfo.NameWithExtension };
+
+      using ( m_progressBar.Progress( "Loading: " + FileInfo.NameWithExtension, 1 ) )
         if ( !agxIO.agxIOSWIG.readFile( FileInfo.FullName, Simulation ) )
           throw new AgXUnity.Exception( "Unable to load file:" + FileInfo.FullName );
     }
@@ -80,7 +82,7 @@ namespace AgXUnityEditor.IO
     /// </summary>
     public void TryParse()
     {
-      using ( new TimerBlock( "Parsing: " + FileInfo.NameWithExtension ) )
+      using ( m_progressBar.Progress( "Parsing: " + FileInfo.NameWithExtension, 1 ) )
         m_tree.Parse( Simulation );
     }
 
@@ -92,15 +94,21 @@ namespace AgXUnityEditor.IO
     {
       FileInfo.GetOrCreateDataDirectory();
 
-      using ( new TimerBlock( "Generating: " + FileInfo.NameWithExtension ) ) {
+      // Adding one for disabled collisions.
+      int numSubProgresses = m_tree.Roots.Length + 1;
+      using ( var subProgress = m_progressBar.Progress( "Generating: " + FileInfo.NameWithExtension, numSubProgresses ) ) {
         Parent                    = new GameObject( FileInfo.Name );
         Parent.transform.position = Vector3.zero;
         Parent.transform.rotation = Quaternion.identity;
         var fileData              = Parent.AddComponent<AgXUnity.IO.RestoredAGXFile>();
 
-        foreach ( var root in m_tree.Roots )
+        foreach ( var root in m_tree.Roots ) {
+          subProgress.Tick( root.Name == string.Empty ? root.Type.ToString() : root.Name );
           Generate( root );
+          subProgress.Tack();
+        }
 
+        subProgress.Tick( "Disabled collisions" );
         var disabledCollisionsState = Simulation.getSpace().findDisabledCollisionsState();
         foreach ( var namePair in disabledCollisionsState.getDisabledNames() )
           fileData.AddDisabledPair( namePair.first, namePair.second );
@@ -126,6 +134,7 @@ namespace AgXUnityEditor.IO
 
           fileData.AddDisabledPair( geometry1Id, geometry2Id );
         }
+        subProgress.Tack();
       }
     }
 
@@ -136,10 +145,12 @@ namespace AgXUnityEditor.IO
     /// <returns>Prefab parent.</returns>
     public UnityEngine.Object TryCreatePrefab()
     {
-      if ( FileInfo.CreatePrefab( Parent ) == null )
-        throw new AgXUnity.Exception( "Unable to create prefab: " + FileInfo.PrefabPath );
+      using ( m_progressBar.Progress( "Creating prefab and saving assets.", 1 ) ) {
+        if ( FileInfo.CreatePrefab( Parent ) == null )
+          throw new AgXUnity.Exception( "Unable to create prefab: " + FileInfo.PrefabPath );
 
-      FileInfo.Save();
+        FileInfo.Save();
+      }
 
       Successful = true;
 
@@ -158,6 +169,9 @@ namespace AgXUnityEditor.IO
 
       if ( Parent != null )
         GameObject.DestroyImmediate( Parent );
+
+      if ( m_progressBar != null )
+        m_progressBar.Dispose();
     }
 
     private void Generate( Node node )
@@ -571,6 +585,30 @@ namespace AgXUnityEditor.IO
         return false;
       }
 
+      // Scaling damping to our (sigh) hard coded time step.
+      float fixedStepTime = AgXUnity.Simulation.DefaultTimeStep;
+      float readTimeStep  = Convert.ToSingle( Simulation.getTimeStep() );
+      float timeStepRatio = fixedStepTime / readTimeStep;
+      if ( !Mathf.Approximately( timeStepRatio, 1.0f ) ) {
+        foreach ( var ec in constraint.ElementaryConstraints ) {
+          foreach ( var rowData in ec.RowData ) {
+            if ( rowData.Compliance < -float.Epsilon ) {
+              Debug.LogWarning( "Constraint: " + constraint.name +
+                                " (ec name: " + rowData.ElementaryConstraint.NativeName + ")," +
+                                " has too low compliance: " + rowData.Compliance + ". Setting to zero." );
+              rowData.Compliance = 0.0f;
+            }
+            else if ( rowData.Compliance > float.MaxValue ) {
+              Debug.LogWarning( "Constraint: " + constraint.name +
+                                " (ec name: " + rowData.ElementaryConstraint.NativeName + ")," +
+                                " has too high compliance: " + rowData.Compliance + ". Setting to a large value." );
+              rowData.Compliance = 0.5f * float.MaxValue;
+            }
+            rowData.Damping *= timeStepRatio;
+          }
+        }
+      }
+
       constraint.AttachmentPair.ReferenceFrame.SetParent( bodyNodes[ 0 ].GameObject );
       constraint.AttachmentPair.ReferenceFrame.LocalPosition = nativeConstraint.getAttachment( 0ul ).getFrame().getLocalTranslate().ToHandedVector3();
       constraint.AttachmentPair.ReferenceFrame.LocalRotation = nativeConstraint.getAttachment( 0ul ).getFrame().getLocalRotate().ToHandedQuaternion();
@@ -744,7 +782,98 @@ namespace AgXUnityEditor.IO
       return result;
     }
 
+    internal class SubProgress : IDisposable
+    {
+      public SubProgress( ProgressBar progressBar, ProgressBar.StateType target, string name, int numSubSteps )
+      {
+        m_progressBar = progressBar;
+        m_target = target;
+        m_name = name;
+        m_numSubSteps = numSubSteps;
+
+        ShowProgress( name );
+      }
+
+      public void Dispose()
+      {
+        m_progressBar.Progress();
+      }
+
+      public void Tick( string name )
+      {
+        ShowProgress( name );
+      }
+
+      public void Tack()
+      {
+        ++m_counter;
+      }
+
+      private void ShowProgress( string name )
+      {
+        EditorUtility.DisplayProgressBar( m_progressBar.Title,
+                                          name,
+                                          m_progressBar.GetSubProgressStart( m_target - 1 ) + ( (float)m_counter / m_numSubSteps ) * m_progressBar.GetSubProgressDelta( m_target ) );
+      }
+
+      private ProgressBar m_progressBar = null;
+      private ProgressBar.StateType m_target = ProgressBar.StateType.Initial;
+      private int m_numSubSteps = 1;
+      private string m_name = string.Empty;
+      private int m_counter = 0;
+    }
+
+    internal class ProgressBar : IDisposable
+    {
+      public enum StateType
+      {
+        Initial,
+        ReadingFile,
+        CreatingSimulationTree,
+        GeneratingObjects,
+        CreatingPrefab,
+        Done
+      }
+
+      public string Title = "";
+
+      public SubProgress Progress( string name, int numSubSteps )
+      {
+        return new SubProgress( this, m_state + 1, name, numSubSteps );
+      }
+
+      public void Progress()
+      {
+        if ( m_state == StateType.Done )
+          return;
+
+        m_state = m_state + 1;
+      }
+
+      public void Dispose()
+      {
+        EditorUtility.ClearProgressBar();
+      }
+
+      public float GetSubProgressStart( StateType start )
+      {
+        return m_subProgress[ (int)start ];
+      }
+
+      public float GetSubProgressDelta( StateType target )
+      {
+        if ( target == StateType.Initial )
+          return 0.0f;
+        return m_subProgress[ (int)target ] - m_subProgress[ (int)( target - 1 ) ];
+      }
+
+      private StateType m_state = StateType.Initial;
+      //                                            Init, Read, Create, Gen, Prefab, Done
+      private float[] m_subProgress = new float[] { 0.0f, 0.33f, 0.4f, 0.95f, 1.0f, 1.0f };
+    }
+
     private Tree m_tree = new Tree();
     private HashSet<string> m_names = new HashSet<string>();
+    private ProgressBar m_progressBar = null;
   }
 }

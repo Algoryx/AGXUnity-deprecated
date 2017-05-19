@@ -12,6 +12,8 @@ namespace AgXUnityEditor.Tools
   {
     public Constraint Constraint { get; private set; }
 
+    public Action<bool> OnFoldoutStateChange = delegate { };
+
     public ConstraintTool( Constraint constraint )
       : base( constraint.AttachmentPair, constraint )
     {
@@ -103,7 +105,7 @@ namespace AgXUnityEditor.Tools
 
         InvokeWrapper[] memberWrappers = InvokeWrapper.FindFieldsAndProperties( null, typeof( ElementaryConstraintRowData ) );
         if ( constraintRowParser.HasTranslationalRows ) {
-          if ( GUI.Foldout( Selected( SelectedFoldout.OrdinaryElementaryTranslational ), GUI.MakeLabel( "Translational properties </b>(along constraint axis)<b>", true ), skin ) )
+          if ( GUI.Foldout( Selected( SelectedFoldout.OrdinaryElementaryTranslational ), GUI.MakeLabel( "Translational properties </b>(along constraint axis)<b>", true ), skin, OnFoldoutStateChange ) )
             using ( new GUI.Indent( 12 ) )
               HandleConstraintRowsGUI( constraintRowParser.TranslationalRows, memberWrappers, skin );
         }
@@ -111,7 +113,7 @@ namespace AgXUnityEditor.Tools
         if ( constraintRowParser.HasRotationalRows ) {
           GUI.Separator();
 
-          if ( GUI.Foldout( Selected( SelectedFoldout.OrdinaryElementaryRotational ), GUI.MakeLabel( "Rotational properties </b>(about constraint axis)<b>", true ), skin ) )
+          if ( GUI.Foldout( Selected( SelectedFoldout.OrdinaryElementaryRotational ), GUI.MakeLabel( "Rotational properties </b>(about constraint axis)<b>", true ), skin, OnFoldoutStateChange ) )
             using ( new GUI.Indent( 12 ) )
               HandleConstraintRowsGUI( constraintRowParser.RotationalRows, memberWrappers, skin );
         }
@@ -121,7 +123,7 @@ namespace AgXUnityEditor.Tools
           if ( !constraintRowParser.Empty )
             GUI.Separator();
 
-          if ( GUI.Foldout( Selected( SelectedFoldout.Controllers ), GUI.MakeLabel( "Controllers", true ), skin ) ) {
+          if ( GUI.Foldout( Selected( SelectedFoldout.Controllers ), GUI.MakeLabel( "Controllers", true ), skin, OnFoldoutStateChange ) ) {
             using ( new GUI.Indent( 12 ) ) {
               GUI.Separator();
               foreach ( var controller in controllers ) {
@@ -242,7 +244,11 @@ namespace AgXUnityEditor.Tools
                                                      controllerType == Constraint.ControllerType.Rotational ?
                                                        Color.Lerp( UnityEngine.GUI.color, Color.red, 0.75f ) :
                                                        Color.Lerp( UnityEngine.GUI.color, Color.green, 0.75f ) ) + "] ";
-      if ( GUI.Foldout( Selected( SelectedFoldout.Controller, controllerTypeTag + ConstraintUtils.FindName( controller ) ), GUI.MakeLabel( dimString + ConstraintUtils.FindName( controller ), true ), skin ) ) {
+      if ( GUI.Foldout( Selected( SelectedFoldout.Controller,
+                                  controllerTypeTag + ConstraintUtils.FindName( controller ) ),
+                        GUI.MakeLabel( dimString + ConstraintUtils.FindName( controller ), true ),
+                        skin,
+                        OnFoldoutStateChange ) ) {
         using ( new GUI.Indent( 12 ) ) {
           controller.Enable = GUI.Toggle( GUI.MakeLabel( "Enable", controller.Enable ), controller.Enable, skin.button, skin.label );
           BaseEditor<ElementaryConstraint>.Update( controller, controller, skin );

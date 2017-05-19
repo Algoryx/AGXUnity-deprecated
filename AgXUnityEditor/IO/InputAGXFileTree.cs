@@ -421,10 +421,10 @@ namespace AgXUnityEditor.IO
     private Dictionary<agx.Uuid, agx.ContactMaterial> m_contactMaterials = new Dictionary<agx.Uuid, agx.ContactMaterial>( new UuidComparer() );
 
     private List<Node> m_roots = new List<Node>();
-    private Node m_constraintRoot = new Node() { Type = NodeType.Placeholder };
-    private Node m_wireRoot = new Node() { Type = NodeType.Placeholder };
-    private Node m_cableRoot = new Node() { Type = NodeType.Placeholder };
-    private Node m_materialRoot = new Node() { Type = NodeType.Placeholder };
-    private Node m_contactMaterialRoot = new Node() { Type = NodeType.Placeholder };
+    private Node m_constraintRoot = new Node() { Type = NodeType.Placeholder, Name = "Constraints" };
+    private Node m_wireRoot = new Node() { Type = NodeType.Placeholder, Name = "Wires" };
+    private Node m_cableRoot = new Node() { Type = NodeType.Placeholder, Name = "Cables" };
+    private Node m_materialRoot = new Node() { Type = NodeType.Placeholder, Name = "Shape materials" };
+    private Node m_contactMaterialRoot = new Node() { Type = NodeType.Placeholder, Name = "Contact materials" };
   }
 }
