@@ -20,6 +20,20 @@ namespace AgXUnityEditor.IO
     }
 
     /// <summary>
+    /// Asset types grouped together.
+    /// </summary>
+    public enum AssetType
+    {
+      Material,
+      Mesh,
+      ShapeMaterial,
+      ContactMaterial,
+      FrictionModel,
+      NumTypes,
+      Unknown
+    }
+
+    /// <summary>
     /// Makes relative path given complete path.
     /// </summary>
     /// <param name="complete">Complete path.</param>
@@ -57,6 +71,45 @@ namespace AgXUnityEditor.IO
     public static bool IsExistingAGXFile( FileInfo info )
     {
       return info != null && info.Exists && ( info.Extension == ".agx" || info.Extension == ".aagx" );
+    }
+
+    /// <summary>
+    /// Asset extension given instance.
+    ///   - Material:  ".mat"
+    ///   - CubeMap:   ".cubemap"
+    ///   - Animation: ".anim"
+    /// </summary>
+    /// <param name="asset">Asset instance.</param>
+    /// <returns>File extension including period.</returns>
+    public static string FindAssetExtension( UnityEngine.Object asset )
+    {
+      return asset is Material ?
+               ".mat" :
+             asset is Cubemap ?
+               ".cubemap" :
+             asset is Animation ?
+               ".anim" :
+               ".asset";
+    }
+
+    /// <summary>
+    /// Find type given asset.
+    /// </summary>
+    /// <param name="asset">An asset.</param>
+    /// <returns>AssetType.</returns>
+    public AssetType FindAssetType( UnityEngine.Object asset )
+    {
+      return asset is Material ?
+               AssetType.Material :
+             asset is Mesh ?
+               AssetType.Mesh :
+             asset is AgXUnity.ShapeMaterial ?
+               AssetType.ShapeMaterial :
+             asset is AgXUnity.ContactMaterial ?
+               AssetType.ContactMaterial :
+             asset is AgXUnity.FrictionModel ?
+               AssetType.FrictionModel :
+               AssetType.Unknown;
     }
 
     /// <summary>
@@ -177,7 +230,8 @@ namespace AgXUnityEditor.IO
     /// <returns>Path (relative) including .asset extension.</returns>
     public string GetAssetPath( UnityEngine.Object asset )
     {
-      return DataDirectory + "/" + ( asset != null ? asset.name : "null" ) + ".asset";
+      return DataDirectory + "/" +
+             ( asset != null ? asset.name : "null" ) + FindAssetExtension( asset );
     }
 
     /// <summary>
@@ -191,7 +245,19 @@ namespace AgXUnityEditor.IO
         return;
       }
 
-      AssetDatabase.CreateAsset( asset, GetAssetPath( asset ) );
+      // Grouping assets given known types - unknown types are written directly to the data folder.
+      var type = FindAssetType( asset );
+      if ( type == AssetType.Unknown ) {
+        AssetDatabase.CreateAsset( asset, GetAssetPath( asset ) );
+        return;
+      }
+
+      if ( m_assetRoots[ (int)type ] != null )
+        AssetDatabase.AddObjectToAsset( asset, m_assetRoots[ (int)type ] );
+      else {
+        m_assetRoots[ (int)type ] = asset;
+        AssetDatabase.CreateAsset( asset, GetAssetPath( asset ) );
+      }
     }
 
     /// <summary>
@@ -205,7 +271,9 @@ namespace AgXUnityEditor.IO
       var guids = AssetDatabase.FindAssets( "t:" + typeof( T ).FullName, new string[] { DataDirectory } );
       return ( from guid
                in guids
-               select AssetDatabase.LoadAssetAtPath<T>( AssetDatabase.GUIDToAssetPath( guid ) ) ).ToArray();
+               from obj
+               in AssetDatabase.LoadAllAssetsAtPath( AssetDatabase.GUIDToAssetPath( guid ) )
+               select obj as T ).ToArray();
     }
 
     /// <summary>
@@ -248,5 +316,6 @@ namespace AgXUnityEditor.IO
     }
 
     private FileInfo m_fileInfo = null;
+    private UnityEngine.Object[] m_assetRoots = new UnityEngine.Object[ (int)AssetType.NumTypes ];
   }
 }

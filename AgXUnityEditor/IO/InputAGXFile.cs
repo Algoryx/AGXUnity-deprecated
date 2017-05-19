@@ -343,8 +343,9 @@ namespace AgXUnityEditor.IO
                               select meshToLocal.MultiplyPoint3x4( nativeToWorld.preMult( v ).ToHandedVector3() ) ).ToList() );
 
         // Converting counter clockwise -> clockwise.
-        var triangles = new List<int>();
-        var indexArray = collisionData.getIndices();
+        var triangles      = new List<int>();
+        var indexArray     = collisionData.getIndices();
+        triangles.Capacity = indexArray.Count;
         for ( int i = 0; i < indexArray.Count; i += 3 ) {
           triangles.Add( Convert.ToInt32( indexArray[ i + 0 ] ) );
           triangles.Add( Convert.ToInt32( indexArray[ i + 2 ] ) );
