@@ -11,6 +11,10 @@ using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
 namespace AgXUnityEditor.IO
 {
+  // TODO: RestoredAGXFile tool.
+  //       Create visual.
+  //       Constraint animation.
+
   /// <summary>
   /// Load .agx/.aagx file to an prefab with the same name in the same directory.
   /// 1. TryLoad - loading file into native simulation (restoring file)
@@ -715,7 +719,7 @@ namespace AgXUnityEditor.IO
       // will be read from Space (cable.setEnableCollisions( foo, false ) will
       // work out of the box).
       var collisionGroups = cable.gameObject.GetOrCreateComponent<CollisionGroups>();
-      collisionGroups.AddGroup( nativeCable.getDisabledCollisionGroupId().ToString(), false );
+      collisionGroups.AddGroup( nativeCable.getUniqueId().ToString(), false );
       var referencedGroups = node.GetReferences( Node.NodeType.GroupId );
       foreach ( var group in referencedGroups )
         if ( group.Object is string )

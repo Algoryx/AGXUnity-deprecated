@@ -70,6 +70,7 @@
     <Compile Include="AttachmentPair.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="Cable.cs" />
+    <Compile Include="CableAttachment.cs" />
     <Compile Include="CableProperties.cs" />
     <Compile Include="CableRoute.cs" />
     <Compile Include="CableRouteNode.cs" />
