@@ -114,6 +114,19 @@ namespace AgXUnity.Collide
     [HideInInspector]
     public RigidBody RigidBody { get { return GetComponentInParent<RigidBody>(); } }
 
+    private Rendering.ShapeVisual m_visual = null;
+
+    [HideInInspector]
+    public Rendering.ShapeVisual Visual
+    {
+      get
+      {
+        if ( m_visual == null )
+          m_visual = Rendering.ShapeVisual.Find( this );
+        return m_visual;
+      }
+    }
+
     /// <summary>
     /// Abstract scale. Mainly used in debug rendering which uses unit size
     /// and scale. E.g., a sphere with radius 0.3 m should return (0.6, 0.6, 0.6).
@@ -186,15 +199,17 @@ namespace AgXUnity.Collide
 
     /// <summary>
     /// Call this method when the size of the shape has been changed.
-    /// This method will call any rigid body object that this shape
-    /// is part, for it to update the mass etc.
     /// </summary>
     public void SizeUpdated()
     {
       // Avoids calling sync of debug rendering when the properties
       // are being synchronized during initialize.
-      if ( !IsSynchronizingProperties )
+      if ( !IsSynchronizingProperties ) {
         Rendering.DebugRenderManager.SynchronizeScale( this );
+
+        if ( Visual != null )
+          Visual.OnSizeUpdated();
+      }
     }
 
     /// <summary>

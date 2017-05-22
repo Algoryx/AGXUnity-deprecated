@@ -409,23 +409,16 @@ namespace AgXUnityEditor.IO
     {
       var nativeShape = m_tree.GetShape( node.Uuid );
       var renderData  = nativeShape.getRenderData();
-      if ( renderData == null )
+      if ( renderData == null || !renderData.getShouldRender() )
         return false;
 
       var nativeGeometry       = m_tree.GetGeometry( node.Parent.Uuid );
       var shape                = node.GameObject.GetComponent<AgXUnity.Collide.Shape>();
-      var renderDataGameObject = new GameObject( shape.name + "_Visual" );
-      var shapeVisual          = renderDataGameObject.AddComponent<AgXUnity.Rendering.ShapeVisual>();
+      var shapeVisual          = AgXUnity.Rendering.ShapeVisual.CreateShapeRenderData( shape ).GetComponent<AgXUnity.Rendering.ShapeVisualRenderData>();
 
-      shape.gameObject.AddChild( renderDataGameObject );
-      renderDataGameObject.transform.localPosition = Vector3.zero;
-      renderDataGameObject.transform.localRotation = Quaternion.identity;
-      renderDataGameObject.transform.localScale    = Vector3.one;
-
-      var renderer = shapeVisual.MeshRenderer;
       var filter   = shapeVisual.MeshFilter;
       var toWorld  = nativeGeometry.getTransform();
-      var toLocal  = renderDataGameObject.transform.worldToLocalMatrix;
+      var toLocal  = shapeVisual.transform.worldToLocalMatrix;
       var mesh     = new Mesh();
       mesh.name    = shapeVisual.name + "_Mesh";
 
@@ -479,8 +472,8 @@ namespace AgXUnityEditor.IO
       FileInfo.AddAsset( mesh );
       FileInfo.AddAsset( material );
 
-      filter.sharedMesh       = mesh;
-      renderer.sharedMaterial = material;
+      filter.sharedMesh = mesh;
+      shapeVisual.SetMaterial( material );
 
       return true;
     }

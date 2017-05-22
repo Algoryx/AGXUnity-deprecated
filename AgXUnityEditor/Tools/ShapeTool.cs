@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEditor;
 using AgXUnity.Collide;
 using GUI = AgXUnityEditor.Utils.GUI;
 
@@ -107,6 +108,27 @@ namespace AgXUnityEditor.Tools
         ShapeCreateTool = !ShapeCreateTool;
       if ( toggleDisableCollisions )
         DisableCollisionsTool = !DisableCollisionsTool;
+    }
+
+    public override void OnPostTargetMembersGUI( GUISkin skin )
+    {
+      bool createShapeVisual = false;
+
+      if ( AgXUnity.Rendering.ShapeVisual.SupportsShapeVisual( Shape ) ) {
+        GUI.Separator();
+
+        UnityEngine.GUI.enabled = !AgXUnity.Rendering.ShapeVisual.HasShapeVisual( Shape );
+        using ( GUI.AlignBlock.Center ) {
+          createShapeVisual = GUILayout.Button( GUI.MakeLabel( "Create visual" ), GUILayout.Width( 96 ) );
+        }
+        UnityEngine.GUI.enabled = true;
+
+        if ( createShapeVisual ) {
+          var visualGameObject = AgXUnity.Rendering.ShapeVisual.Create( Shape );
+          if ( visualGameObject != null )
+            Undo.RegisterCreatedObjectUndo( visualGameObject, "Create visual" );
+        }
+      }
     }
   }
 }

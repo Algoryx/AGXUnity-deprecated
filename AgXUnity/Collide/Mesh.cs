@@ -44,6 +44,7 @@ namespace AgXUnity.Collide
           // a complete new instance of the debug render object
           // is created (i.e., not only update scale if node exist).
           Rendering.DebugRenderManager.HandleMeshSource( this );
+          Rendering.ShapeVisualMesh.HandleMeshSource( this );
         }
       }
     }

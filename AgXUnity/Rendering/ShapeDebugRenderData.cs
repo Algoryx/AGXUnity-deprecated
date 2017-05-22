@@ -34,7 +34,11 @@ namespace AgXUnity.Rendering
     /// <param name="node">Capsule prefab node with three children.</param>
     /// <param name="radius">Radius of the capsule.</param>
     /// <param name="height">Height of the capsule.</param>
-    public static void SetCapsuleSize( GameObject node, float radius, float height )
+    /// <param name="unscaleParentLossyScale">
+    /// True to use parent lossy scale to unscale size and position for persistent size
+    /// of this capsule.
+    /// </param>
+    public static void SetCapsuleSize( GameObject node, float radius, float height, bool unscaleParentLossyScale = true )
     {
       if ( node == null )
         return;
@@ -42,17 +46,23 @@ namespace AgXUnity.Rendering
       if ( node.transform.childCount != 3 )
         throw new Exception( "Capsule debug rendering node doesn't contain three children." );
 
+      var additionalScale = Vector3.one;
+      if ( unscaleParentLossyScale && node.transform.parent != null ) {
+        var ls = node.transform.parent.lossyScale;
+        additionalScale = new Vector3( 1.0f / ls.x, 1.0f / ls.y, 1.0f / ls.z );
+      }
+
       Transform sphereUpper = node.transform.GetChild( 0 );
       Transform cylinder = node.transform.GetChild( 1 );
       Transform sphereLower = node.transform.GetChild( 2 );
 
-      cylinder.localScale = new Vector3( 2.0f * radius, height, 2.0f * radius );
+      cylinder.localScale = Vector3.Scale( new Vector3( 2.0f * radius, height, 2.0f * radius ), additionalScale );
 
-      sphereUpper.localScale = 2.0f * radius * Vector3.one;
-      sphereUpper.localPosition = 0.5f * height * Vector3.up;
+      sphereUpper.localScale    = Vector3.Scale( 2.0f * radius * Vector3.one, additionalScale );
+      sphereUpper.localPosition = Vector3.Scale( 0.5f * height * Vector3.up, additionalScale );
 
-      sphereLower.localScale = 2.0f * radius * Vector3.one;
-      sphereLower.localPosition = 0.5f * height * Vector3.down;
+      sphereLower.localScale    = Vector3.Scale( 2.0f * radius * Vector3.one, additionalScale );
+      sphereLower.localPosition = Vector3.Scale( 0.5f * height * Vector3.down, additionalScale );
     }
 
     /// <summary>
@@ -91,7 +101,9 @@ namespace AgXUnity.Rendering
 
         // Node created - set properties and extra components.
         if ( nodeCreated ) {
-          Node.hideFlags = HideFlags.DontSave;
+          Node.hideFlags           = HideFlags.DontSave;
+          Node.transform.hideFlags = HideFlags.DontSave | HideFlags.HideInInspector;
+
           Node.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
           foreach ( Transform child in Node.transform )
             child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Component = shape;

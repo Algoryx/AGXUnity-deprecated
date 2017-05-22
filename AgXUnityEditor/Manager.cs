@@ -64,6 +64,7 @@ namespace AgXUnityEditor
 
       SceneView.onSceneGUIDelegate             += OnSceneView;
       EditorApplication.hierarchyWindowChanged += OnHierarchyWindowChanged;
+      Selection.selectionChanged               += OnSelectionChanged;
 
       while ( VisualsParent != null && VisualsParent.transform.childCount > 0 )
         GameObject.DestroyImmediate( VisualsParent.transform.GetChild( 0 ).gameObject );
@@ -79,6 +80,8 @@ namespace AgXUnityEditor
       RequestSceneViewFocus();
 
       Tools.Tool.ActivateBuiltInTools();
+
+      GetOrCreateShapeVisualDefaultMaterial();
     }
 
     /// <summary>
@@ -171,7 +174,11 @@ namespace AgXUnityEditor
       GameObject gameObject = obj as GameObject;
       var proxy  = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
       // If proxy target is null we're ignoring it.
-      var result = proxy != null && proxy.Target != null ? proxy.Target : obj;
+      var result = proxy != null &&
+                  !EditorData.Instance.GetData( proxy, "SelectedInHierarchy", entry => entry.Bool = false ).Bool &&
+                   proxy.Target != null ?
+                     proxy.Target :
+                     obj;
       return result;
     }
 
@@ -191,6 +198,24 @@ namespace AgXUnityEditor
         return selectionProxy.Target;
 
       return null;
+    }
+
+    /// <summary>
+    /// Get or create default shape visuals material.
+    /// </summary>
+    /// <returns>Material asset.</returns>
+    public static Material GetOrCreateShapeVisualDefaultMaterial()
+    {
+      var visualsMaterial = AssetDatabase.LoadAssetAtPath<Material>( AgXUnity.Rendering.ShapeVisual.DefaultMaterialPath );
+      if ( visualsMaterial == null ) {
+        Debug.Log( "Shape visuals material doesn't exist. Creating new." );
+        visualsMaterial = AgXUnity.Rendering.ShapeVisual.CreateDefaultMaterial();
+        AssetDatabase.CreateAsset( visualsMaterial, AgXUnity.Rendering.ShapeVisual.DefaultMaterialPath );
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+      }
+
+      return visualsMaterial;
     }
 
     public static void OnVisualPrimitiveNodeCreate( Utils.VisualPrimitive primitive )
@@ -520,10 +545,58 @@ namespace AgXUnityEditor
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
         }
+
+        // Verifying shape visuals material.
+        {
+          AgXUnity.Rendering.ShapeVisual[] shapeVisuals = UnityEngine.Object.FindObjectsOfType<AgXUnity.Rendering.ShapeVisual>();
+          foreach ( var shapeVisual in shapeVisuals ) {
+            var renderers = shapeVisual.GetComponentsInChildren<MeshRenderer>();
+            foreach ( var renderer in renderers ) {
+              if ( renderer.sharedMaterial == null ) {
+                renderer.sharedMaterial = GetOrCreateShapeVisualDefaultMaterial();
+
+                Debug.Log( "Shape visual with null material. Assigning default.", shapeVisual );
+
+                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+              }
+            }
+          }
+        }
       }
       else if ( Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<AgXUnity.IO.RestoredAGXFile>() != null ) {
         AssetPostprocessorHandler.OnPrefabAddedToScene( Selection.activeGameObject );
       }
+    }
+
+    private static UnityEngine.Object[] m_previousSelection = new UnityEngine.Object[] { };
+    private static void OnSelectionChanged()
+    {
+      bool mouseOverHierarchy = EditorWindow.mouseOverWindow != null &&
+                                EditorWindow.mouseOverWindow.GetType().FullName == "UnityEditor.SceneHierarchyWindow";
+
+      Func<GameObject, bool, bool> setOnSelectionProxyState = ( go, state ) =>
+      {
+        var proxy = go?.GetComponent<OnSelectionProxy>();
+        if ( proxy != null )
+          return ( EditorData.Instance.GetData( proxy, "SelectedInHierarchy" ).Bool = state );
+        return false;
+      };
+
+      foreach ( var prevSelected in m_previousSelection ) {
+        // Could be deleted - only valid to check if null.
+        if ( prevSelected == null )
+          continue;
+
+        setOnSelectionProxyState( prevSelected as GameObject, false );
+      }
+
+      bool toolsHidden = false;
+      foreach ( var selected in Selection.objects )
+        toolsHidden = setOnSelectionProxyState( selected as GameObject, mouseOverHierarchy ) || toolsHidden;
+
+      UnityEditor.Tools.hidden = toolsHidden;
+
+      m_previousSelection = Selection.objects;
     }
 
     private static void HandleWindowsGUI( SceneView sceneView )
