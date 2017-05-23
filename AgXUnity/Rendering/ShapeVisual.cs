@@ -134,6 +134,19 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
+    /// Finds all materials, including children.
+    /// </summary>
+    /// <returns>Array containing all materials.</returns>
+    public Material[] GetMaterials()
+    {
+      return ( from renderer
+               in GetComponentsInChildren<MeshRenderer>()
+               from material
+               in renderer.sharedMaterials
+               select material ).ToArray();
+    }
+
+    /// <summary>
     /// Callback from Shape when its size has been changed.
     /// </summary>
     public virtual void OnSizeUpdated()

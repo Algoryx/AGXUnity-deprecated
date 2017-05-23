@@ -17,6 +17,7 @@ namespace AgXUnityEditor.Utils
 
       public const char ShapeResizeTool         = '\u21C4';
       public const char ShapeCreateTool         = '\u210C';
+      public const char ShapeVisualCreateTool   = '\u274D';
 
       public const char SelectInSceneViewTool   = 'p';
       public const char SelectPointTool         = '\u22A1';
@@ -519,6 +520,87 @@ namespace AgXUnityEditor.Utils
     public static GUIStyle ConditionalCreateSelectedStyle( bool selected, GUIStyle orgStyle )
     {
       return selected ? CreateSelectedStyle( orgStyle ) : orgStyle;
+    }
+
+    private static Editor m_cachedMaterialEditor = null;
+    public static void MaterialEditor( Material material, GUISkin skin, Action<Material> onMaterialChanged )
+    {
+      if ( material == null )
+        return;
+
+      Material newMaterial = null;
+      bool createNewMaterialButton = false;
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Label( MakeLabel( "Material:", true ), skin.label, GUILayout.Width( 64 ) );
+        newMaterial = EditorGUILayout.ObjectField( material, typeof( Material ), false ) as Material;
+        createNewMaterialButton = GUILayout.Button( MakeLabel( "New" ), GUILayout.Width( 46 ) );
+      }
+      GUILayout.EndHorizontal();
+
+      bool isBuiltInMaterial = !AssetDatabase.GetAssetPath( material ).StartsWith( "Assets" ) || material == Manager.GetOrCreateShapeVisualDefaultMaterial();
+
+      Editor.CreateCachedEditor( material, typeof( MaterialEditor ), ref m_cachedMaterialEditor );
+      var materialEditor = m_cachedMaterialEditor as MaterialEditor;
+      if ( materialEditor == null )
+        return;
+      
+      using ( new EditorGUI.DisabledGroupScope( isBuiltInMaterial ) ) {
+        materialEditor.DrawHeader();
+        materialEditor.OnInspectorGUI();
+      }
+
+      if ( createNewMaterialButton ) {
+        string result = EditorUtility.SaveFilePanel( "Create new material", "Assets", "new material.mat", "mat" );
+        if ( result != string.Empty ) {
+          System.IO.FileInfo info = new System.IO.FileInfo( result );
+          var relativePath = IO.AGXFileInfo.MakeRelative( result, Application.dataPath );
+
+          newMaterial = new Material( material );
+          newMaterial.name = info.Name;
+          AssetDatabase.CreateAsset( newMaterial, relativePath + ( info.Extension == ".mat" ? "" : ".mat" ) );
+          AssetDatabase.SaveAssets();
+          AssetDatabase.Refresh();
+        }
+      }
+
+      if ( newMaterial != null && newMaterial != material )
+        onMaterialChanged?.Invoke( newMaterial );
+    }
+
+    public enum CreateCancelState
+    {
+      Nothing,
+      Create,
+      Cancel
+    }
+
+    public static CreateCancelState CreateCancelButtons( bool validToPressCreate, GUISkin skin, string tooltip = "" )
+    {
+      bool createPressed = false;
+      bool cancelPressed = false;
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.FlexibleSpace();
+
+        GUILayout.BeginVertical();
+        {
+          GUILayout.Space( 13 );
+          using ( new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.red, 0.1f ) ) )
+            cancelPressed = GUILayout.Button( MakeLabel( "Cancel", false ), skin.button, GUILayout.Width( 96 ), GUILayout.Height( 16 ) );
+          GUILayout.EndVertical();
+        }
+
+        using ( new EditorGUI.DisabledGroupScope( !validToPressCreate ) )
+        using ( new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
+          createPressed = GUILayout.Button( MakeLabel( "Create", true, tooltip ), skin.button, GUILayout.Width( 120 ), GUILayout.Height( 26 ) );
+        UnityEngine.GUI.enabled = true;
+      }
+      GUILayout.EndHorizontal();
+
+      return createPressed ? CreateCancelState.Create :
+             cancelPressed ? CreateCancelState.Cancel :
+                             CreateCancelState.Nothing;
     }
 
     private static void OnToolInspectorGUI( object target, GUISkin skin, TargetToolGUICallbackType callbackType )

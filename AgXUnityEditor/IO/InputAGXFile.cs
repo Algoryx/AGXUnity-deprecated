@@ -12,6 +12,7 @@ using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 // TODO: RestoredAGXFile tool.
 //       Create visual.
 //       Constraint animation.
+//       Large meshes CAT365.agx.
 
 namespace AgXUnityEditor.IO
 {

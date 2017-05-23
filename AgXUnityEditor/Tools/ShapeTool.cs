@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using AgXUnity.Collide;
+using AgXUnity.Rendering;
 using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
@@ -15,8 +16,10 @@ namespace AgXUnityEditor.Tools
       get { return GetChild<ShapeResizeTool>() != null; }
       set
       {
-        if ( value && GetChild<ShapeResizeTool>() == null ) {
-          ShapeResizeTool shapeResizeTool                                = new ShapeResizeTool( Shape );
+        if ( value && !ShapeResizeTool ) {
+          RemoveAllChildren();
+
+          var shapeResizeTool                                            = new ShapeResizeTool( Shape );
           shapeResizeTool.ActivateKey.HideDefaultHandlesWhenIsDown       = true;
           shapeResizeTool.SymmetricScaleKey.HideDefaultHandlesWhenIsDown = true;
           shapeResizeTool.RemoveOnKeyEscape                              = true;
@@ -62,29 +65,57 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    public bool ShapeVisualCreateTool
+    {
+      get { return GetChild<ShapeVisualCreateTool>() != null; }
+      set
+      {
+        if ( value && !ShapeVisualCreateTool ) {
+          RemoveAllChildren();
+
+          var createShapeVisualTool = new ShapeVisualCreateTool( Shape );
+          AddChild( createShapeVisualTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<ShapeVisualCreateTool>() );
+      }
+    }
+
     public ShapeTool( Shape shape )
     {
       Shape = shape;
     }
 
+    public override void OnAdd()
+    {
+    }
+
+    public override void OnRemove()
+    {
+    }
+
     public override void OnPreTargetMembersGUI( GUISkin skin )
     {
-      bool guiWasEnabled           = UnityEngine.GUI.enabled;
       bool toggleShapeResizeTool   = false;
       bool toggleShapeCreate       = false;
       bool toggleDisableCollisions = false;
+      bool toggleShapeVisualCreate = true;
 
       GUILayout.BeginHorizontal();
       {
         GUI.ToolsLabel( skin );
 
         using ( GUI.ToolButtonData.ColorBlock ) {
-          UnityEngine.GUI.enabled = Tools.ShapeResizeTool.SupportsShape( Shape );
-          toggleShapeResizeTool   = GUI.ToolButton( GUI.Symbols.ShapeResizeTool, ShapeResizeTool, "Shape resize tool", skin, 24 );
-          UnityEngine.GUI.enabled = guiWasEnabled;
+          using ( new EditorGUI.DisabledGroupScope( !Tools.ShapeResizeTool.SupportsShape( Shape ) ) )
+            toggleShapeResizeTool = GUI.ToolButton( GUI.Symbols.ShapeResizeTool, ShapeResizeTool, "Shape resize tool", skin, 24 );
 
           toggleShapeCreate       = GUI.ToolButton( GUI.Symbols.ShapeCreateTool, ShapeCreateTool, "Create shape from visual objects", skin );
           toggleDisableCollisions = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool, DisableCollisionsTool, "Disable collisions against other objects", skin );
+
+          bool createShapeVisualValid = ShapeVisual.SupportsShapeVisual( Shape ) &&
+                                        !ShapeVisual.HasShapeVisual( Shape );
+          using ( new EditorGUI.DisabledGroupScope( !createShapeVisualValid ) )
+            toggleShapeVisualCreate = GUI.ToolButton( GUI.Symbols.ShapeVisualCreateTool, ShapeVisualCreateTool, "Create visual representation of the physical shape", skin, 14 );
         }
       }
       GUILayout.EndHorizontal();
@@ -101,6 +132,11 @@ namespace AgXUnityEditor.Tools
 
         GUI.Separator();
       }
+      if ( ShapeVisualCreateTool ) {
+        GetChild<ShapeVisualCreateTool>().OnInspectorGUI( skin );
+
+        GUI.Separator();
+      }
 
       if ( toggleShapeResizeTool )
         ShapeResizeTool = !ShapeResizeTool;
@@ -108,26 +144,29 @@ namespace AgXUnityEditor.Tools
         ShapeCreateTool = !ShapeCreateTool;
       if ( toggleDisableCollisions )
         DisableCollisionsTool = !DisableCollisionsTool;
+      if ( toggleShapeVisualCreate )
+        ShapeVisualCreateTool = !ShapeVisualCreateTool;
     }
 
     public override void OnPostTargetMembersGUI( GUISkin skin )
     {
-      bool createShapeVisual = false;
+      var shapeVisual = ShapeVisual.Find( Shape );
+      if ( shapeVisual == null )
+        return;
 
-      if ( AgXUnity.Rendering.ShapeVisual.SupportsShapeVisual( Shape ) ) {
+      GUI.Separator();
+      if ( !GUI.Foldout( EditorData.Instance.GetData( Shape, "Visual", entry => entry.Bool = false ), GUI.MakeLabel( "Shape Visual" ), skin ) )
+        return;
+
+      GUI.Separator();
+
+      var materials = shapeVisual.GetMaterials();
+      int materialCounter = 0;
+      Material newMaterial = null;
+      foreach ( var material in materials ) {
+        if ( materials.Length == 1 || GUI.Foldout( EditorData.Instance.GetData( Shape, "VisualMaterial" + ( materialCounter++ ).ToString(), entry => entry.Bool = true ), GUI.MakeLabel( material.name ), skin ) )
+          GUI.MaterialEditor( material, skin, mat => newMaterial = mat );
         GUI.Separator();
-
-        UnityEngine.GUI.enabled = !AgXUnity.Rendering.ShapeVisual.HasShapeVisual( Shape );
-        using ( GUI.AlignBlock.Center ) {
-          createShapeVisual = GUILayout.Button( GUI.MakeLabel( "Create visual" ), GUILayout.Width( 96 ) );
-        }
-        UnityEngine.GUI.enabled = true;
-
-        if ( createShapeVisual ) {
-          var visualGameObject = AgXUnity.Rendering.ShapeVisual.Create( Shape );
-          if ( visualGameObject != null )
-            Undo.RegisterCreatedObjectUndo( visualGameObject, "Create visual" );
-        }
       }
     }
   }

@@ -250,7 +250,7 @@ namespace AgXUnityEditor
     private static GameObject m_visualsParent = null;
     private static HashSet<Utils.VisualPrimitive> m_visualPrimitives = new HashSet<Utils.VisualPrimitive>();
 
-    private static GameObject VisualsParent
+    public static GameObject VisualsParent
     {
       get
       {
