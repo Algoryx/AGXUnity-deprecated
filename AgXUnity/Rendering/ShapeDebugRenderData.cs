@@ -137,7 +137,15 @@ namespace AgXUnity.Rendering
 
       if ( shape is Collide.Mesh ) {
         if ( m_storedLossyScale != transform.lossyScale ) {
-          RescaleRenderedMesh( shape as Collide.Mesh, Node.GetComponent<MeshFilter>() );
+          var mesh = shape as Collide.Mesh;
+          if ( mesh.SourceObject != null )
+            RescaleRenderedMesh( mesh, mesh.SourceObject, Node.GetComponent<MeshFilter>() );
+          else {
+            for ( int i = 0; i < mesh.SourceObjects.Length; ++i ) {
+              var sub = mesh.SourceObjects[ i ];
+              RescaleRenderedMesh( mesh, sub, Node.transform.GetChild( i ).GetComponent<MeshFilter>() );
+            }
+          }
           m_storedLossyScale = transform.lossyScale;
         }
       }
@@ -187,18 +195,38 @@ namespace AgXUnity.Rendering
     /// </summary>
     private GameObject InitializeMeshGivenSourceObject( Collide.Mesh mesh )
     {
-      if ( mesh.SourceObject == null )
+      if ( mesh.SourceObject == null && mesh.SourceObjects.Length == 0 )
         throw new AgXUnity.Exception( "Mesh has no source." );
 
       GameObject meshData = new GameObject( "MeshData" );
-      MeshRenderer renderer = meshData.AddComponent<MeshRenderer>();
-      MeshFilter filter = meshData.AddComponent<MeshFilter>();
 
-      filter.sharedMesh = new UnityEngine.Mesh();
+      if ( mesh.SourceObject != null ) {
+        MeshRenderer renderer = meshData.AddComponent<MeshRenderer>();
+        MeshFilter filter = meshData.AddComponent<MeshFilter>();
 
-      RescaleRenderedMesh( mesh, filter );
+        filter.sharedMesh = new UnityEngine.Mesh();
 
-      renderer.sharedMaterial = Resources.Load<UnityEngine.Material>( "Materials/DebugRendererMaterial" );
+        RescaleRenderedMesh( mesh, mesh.SourceObject, filter );
+
+        renderer.sharedMaterial = Resources.Load<Material>( "Materials/DebugRendererMaterial" );
+      }
+      else {
+        foreach ( var sub in mesh.SourceObjects ) {
+          GameObject subMesh = new GameObject( "SubMeshData" );
+          subMesh.transform.parent = meshData.transform;
+          subMesh.transform.localPosition = Vector3.zero;
+          subMesh.transform.localRotation = Quaternion.identity;
+
+          MeshRenderer renderer = subMesh.AddComponent<MeshRenderer>();
+          MeshFilter filter = subMesh.AddComponent<MeshFilter>();
+          filter.sharedMesh = new UnityEngine.Mesh();
+
+          RescaleRenderedMesh( mesh, sub, filter );
+
+          renderer.sharedMaterial = Resources.Load<Material>( "Materials/DebugRendererMaterial" );
+        }
+      }
+
       m_storedLossyScale = mesh.transform.lossyScale;
 
       return meshData;
@@ -212,9 +240,8 @@ namespace AgXUnity.Rendering
       return new GameObject( "HeightFieldData" );
     }
 
-    private void RescaleRenderedMesh( Collide.Mesh mesh, MeshFilter filter )
+    private void RescaleRenderedMesh( Collide.Mesh mesh, UnityEngine.Mesh source, MeshFilter filter )
     {
-      UnityEngine.Mesh source = mesh.SourceObject;
       if ( source == null )
         throw new AgXUnity.Exception( "Source object is null during rescale." );
 
@@ -230,7 +257,7 @@ namespace AgXUnity.Rendering
         throw new AgXUnity.Exception( "Shape debug render mesh mismatch." );
 
       Matrix4x4 scaledToWorld  = mesh.transform.localToWorldMatrix;
-      Vector3[] sourceVertices = mesh.SourceObject.vertices;
+      Vector3[] sourceVertices = source.vertices;
 
       // Transforms each vertex from local to world given scales, then
       // transforms each vertex back to local again - unscaled.

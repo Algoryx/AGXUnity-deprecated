@@ -102,6 +102,8 @@
     <Compile Include="Utils\ConstraintUtils.cs" />
     <Compile Include="Utils\DisposableCallback.cs" />
     <Compile Include="Utils\InvokeWrapper.cs" />
+    <Compile Include="Utils\MeshMerger.cs" />
+    <Compile Include="Utils\MeshSplitter.cs" />
     <Compile Include="Utils\Raycast.cs" />
     <Compile Include="Utils\ShapeInitializationData.cs" />
     <Compile Include="Utils\ShapeUtils.cs" />

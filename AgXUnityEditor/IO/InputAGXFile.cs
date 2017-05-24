@@ -13,6 +13,7 @@ using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 //       Create visual.
 //       Constraint animation.
 //       Large meshes CAT365.agx.
+//       HeightField
 
 namespace AgXUnityEditor.IO
 {
@@ -321,6 +322,51 @@ namespace AgXUnityEditor.IO
         Parent.AddChild( node.GameObject );
     }
 
+    private class SubMeshData
+    {
+      private Dictionary<Vector3, int> m_vertexToIndexTable = new Dictionary<Vector3, int>();
+      private List<Vector3> m_vertices = new List<Vector3>();
+      private List<int> m_indices = new List<int>();
+
+      public int NumVertices { get { return m_vertices.Count; } }
+      public int NumIndices { get { return m_indices.Count; } }
+
+      public SubMeshData()
+      {
+        m_vertices.Capacity = Int16.MaxValue;
+        m_indices.Capacity = Int16.MaxValue;
+      }
+
+      public void Add( Vector3 v1, Vector3 v2, Vector3 v3 )
+      {
+        Add( v1 );
+        Add( v2 );
+        Add( v3 );
+      }
+
+      public void Apply( ref Mesh mesh )
+      {
+        mesh.SetVertices( m_vertices );
+        mesh.SetTriangles( m_indices, 0, false );
+
+        mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
+        mesh.RecalculateTangents();
+      }
+
+      private void Add( Vector3 v )
+      {
+        int index;
+        if ( !m_vertexToIndexTable.TryGetValue( v, out index ) ) {
+          index = m_vertices.Count;
+          m_vertexToIndexTable.Add( v, index );
+          m_vertices.Add( v );
+        }
+
+        m_indices.Add( index );
+      }
+    }
+
     private bool CreateShape( Node node )
     {
       var nativeGeometry  = m_tree.GetGeometry( node.Parent.Uuid );
@@ -346,35 +392,52 @@ namespace AgXUnityEditor.IO
       }
       else if ( nativeShapeType == agxCollide.Shape.Type.CONVEX ||
                 nativeShapeType == agxCollide.Shape.Type.TRIMESH ) {
-        var mesh = node.GameObject.AddComponent<AgXUnity.Collide.Mesh>();
+        var mesh          = node.GameObject.AddComponent<AgXUnity.Collide.Mesh>();
         var collisionData = nativeShape.asMesh().getMeshData();
-        var source = new Mesh();
-        source.name = "Mesh_" + mesh.name;
-
         var nativeToWorld = nativeShape.getTransform();
-        var meshToLocal = mesh.transform.worldToLocalMatrix;
-        source.SetVertices( ( from v
-                              in collisionData.getVertices()
-                              select meshToLocal.MultiplyPoint3x4( nativeToWorld.preMult( v ).ToHandedVector3() ) ).ToList() );
+        var meshToLocal   = mesh.transform.worldToLocalMatrix;
 
-        // Converting counter clockwise -> clockwise.
-        var triangles      = new List<int>();
-        var indexArray     = collisionData.getIndices();
-        triangles.Capacity = indexArray.Count;
-        for ( int i = 0; i < indexArray.Count; i += 3 ) {
-          triangles.Add( Convert.ToInt32( indexArray[ i + 0 ] ) );
-          triangles.Add( Convert.ToInt32( indexArray[ i + 2 ] ) );
-          triangles.Add( Convert.ToInt32( indexArray[ i + 1 ] ) );
+        if ( collisionData.getVertices().Count > UInt16.MaxValue ) {
+          var nativeVertices = collisionData.getVertices();
+          var nativeIndicies = collisionData.getIndices();
+          var splitter       = MeshSplitter.Split( nativeVertices,
+                                                   nativeIndicies,
+                                                   v =>
+                                                     meshToLocal.MultiplyPoint3x4( nativeToWorld.preMult( v ).ToHandedVector3() ) );
+          var subMeshes      = splitter.Meshes;
+          for ( int i = 0; i < subMeshes.Length; ++i ) {
+            subMeshes[ i ].name = "Mesh_" + mesh.name + ( i == 0 ? "" : "_Sub_" + i.ToString() );
+            FileInfo.AddAsset( subMeshes[ i ] );
+            mesh.AddSource( subMeshes[ i ] );
+          }
         }
-        source.SetTriangles( triangles, 0, false );
+        else {
+          var source = new Mesh();
+          source.name = "Mesh_" + mesh.name;
 
-        source.RecalculateBounds();
-        source.RecalculateNormals();
-        source.RecalculateTangents();
+          source.SetVertices( ( from v
+                                in collisionData.getVertices()
+                                select meshToLocal.MultiplyPoint3x4( nativeToWorld.preMult( v ).ToHandedVector3() ) ).ToList() );
 
-        FileInfo.AddAsset( source );
+          // Converting counter clockwise -> clockwise.
+          var triangles      = new List<int>();
+          var indexArray     = collisionData.getIndices();
+          triangles.Capacity = indexArray.Count;
+          for ( int i = 0; i < indexArray.Count; i += 3 ) {
+            triangles.Add( Convert.ToInt32( indexArray[ i + 0 ] ) );
+            triangles.Add( Convert.ToInt32( indexArray[ i + 2 ] ) );
+            triangles.Add( Convert.ToInt32( indexArray[ i + 1 ] ) );
+          }
+          source.SetTriangles( triangles, 0, false );
 
-        mesh.SourceObject = source;
+          source.RecalculateBounds();
+          source.RecalculateNormals();
+          source.RecalculateTangents();
+
+          FileInfo.AddAsset( source );
+
+          mesh.SourceObject = source;
+        }
       }
       else {
         Debug.LogWarning( "Unsupported shape type: " + nativeShapeType );

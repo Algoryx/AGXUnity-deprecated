@@ -1,4 +1,5 @@
-﻿using AgXUnity.Utils;
+﻿using System.Collections.Generic;
+using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity.Collide
@@ -49,6 +50,19 @@ namespace AgXUnity.Collide
       }
     }
 
+    [SerializeField]
+    private List<UnityEngine.Mesh> m_sourceObjects = new List<UnityEngine.Mesh>();
+
+    public void AddSource( UnityEngine.Mesh mesh )
+    {
+      m_sourceObjects.Add( mesh );
+    }
+
+    public UnityEngine.Mesh[] SourceObjects
+    {
+      get { return m_sourceObjects.ToArray(); }
+    }
+
     /// <summary>
     /// Returns native mesh object if created.
     /// </summary>
@@ -94,9 +108,12 @@ namespace AgXUnity.Collide
     /// <returns>Native mesh object if valid.</returns>
     private agxCollide.Mesh Create( UnityEngine.Mesh mesh )
     {
-      if ( mesh == null )
+      if ( mesh == null && m_sourceObjects.Count == 0 )
         return null;
-  
+
+      if ( m_sourceObjects.Count > 0 )
+        return Create( SourceObjects );
+
       return Create( mesh.vertices, mesh.triangles );
     }
 
@@ -124,6 +141,12 @@ namespace AgXUnity.Collide
 
       return isConvex ? new agxCollide.Convex( agxVertices, agxIndices, "Convex", (uint)agxCollide.Convex.TrimeshOptionsFlags.CLOCKWISE_ORIENTATION ) :
                         new agxCollide.Trimesh( agxVertices, agxIndices, "Trimesh", (uint)agxCollide.Trimesh.TrimeshOptionsFlags.CLOCKWISE_ORIENTATION );
+    }
+
+    private agxCollide.Mesh Create( UnityEngine.Mesh[] meshes )
+    {
+      var merger = MeshMerger.Merge( transform, meshes );
+      return new agxCollide.Trimesh( merger.Vertices, merger.Indices, "Trimesh" );
     }
   }
 }
