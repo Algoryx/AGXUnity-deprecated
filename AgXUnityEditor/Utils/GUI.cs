@@ -105,50 +105,6 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    public class Prefs
-    {
-      public static string CreateKey( object obj )
-      {
-        return obj.GetType().ToString();
-      }
-
-      public static bool GetOrCreateBool( object obj, bool defaultValue = false )
-      {
-        string key = CreateKey( obj );
-        if ( EditorPrefs.HasKey( key ) )
-          return EditorPrefs.GetBool( key );
-        return SetBool( obj, defaultValue );
-      }
-
-      public static int GetOrCreateInt( object obj, int defaultValue = -1 )
-      {
-        string key = CreateKey( obj );
-        if ( EditorPrefs.HasKey( key ) )
-          return EditorPrefs.GetInt( key );
-        return SetInt( obj, defaultValue );
-      }
-
-      public static bool SetBool( object obj, bool value )
-      {
-        string key = CreateKey( obj );
-        EditorPrefs.SetBool( key, value );
-        return value;
-      }
-
-      public static int SetInt( object obj, int value )
-      {
-        string key = CreateKey( obj );
-        EditorPrefs.SetInt( key, value );
-        return value;
-      }
-
-      public static void RemoveInt( object obj )
-      {
-        string key = CreateKey( obj );
-        EditorPrefs.DeleteKey( key );
-      }
-    }
-
     public static void TargetEditorEnable<T>( T target, GUISkin skin ) where T : class
     {
       KeyHandler.HandleDetectKeyOnEnable( target );
@@ -450,7 +406,6 @@ namespace AgXUnityEditor.Utils
         EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( height ) } ), lineTexture );
       }
       GUILayout.EndVertical();
-      //GUILayout.Space( space );
     }
 
     public static void Separator3D( float space = 2.0f )
@@ -523,31 +478,33 @@ namespace AgXUnityEditor.Utils
     }
 
     private static Editor m_cachedMaterialEditor = null;
-    public static void MaterialEditor( Material material, GUISkin skin, Action<Material> onMaterialChanged )
+    public static void MaterialEditor( GUIContent objFieldLabel,
+                                       float objFieldLabelWidth,
+                                       Material material,
+                                       GUISkin skin,
+                                       Action<Material> onMaterialChanged )
     {
-      if ( material == null )
-        return;
-
       Material newMaterial = null;
       bool createNewMaterialButton = false;
       GUILayout.BeginHorizontal();
       {
-        GUILayout.Label( MakeLabel( "Material:", true ), skin.label, GUILayout.Width( 64 ) );
+        GUILayout.Label( objFieldLabel, skin.label, GUILayout.Width( objFieldLabelWidth ) );
         newMaterial = EditorGUILayout.ObjectField( material, typeof( Material ), false ) as Material;
         createNewMaterialButton = GUILayout.Button( MakeLabel( "New" ), GUILayout.Width( 46 ) );
       }
       GUILayout.EndHorizontal();
 
-      bool isBuiltInMaterial = !AssetDatabase.GetAssetPath( material ).StartsWith( "Assets" ) || material == Manager.GetOrCreateShapeVisualDefaultMaterial();
+      bool isBuiltInMaterial = material == null ||
+                               !AssetDatabase.GetAssetPath( material ).StartsWith( "Assets" ) ||
+                               material == Manager.GetOrCreateShapeVisualDefaultMaterial();
 
       Editor.CreateCachedEditor( material, typeof( MaterialEditor ), ref m_cachedMaterialEditor );
       var materialEditor = m_cachedMaterialEditor as MaterialEditor;
-      if ( materialEditor == null )
-        return;
-      
       using ( new EditorGUI.DisabledGroupScope( isBuiltInMaterial ) ) {
-        materialEditor.DrawHeader();
-        materialEditor.OnInspectorGUI();
+        if ( materialEditor != null ) {
+          materialEditor.DrawHeader();
+          materialEditor.OnInspectorGUI();
+        }
       }
 
       if ( createNewMaterialButton ) {
@@ -556,7 +513,7 @@ namespace AgXUnityEditor.Utils
           System.IO.FileInfo info = new System.IO.FileInfo( result );
           var relativePath = IO.AGXFileInfo.MakeRelative( result, Application.dataPath );
 
-          newMaterial = new Material( material );
+          newMaterial = new Material( material ?? Manager.GetOrCreateShapeVisualDefaultMaterial() );
           newMaterial.name = info.Name;
           AssetDatabase.CreateAsset( newMaterial, relativePath + ( info.Extension == ".mat" ? "" : ".mat" ) );
           AssetDatabase.SaveAssets();

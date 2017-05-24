@@ -77,15 +77,17 @@ namespace AgXUnityEditor.Tools
       Preview.transform.rotation = Shape.transform.rotation;
     }
 
-    public void OnInspectorGUI( GUISkin skin )
+    public void OnInspectorGUI( GUISkin skin, bool onlyNameAndMaterial = false )
     {
-      GUILayout.Space( 4 );
-      using ( GUI.AlignBlock.Center )
-        GUILayout.Label( GUI.MakeLabel( "Create visual tool", 16, true ), skin.label );
+      if ( !onlyNameAndMaterial ) {
+        GUILayout.Space( 4 );
+        using ( GUI.AlignBlock.Center )
+          GUILayout.Label( GUI.MakeLabel( "Create visual tool", 16, true ), skin.label );
 
-      GUILayout.Space( 2 );
-      GUI.Separator();
-      GUILayout.Space( 4 );
+        GUILayout.Space( 2 );
+        GUI.Separator();
+        GUILayout.Space( 4 );
+      }
 
       GUILayout.BeginHorizontal();
       {
@@ -94,24 +96,40 @@ namespace AgXUnityEditor.Tools
       }
       GUILayout.EndHorizontal();
 
-      GUI.MaterialEditor( Material, skin, newMaterial => Material = newMaterial );
+      GUI.MaterialEditor( GUI.MakeLabel( "Material:", true ),
+                          64,
+                          Material,
+                          skin,
+                          newMaterial => Material = newMaterial );
 
       GUI.Separator();
 
-      var createCancelState = GUI.CreateCancelButtons( Preview != null, skin, "Create new shape visual" );
-      if ( createCancelState == GUI.CreateCancelState.Create ) {
-        GameObject.DestroyImmediate( Preview );
-        var go = ShapeVisual.Create( Shape );
-        var shapeVisual = go.GetComponent<ShapeVisual>();
-        shapeVisual.name = Name;
-        shapeVisual.SetMaterial( Material );
+      if ( !onlyNameAndMaterial ) {
+        var createCancelState = GUI.CreateCancelButtons( Preview != null, skin, "Create new shape visual" );
+        if ( createCancelState == GUI.CreateCancelState.Create ) {
+          CreateShapeVisual();
+        }
+        if ( createCancelState != GUI.CreateCancelState.Nothing ) {
+          PerformRemoveFromParent();
+          return;
+        }
+      }
+    }
 
-        Undo.RegisterCreatedObjectUndo( go, "Shape visual for shape: " + Shape.name );
-      }
-      if ( createCancelState != GUI.CreateCancelState.Nothing ) {
-        PerformRemoveFromParent();
+    public void CreateShapeVisual()
+    {
+      if ( Preview != null )
+        GameObject.DestroyImmediate( Preview );
+
+      var go = ShapeVisual.Create( Shape );
+      if ( go == null )
         return;
-      }
+
+      var shapeVisual = go.GetComponent<ShapeVisual>();
+      shapeVisual.name = Name;
+      shapeVisual.SetMaterial( Material );
+
+      Undo.RegisterCreatedObjectUndo( go, "Shape visual for shape: " + Shape.name );
     }
 
     private enum DataEntry

@@ -75,6 +75,7 @@
     <Compile Include="Tools\FrameTool.cs" />
     <Compile Include="Tools\PickHandlerTool.cs" />
     <Compile Include="Tools\RigidBodyTool.cs" />
+    <Compile Include="Tools\RigidBodyVisualCreateTool.cs" />
     <Compile Include="Tools\RouteNodeTool.cs" />
     <Compile Include="Tools\RouteTool.cs" />
     <Compile Include="Tools\SelectGameObjectDropdownMenuTool.cs" />

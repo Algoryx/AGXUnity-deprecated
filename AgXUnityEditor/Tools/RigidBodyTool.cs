@@ -114,6 +114,22 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    public bool RigidBodyVisualCreateTool
+    {
+      get { return GetChild<RigidBodyVisualCreateTool>() != null; }
+      set
+      {
+        if ( value && !RigidBodyVisualCreateTool ) {
+          RemoveAllChildren();
+
+          var createShapeVisualTool = new RigidBodyVisualCreateTool( RigidBody );
+          AddChild( createShapeVisualTool );
+        }
+        else if ( !value )
+          RemoveChild( GetChild<RigidBodyVisualCreateTool>() );
+      }
+    }
+
     public RigidBodyTool( RigidBody rb )
     {
       RigidBody = rb;
@@ -132,6 +148,7 @@ namespace AgXUnityEditor.Tools
       bool toggleShapeCreate             = false;
       bool toggleConstraintCreate        = false;
       bool toggleDisableCollisions       = false;
+      bool toggleRigidBodyVisualCreate   = false;
 
       GUILayout.BeginHorizontal();
       {
@@ -142,6 +159,14 @@ namespace AgXUnityEditor.Tools
           toggleShapeCreate             = GUI.ToolButton( GUI.Symbols.ShapeCreateTool, ShapeCreateTool, "Create shape from visual objects", skin );
           toggleConstraintCreate        = GUI.ToolButton( GUI.Symbols.ConstraintCreateTool, ConstraintCreateTool, "Create constraint to this rigid body", skin );
           toggleDisableCollisions       = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool, DisableCollisionsTool, "Disable collisions against other objects", skin );
+          bool createShapeVisualValid   = Tools.RigidBodyVisualCreateTool.ValidForNewShapeVisuals( RigidBody );
+          using ( new EditorGUI.DisabledGroupScope( !createShapeVisualValid ) )
+            toggleRigidBodyVisualCreate = GUI.ToolButton( GUI.Symbols.ShapeVisualCreateTool,
+                                                          RigidBodyVisualCreateTool,
+                                                          "Create visual representation of each physical shape in this body",
+                                                          skin,
+                                                          14 );
+
         }
       }
       GUILayout.EndHorizontal();
@@ -161,6 +186,11 @@ namespace AgXUnityEditor.Tools
 
         GetChild<DisableCollisionsTool>().OnInspectorGUI( skin );
       }
+      if ( RigidBodyVisualCreateTool ) {
+        GUI.Separator();
+
+        GetChild<RigidBodyVisualCreateTool>().OnInspectorGUI( skin );
+      }
 
       GUI.Separator();
 
@@ -179,6 +209,8 @@ namespace AgXUnityEditor.Tools
         ConstraintCreateTool = !ConstraintCreateTool;
       if ( toggleDisableCollisions )
         DisableCollisionsTool = !DisableCollisionsTool;
+      if ( toggleRigidBodyVisualCreate )
+        RigidBodyVisualCreateTool = !RigidBodyVisualCreateTool;
     }
 
     public override void OnPostTargetMembersGUI( GUISkin skin )

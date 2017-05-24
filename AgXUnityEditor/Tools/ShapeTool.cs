@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Linq;
+using UnityEngine;
 using UnityEditor;
 using AgXUnity.Collide;
 using AgXUnity.Rendering;
@@ -107,15 +108,29 @@ namespace AgXUnityEditor.Tools
 
         using ( GUI.ToolButtonData.ColorBlock ) {
           using ( new EditorGUI.DisabledGroupScope( !Tools.ShapeResizeTool.SupportsShape( Shape ) ) )
-            toggleShapeResizeTool = GUI.ToolButton( GUI.Symbols.ShapeResizeTool, ShapeResizeTool, "Shape resize tool", skin, 24 );
+            toggleShapeResizeTool = GUI.ToolButton( GUI.Symbols.ShapeResizeTool,
+                                                    ShapeResizeTool,
+                                                    "Shape resize tool",
+                                                    skin,
+                                                    24 );
 
-          toggleShapeCreate       = GUI.ToolButton( GUI.Symbols.ShapeCreateTool, ShapeCreateTool, "Create shape from visual objects", skin );
-          toggleDisableCollisions = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool, DisableCollisionsTool, "Disable collisions against other objects", skin );
+          toggleShapeCreate       = GUI.ToolButton( GUI.Symbols.ShapeCreateTool,
+                                                    ShapeCreateTool,
+                                                    "Create shape from visual objects",
+                                                    skin );
+          toggleDisableCollisions = GUI.ToolButton( GUI.Symbols.DisableCollisionsTool,
+                                                    DisableCollisionsTool,
+                                                    "Disable collisions against other objects",
+                                                    skin );
 
           bool createShapeVisualValid = ShapeVisual.SupportsShapeVisual( Shape ) &&
                                         !ShapeVisual.HasShapeVisual( Shape );
           using ( new EditorGUI.DisabledGroupScope( !createShapeVisualValid ) )
-            toggleShapeVisualCreate = GUI.ToolButton( GUI.Symbols.ShapeVisualCreateTool, ShapeVisualCreateTool, "Create visual representation of the physical shape", skin, 14 );
+            toggleShapeVisualCreate = GUI.ToolButton( GUI.Symbols.ShapeVisualCreateTool,
+                                                      ShapeVisualCreateTool,
+                                                      "Create visual representation of the physical shape",
+                                                      skin,
+                                                      14 );
         }
       }
       GUILayout.EndHorizontal();
@@ -155,17 +170,52 @@ namespace AgXUnityEditor.Tools
         return;
 
       GUI.Separator();
-      if ( !GUI.Foldout( EditorData.Instance.GetData( Shape, "Visual", entry => entry.Bool = false ), GUI.MakeLabel( "Shape Visual" ), skin ) )
+      if ( !GUI.Foldout( EditorData.Instance.GetData( Shape,
+                                                      "Visual",
+                                                      entry => entry.Bool = true ),
+                                                      GUI.MakeLabel( "Shape Visual" ),
+                                                      skin ) )
         return;
 
       GUI.Separator();
 
+      GUILayout.Space( 6 );
+
       var materials = shapeVisual.GetMaterials();
-      int materialCounter = 0;
-      Material newMaterial = null;
-      foreach ( var material in materials ) {
-        if ( materials.Length == 1 || GUI.Foldout( EditorData.Instance.GetData( Shape, "VisualMaterial" + ( materialCounter++ ).ToString(), entry => entry.Bool = true ), GUI.MakeLabel( material.name ), skin ) )
-          GUI.MaterialEditor( material, skin, mat => newMaterial = mat );
+      if ( materials.Length > 1 ) {
+        var distinctMaterials = materials.Distinct().ToArray();
+        using ( GUI.AlignBlock.Center ) {
+          GUILayout.Label( GUI.MakeLabel( "Displays material if all materials are the same <b>(otherwise None)</b> and/or assign new material to all objects in this shape." ),
+                                          new GUIStyle( skin.textArea ) { alignment = TextAnchor.MiddleCenter }, GUILayout.Width( Screen.width - 60 ) );
+        }
+        GUI.MaterialEditor( GUI.MakeLabel( "Common material:", true ),
+                            128,
+                            distinctMaterials.Length == 1 ? distinctMaterials.First() : null,
+                            skin,
+                            newMaterial => shapeVisual.SetMaterial( newMaterial ) );
+
+        GUILayout.Space( 6 );
+
+        GUI.Separator();
+
+        using ( GUI.AlignBlock.Center )
+          GUILayout.Label( GUI.MakeLabel( "Material list", true ), skin.label );
+
+        GUI.Separator();
+      }
+
+      for ( int i = 0; i < materials.Length; ++i ) {
+        var material = materials[ i ];
+        var showMaterialEditor = materials.Length == 1 ||
+                                 GUI.Foldout( EditorData.Instance.GetData( Shape,
+                                                                           "VisualMaterial" + i ),
+                                              GUI.MakeLabel( material.name ), skin );
+        if ( showMaterialEditor )
+          GUI.MaterialEditor( GUI.MakeLabel( "Material:", true ),
+                              64,
+                              material,
+                              skin,
+                              newMaterial => shapeVisual.ReplaceMaterial( i, newMaterial ) );
         GUI.Separator();
       }
     }

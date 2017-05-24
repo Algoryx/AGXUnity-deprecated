@@ -134,6 +134,46 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
+    /// Replace <paramref name="oldMaterial"/> with new material <paramref name="newMaterial"/>.
+    /// </summary>
+    /// <param name="oldMaterial">Old material in this shape visual.</param>
+    /// <param name="newMaterial">New material to replace <paramref name="oldMaterial"/>.</param>
+    public void ReplaceMaterial( Material oldMaterial, Material newMaterial )
+    {
+      ReplaceMaterial( Array.IndexOf( GetMaterials(), oldMaterial ), newMaterial );
+    }
+
+    /// <summary>
+    /// Replace material given index from GetMaterials() array.
+    /// </summary>
+    /// <param name="i">Index in material array.</param>
+    /// <param name="newMaterial">New material to replace material with index <paramref name="i"/>.</param>
+    public void ReplaceMaterial( int i, Material newMaterial )
+    {
+      if ( i < 0 ) {
+        Debug.LogWarning( "Unable to replace material. Old material not found.", this );
+        return;
+      }
+
+      int counter = 0;
+      var renderers = GetComponentsInChildren<MeshRenderer>();
+      foreach ( var renderer in renderers ) {
+        for ( int materialIndex = 0; materialIndex < renderer.sharedMaterials.Length; ++materialIndex ) {
+          if ( counter == i ) {
+            // We're receiving a copy of the array and have to assign the modified.
+            var sharedMaterials = renderer.sharedMaterials;
+            sharedMaterials[ materialIndex ] = newMaterial;
+            renderer.sharedMaterials = sharedMaterials;
+            return;
+          }
+          ++counter;
+        }
+      }
+
+      Debug.LogWarning( "Unable to replace material with index: " + i + ", number of materials: " + GetMaterials().Length );
+    }
+
+    /// <summary>
     /// Finds all materials, including children.
     /// </summary>
     /// <returns>Array containing all materials.</returns>
