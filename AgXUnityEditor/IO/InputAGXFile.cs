@@ -6,13 +6,15 @@ using UnityEngine;
 using UnityEditor;
 using AgXUnity;
 using AgXUnity.Utils;
+using AgXUnity.Rendering;
 using Tree = AgXUnityEditor.IO.InputAGXFileTree;
 using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
 // TODO: RestoredAGXFile tool.
-//       Create visual.
+//     v Create visual.
 //       Constraint animation.
-//       Large meshes CAT365.agx.
+//     v Large meshes CAT365.agx.
+//       Large meshes render data.
 //       HeightField
 
 namespace AgXUnityEditor.IO
@@ -476,46 +478,60 @@ namespace AgXUnityEditor.IO
       if ( renderData == null || !renderData.getShouldRender() )
         return false;
 
-      var nativeGeometry       = m_tree.GetGeometry( node.Parent.Uuid );
-      var shape                = node.GameObject.GetComponent<AgXUnity.Collide.Shape>();
-      var shapeVisual          = AgXUnity.Rendering.ShapeVisual.CreateShapeRenderData( shape ).GetComponent<AgXUnity.Rendering.ShapeVisualRenderData>();
+      var nativeGeometry = m_tree.GetGeometry( node.Parent.Uuid );
+      var shape          = node.GameObject.GetComponent<AgXUnity.Collide.Shape>();
 
-      var filter   = shapeVisual.MeshFilter;
       var toWorld  = nativeGeometry.getTransform();
-      var toLocal  = shapeVisual.transform.worldToLocalMatrix;
-      var mesh     = new Mesh();
-      mesh.name    = shapeVisual.name + "_Mesh";
+      var toLocal  = shape.transform.worldToLocalMatrix;
 
-      // Assigning and converting vertices.
-      // Note: RenderData vertices assumed to be given in geometry coordinates.
-      mesh.SetVertices( ( from v
-                          in renderData.getVertexArray()
-                          select toLocal.MultiplyPoint3x4( toWorld.preMult( v ).ToHandedVector3() ) ).ToList() );
+      var meshes = new Mesh[] { };
+      if ( renderData.getVertexArray().Count > UInt16.MaxValue ) {
+        Debug.LogWarning( "Render data contains more than " +
+                          UInt16.MaxValue +
+                          " vertices. Splitting it into smaller meshes." );
 
-      // Assigning and converting colors.
-      mesh.SetColors( ( from c
-                        in renderData.getColorArray()
-                        select c.ToColor() ).ToList() );
-
-      // Unsure about this one.
-      mesh.SetUVs( 0,
-                    ( from uv
-                      in renderData.getTexCoordArray()
-                      select uv.ToVector2() ).ToList() );
-
-      // Converting counter clockwise -> clockwise.
-      var triangles = new List<int>();
-      var indexArray = renderData.getIndexArray();
-      for ( int i = 0; i < indexArray.Count; i += 3 ) {
-        triangles.Add( Convert.ToInt32( indexArray[ i + 0 ] ) );
-        triangles.Add( Convert.ToInt32( indexArray[ i + 2 ] ) );
-        triangles.Add( Convert.ToInt32( indexArray[ i + 1 ] ) );
+        var splitter = MeshSplitter.Split( renderData.getVertexArray(),
+                                           renderData.getIndexArray(),
+                                           v => toLocal.MultiplyPoint3x4( toWorld.preMult( v ).ToHandedVector3() ) );
+        meshes = splitter.Meshes;
       }
-      mesh.SetTriangles( triangles, 0, false );
+      else {
+        var mesh     = new Mesh();
+        mesh.name    = shape.name + "_Visual_Mesh";
 
-      mesh.RecalculateBounds();
-      mesh.RecalculateNormals();
-      mesh.RecalculateTangents();
+        // Assigning and converting vertices.
+        // Note: RenderData vertices assumed to be given in geometry coordinates.
+        mesh.SetVertices( ( from v
+                            in renderData.getVertexArray()
+                            select toLocal.MultiplyPoint3x4( toWorld.preMult( v ).ToHandedVector3() ) ).ToList() );
+
+        // Assigning and converting colors.
+        mesh.SetColors( ( from c
+                          in renderData.getColorArray()
+                          select c.ToColor() ).ToList() );
+
+        // Unsure about this one.
+        mesh.SetUVs( 0,
+                      ( from uv
+                        in renderData.getTexCoordArray()
+                        select uv.ToVector2() ).ToList() );
+
+        // Converting counter clockwise -> clockwise.
+        var triangles = new List<int>();
+        var indexArray = renderData.getIndexArray();
+        for ( int i = 0; i < indexArray.Count; i += 3 ) {
+          triangles.Add( Convert.ToInt32( indexArray[ i + 0 ] ) );
+          triangles.Add( Convert.ToInt32( indexArray[ i + 2 ] ) );
+          triangles.Add( Convert.ToInt32( indexArray[ i + 1 ] ) );
+        }
+        mesh.SetTriangles( triangles, 0, false );
+
+        mesh.RecalculateBounds();
+        mesh.RecalculateNormals();
+        mesh.RecalculateTangents();
+
+        meshes = new Mesh[] { mesh };
+      }
 
       var shader = Shader.Find( "Standard" ) ?? Shader.Find( "Diffuse" );
       if ( shader == null )
@@ -523,7 +539,7 @@ namespace AgXUnityEditor.IO
 
       var renderMaterial = renderData.getRenderMaterial();
       var material       = new Material( shader );
-      material.name      = shapeVisual.name + "_Material";
+      material.name      = shape.name + "_Visual_Material";
 
       if ( renderMaterial.hasDiffuseColor() )
         material.SetVector( "_Color", renderMaterial.getDiffuseColor().ToColor() );
@@ -533,11 +549,11 @@ namespace AgXUnityEditor.IO
       material.SetFloat( "_Metallic", 0.3f );
       material.SetFloat( "_Glossiness", 0.8f );
 
-      FileInfo.AddAsset( mesh );
       FileInfo.AddAsset( material );
+      foreach ( var mesh in meshes )
+        FileInfo.AddAsset( mesh );
 
-      filter.sharedMesh = mesh;
-      shapeVisual.SetMaterial( material );
+      ShapeVisual.Create( shape, meshes, material );
 
       return true;
     }

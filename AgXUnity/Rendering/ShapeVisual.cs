@@ -22,7 +22,7 @@ namespace AgXUnity.Rendering
       if ( !SupportsShapeVisual( shape ) )
         return null;
 
-      return CreateInstance( shape, false );
+      return CreateInstance( shape );
     }
 
     /// <summary>
@@ -31,12 +31,18 @@ namespace AgXUnity.Rendering
     /// 
     /// The component added will be ShapeVisualRenderData regardless of the
     /// type of the shape.
+    /// 
+    /// If meshes.Length == 1 the MeshFilter and MeshRenderer will be added
+    /// to the returned game object. If meshes.Length > 1 the filters and
+    /// renderer will be added as children.
     /// </summary>
     /// <param name="shape">Shape to create render data for.</param>
+    /// <param name="meshes">Render meshes for the shape.</param>
+    /// <param name="material">Material.</param>
     /// <returns>Game object with ShapeVisual component if successful, otherwise null.</returns>
-    public static GameObject CreateShapeRenderData( Collide.Shape shape )
+    public static GameObject Create( Collide.Shape shape, Mesh[] meshes, Material material )
     {
-      return CreateInstance( shape, true );
+      return CreateInstance( shape, meshes, material );
     }
 
     /// <summary>
@@ -230,13 +236,79 @@ namespace AgXUnity.Rendering
     /// pure render data or not.
     /// </summary>
     /// <param name="shape">Shape to create ShapeVisual for.</param>
-    /// <param name="isRenderData">True if ShapeVisual should be pure render data, i.e., mesh and material is handled explicitly.</param>
     /// <returns>Game object with ShapeVisual component if successful, otherwise null.</returns>
-    protected static GameObject CreateInstance( Collide.Shape shape, bool isRenderData )
+    protected static GameObject CreateInstance( Collide.Shape shape )
     {
       if ( shape == null )
         return null;
 
+      GameObject go = CreateGameObject( shape, false );
+      if ( go == null )
+        return null;
+
+      var visual = AddVisualComponent( go, shape, false );
+      if ( visual == null ) {
+        Debug.LogWarning( "Unsupported shape type for visual: " + shape.GetType().FullName );
+        return null;
+      }
+
+      CreateOnSelectionProxy( go, shape );
+
+      visual.SetMaterial( DefaultMaterial );
+      visual.OnSizeUpdated();
+
+      return go;
+    }
+
+    /// <summary>
+    /// Creates instance with one or more render meshes. Each mesh will
+    /// be child to parent ShapeVisualRenderData object if number of
+    /// meshes > 1. If meshes.Length == 1 the mesh renderer and filter
+    /// will be added directly in the returned game object.
+    /// </summary>
+    /// <param name="shape">Shape to add render data for.</param>
+    /// <param name="meshes">Array of meshes.</param>
+    /// <param name="material">Material.</param>
+    /// <returns>Visual game object as child to shape game object if successful - otherwise null.</returns>
+    protected static GameObject CreateInstance( Collide.Shape shape, Mesh[] meshes, Material material )
+    {
+      if ( shape == null || meshes.Length == 0 )
+        return null;
+
+      var parent = CreateGameObject( shape, true );
+      if ( parent == null )
+        return null;
+
+      var visual = AddVisualComponent( parent, shape, true );
+      if ( visual == null )
+        return null;
+
+      for ( int i = 0; i < meshes.Length; ++i ) {
+        var meshGameObject = meshes.Length == 1 ? parent : new GameObject( "" );
+        if ( meshes.Length > 1 ) {
+          meshGameObject.name = parent.name + "_" + ( i + 1 ).ToString();
+          parent.AddChild( meshGameObject );
+          meshGameObject.transform.localPosition = Vector3.zero;
+          meshGameObject.transform.localRotation = Quaternion.identity;
+        }
+
+        meshGameObject.AddComponent<MeshFilter>().sharedMesh = meshes[ i ];
+        meshGameObject.AddComponent<MeshRenderer>().sharedMaterial = material;
+      }
+
+      CreateOnSelectionProxy( parent, shape );
+
+      return parent;
+    }
+
+    /// <summary>
+    /// Create visual game object and adds it as child to shape game object.
+    /// </summary>
+    /// <param name="shape">Shape instance.</param>
+    /// <param name="isRenderData">If true we wont try to load predefined mesh from resources.</param>
+    /// <returns>Visual game object if successful - otherwise null.</returns>
+    private static GameObject CreateGameObject( Collide.Shape shape, bool isRenderData )
+    {
       GameObject go = null;
       try {
         go = isRenderData || shape is Collide.Mesh ?
@@ -251,23 +323,9 @@ namespace AgXUnity.Rendering
         go.name                = shape.name + "_Visual";
         go.transform.hideFlags = HideFlags.HideInInspector;
 
-        var visual = AddVisualComponent( go, shape, isRenderData );
-        if ( visual == null )
-          throw new AgXUnity.Exception( "Unsupported shape type: " + shape.GetType().FullName );
-
-        visual.hideFlags = HideFlags.HideInInspector;
-
         shape.gameObject.AddChild( go );
-
-        go.AddComponent<OnSelectionProxy>().Component = shape;
-        foreach ( Transform child in go.transform )
-          child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
-
         go.transform.localPosition = Vector3.zero;
         go.transform.localRotation = Quaternion.identity;
-
-        visual.SetMaterial( DefaultMaterial );
-        visual.OnSizeUpdated();
       }
       catch ( System.Exception e ) {
         Debug.LogException( e );
@@ -276,6 +334,18 @@ namespace AgXUnity.Rendering
       }
 
       return go;
+    }
+
+    /// <summary>
+    /// Adds OnSelectionProxy to <paramref name="visualParent"/> and all its children.
+    /// </summary>
+    /// <param name="visualParent">Visual parent game object.</param>
+    /// <param name="shape">Shape reference.</param>
+    private static void CreateOnSelectionProxy( GameObject visualParent, Collide.Shape shape )
+    {
+      visualParent.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
+      foreach ( Transform child in visualParent.transform )
+        child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
     }
 
     /// <summary>
@@ -304,7 +374,9 @@ namespace AgXUnity.Rendering
         instance = go.AddComponent<ShapeVisualMesh>();
 
       if ( instance != null ) {
-        instance.Shape = shape;
+        instance.hideFlags = HideFlags.HideInInspector;
+        instance.Shape     = shape;
+
         instance.OnConstruct();
       }
 
@@ -447,16 +519,19 @@ namespace AgXUnity.Rendering
   /// Shape visual with given mesh data and material.
   /// </summary>
   [DoNotGenerateCustomEditor]
-  public class ShapeVisualRenderData : ShapeVisualMesh
+  public class ShapeVisualRenderData : ShapeVisual
   {
+    /// <summary>
+    /// Callback when shape size has been changed.
+    /// </summary>
+    public override void OnSizeUpdated()
+    {
+      // We don't do anything here since we support any type of scale of the meshes.
+    }
+
     protected override void OnConstruct()
     {
       // Don't do anything. The user handles mesh + materials.
-    }
-
-    protected override void HandleMeshSource()
-    {
-      // We don't want to change sharedMesh given source when we have explicit render data.
     }
   }
 }
