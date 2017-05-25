@@ -12,52 +12,54 @@ namespace AgXUnity.Collide
   public sealed class Mesh : Shape
   {
     /// <summary>
-    /// Source object paired with property SourceObject.
+    /// Deprecated source object instance - m_sourceObjects list is used now.
     /// </summary>
+    [UnityEngine.Serialization.FormerlySerializedAs( "m_sourceObject" )]
     [SerializeField]
-    private UnityEngine.Mesh m_sourceObject = null;
+    private UnityEngine.Mesh m_legacySourceObject = null;
 
     /// <summary>
     /// Get or set source object (Unity Mesh).
     /// </summary>
-    [ShowInInspector]
-    public UnityEngine.Mesh SourceObject
-    {
-      get { return m_sourceObject; }
-      set
-      {
-        if ( value == m_sourceObject )
-          return;
+    //[ShowInInspector]
+    //public UnityEngine.Mesh SourceObject
+    //{
+    //  get { return m_sourceObject; }
+    //  set
+    //  {
+    //    if ( value == m_sourceObject )
+    //      return;
 
-        // New source, destroy current debug rendering data.
-        if ( m_sourceObject != null ) {
-          Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
-          if ( data != null )
-            GameObject.DestroyImmediate( data.Node );
-          m_sourceObject = null;
-        }
+    //    // New source, destroy current debug rendering data.
+    //    if ( m_sourceObject != null ) {
+    //      Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
+    //      if ( data != null )
+    //        GameObject.DestroyImmediate( data.Node );
+    //      m_sourceObject = null;
+    //    }
 
-        // New source.
-        if ( m_sourceObject == null ) {
-          m_sourceObject = value;
+    //    // New source.
+    //    if ( m_sourceObject == null ) {
+    //      m_sourceObject = value;
 
-          // Instead of calling SizeUpdated we have to make sure
-          // a complete new instance of the debug render object
-          // is created (i.e., not only update scale if node exist).
-          Rendering.DebugRenderManager.HandleMeshSource( this );
-          Rendering.ShapeVisualMesh.HandleMeshSource( this );
-        }
-      }
-    }
+    //      // Instead of calling SizeUpdated we have to make sure
+    //      // a complete new instance of the debug render object
+    //      // is created (i.e., not only update scale if node exist).
+    //      Rendering.DebugRenderManager.HandleMeshSource( this );
+    //      Rendering.ShapeVisualMesh.HandleMeshSource( this );
+    //    }
+    //  }
+    //}
 
+    /// <summary>
+    /// List of source mesh objects to include in the physical mesh.
+    /// </summary>
     [SerializeField]
     private List<UnityEngine.Mesh> m_sourceObjects = new List<UnityEngine.Mesh>();
 
-    public void AddSource( UnityEngine.Mesh mesh )
-    {
-      m_sourceObjects.Add( mesh );
-    }
-
+    /// <summary>
+    /// Returns all source objects added to this shape.
+    /// </summary>
     public UnityEngine.Mesh[] SourceObjects
     {
       get { return m_sourceObjects.ToArray(); }
@@ -67,6 +69,58 @@ namespace AgXUnity.Collide
     /// Returns native mesh object if created.
     /// </summary>
     public agxCollide.Mesh Native { get { return m_shape as agxCollide.Mesh; } }
+
+    /// <summary>
+    /// Single source object assignment. All meshes that has been added before
+    /// will be removed and <paramref name="mesh"/> added.
+    /// </summary>
+    /// <param name="mesh"></param>
+    /// <returns></returns>
+    public bool SetSourceObject( UnityEngine.Mesh mesh )
+    {
+      m_sourceObjects.Clear();
+      return AddSourceObject( mesh );
+    }
+
+    /// <summary>
+    /// Add source mesh object to this shape.
+    /// </summary>
+    /// <param name="mesh">Source mesh.</param>
+    /// <returns>True if added - otherwise false.</returns>
+    public bool AddSourceObject( UnityEngine.Mesh mesh )
+    {
+      if ( mesh == null || m_sourceObjects.Contains( mesh ) )
+        return false;
+
+      m_sourceObjects.Add( mesh );
+
+      return true;
+    }
+
+    /// <summary>
+    /// Remove source mesh object from this shape.
+    /// </summary>
+    /// <param name="mesh">Source object to remove.</param>
+    /// <returns>True if removed.</returns>
+    public bool RemoveSourceObject( UnityEngine.Mesh mesh )
+    {
+      return m_sourceObjects.Remove( mesh );
+    }
+
+    /// <summary>
+    /// Moves old single source to source list.
+    /// </summary>
+    /// <returns>True if changes were made.</returns>
+    public bool PatchSingleSourceToSourceList()
+    {
+      if ( m_legacySourceObject == null )
+        return false;
+
+      m_sourceObjects.Add( m_legacySourceObject );
+      m_legacySourceObject = null;
+
+      return true;
+    }
 
     /// <summary>
     /// </summary>
@@ -88,7 +142,7 @@ namespace AgXUnity.Collide
     /// </summary>
     protected override agxCollide.Shape CreateNative()
     {
-      return Create( SourceObject );
+      return Create( SourceObjects );
     }
 
     /// <summary>
@@ -98,23 +152,6 @@ namespace AgXUnity.Collide
     protected override bool Initialize()
     {
       return base.Initialize();
-    }
-
-    /// <summary>
-    /// Extensible create method that translates Unity Mesh to
-    /// vertices and triangles/indices.
-    /// </summary>
-    /// <param name="mesh">Unity Mesh object</param>
-    /// <returns>Native mesh object if valid.</returns>
-    private agxCollide.Mesh Create( UnityEngine.Mesh mesh )
-    {
-      if ( mesh == null && m_sourceObjects.Count == 0 )
-        return null;
-
-      if ( m_sourceObjects.Count > 0 )
-        return Create( SourceObjects );
-
-      return Create( mesh.vertices, mesh.triangles );
     }
 
     /// <summary>

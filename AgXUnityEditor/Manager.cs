@@ -562,6 +562,19 @@ namespace AgXUnityEditor
             }
           }
         }
+
+        // Patching Collide.Mesh single source object to source object list.
+        {
+          AgXUnity.Collide.Mesh[] meshes = UnityEngine.Object.FindObjectsOfType<AgXUnity.Collide.Mesh>();
+          foreach ( var mesh in meshes ) {
+            if ( !mesh.PatchSingleSourceToSourceList() )
+              continue;
+
+            Debug.Log( "Patch: Moved mesh source to source list.", mesh );
+
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+          }
+        }
       }
       else if ( Selection.activeGameObject != null && Selection.activeGameObject.GetComponent<AgXUnity.IO.RestoredAGXFile>() != null ) {
         AssetPostprocessorHandler.OnPrefabAddedToScene( Selection.activeGameObject );

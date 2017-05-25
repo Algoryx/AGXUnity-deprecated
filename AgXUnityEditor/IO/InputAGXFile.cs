@@ -10,12 +10,13 @@ using AgXUnity.Rendering;
 using Tree = AgXUnityEditor.IO.InputAGXFileTree;
 using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
-// TODO: RestoredAGXFile tool.
-//     v Create visual.
-//       Constraint animation.
-//     v Large meshes CAT365.agx.
-//       Large meshes render data.
-//       HeightField
+// TODO:   RestoredAGXFile tool.
+//       v Create visual.
+//         Constraint animation.
+//       v Large meshes CAT365.agx.
+//       v Large meshes render data.
+//         HeightField
+//         ShapeTool (or MeshShapeTool) to add remove source objects.
 
 namespace AgXUnityEditor.IO
 {
@@ -410,7 +411,7 @@ namespace AgXUnityEditor.IO
           for ( int i = 0; i < subMeshes.Length; ++i ) {
             subMeshes[ i ].name = "Mesh_" + mesh.name + ( i == 0 ? "" : "_Sub_" + i.ToString() );
             FileInfo.AddAsset( subMeshes[ i ] );
-            mesh.AddSource( subMeshes[ i ] );
+            mesh.AddSourceObject( subMeshes[ i ] );
           }
         }
         else {
@@ -438,7 +439,7 @@ namespace AgXUnityEditor.IO
 
           FileInfo.AddAsset( source );
 
-          mesh.SourceObject = source;
+          mesh.SetSourceObject( source );
         }
       }
       else {
@@ -553,7 +554,7 @@ namespace AgXUnityEditor.IO
       foreach ( var mesh in meshes )
         FileInfo.AddAsset( mesh );
 
-      ShapeVisual.Create( shape, meshes, material );
+      ShapeVisual.CreateRenderData( shape, meshes, material );
 
       return true;
     }

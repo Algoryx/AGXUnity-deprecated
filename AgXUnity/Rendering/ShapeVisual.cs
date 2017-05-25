@@ -22,7 +22,9 @@ namespace AgXUnity.Rendering
       if ( !SupportsShapeVisual( shape ) )
         return null;
 
-      return CreateInstance( shape );
+      return shape is Collide.Mesh ?
+               CreateInstance( shape, ( shape as Collide.Mesh ).SourceObjects, DefaultMaterial, false ) :
+               CreateInstance( shape );
     }
 
     /// <summary>
@@ -40,9 +42,9 @@ namespace AgXUnity.Rendering
     /// <param name="meshes">Render meshes for the shape.</param>
     /// <param name="material">Material.</param>
     /// <returns>Game object with ShapeVisual component if successful, otherwise null.</returns>
-    public static GameObject Create( Collide.Shape shape, Mesh[] meshes, Material material )
+    public static GameObject CreateRenderData( Collide.Shape shape, Mesh[] meshes, Material material )
     {
-      return CreateInstance( shape, meshes, material );
+      return CreateInstance( shape, meshes, material, true );
     }
 
     /// <summary>
@@ -269,17 +271,18 @@ namespace AgXUnity.Rendering
     /// <param name="shape">Shape to add render data for.</param>
     /// <param name="meshes">Array of meshes.</param>
     /// <param name="material">Material.</param>
+    /// <param name="isRenderData">True if render data, i.e., decoupled from Collide.Mesh source objects.</param>
     /// <returns>Visual game object as child to shape game object if successful - otherwise null.</returns>
-    protected static GameObject CreateInstance( Collide.Shape shape, Mesh[] meshes, Material material )
+    protected static GameObject CreateInstance( Collide.Shape shape, Mesh[] meshes, Material material, bool isRenderData )
     {
       if ( shape == null || meshes.Length == 0 )
         return null;
 
-      var parent = CreateGameObject( shape, true );
+      var parent = CreateGameObject( shape, isRenderData );
       if ( parent == null )
         return null;
 
-      var visual = AddVisualComponent( parent, shape, true );
+      var visual = AddVisualComponent( parent, shape, isRenderData );
       if ( visual == null )
         return null;
 
@@ -307,7 +310,7 @@ namespace AgXUnity.Rendering
     /// <param name="shape">Shape instance.</param>
     /// <param name="isRenderData">If true we wont try to load predefined mesh from resources.</param>
     /// <returns>Visual game object if successful - otherwise null.</returns>
-    private static GameObject CreateGameObject( Collide.Shape shape, bool isRenderData )
+    protected static GameObject CreateGameObject( Collide.Shape shape, bool isRenderData )
     {
       GameObject go = null;
       try {
@@ -440,8 +443,6 @@ namespace AgXUnity.Rendering
   /// Shape visual for shape type Mesh.
   /// </summary>
   [DoNotGenerateCustomEditor]
-  [RequireComponent( typeof( MeshRenderer ) )]
-  [RequireComponent( typeof( MeshFilter ) )]
   public class ShapeVisualMesh : ShapeVisual
   {
     /// <summary>
@@ -456,35 +457,6 @@ namespace AgXUnity.Rendering
         instance.HandleMeshSource();
     }
 
-    private MeshRenderer m_renderer = null;
-    private MeshFilter m_filter = null;
-
-    /// <summary>
-    /// Mesh renderer for this mesh shape visual.
-    /// </summary>
-    public MeshRenderer MeshRenderer
-    {
-      get
-      {
-        if ( m_renderer == null )
-          m_renderer = GetComponent<MeshRenderer>();
-        return m_renderer;
-      }
-    }
-
-    /// <summary>
-    /// Mesh filter for this mesh shape visual.
-    /// </summary>
-    public MeshFilter MeshFilter
-    {
-      get
-      {
-        if ( m_filter == null )
-          m_filter = GetComponent<MeshFilter>();
-        return m_filter;
-      }
-    }
-
     /// <summary>
     /// Callback when shape size has been changed.
     /// </summary>
@@ -494,12 +466,10 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
-    /// Callback when constructed, assigning current source object of the mesh shape.
+    /// Callback when constructed.
     /// </summary>
     protected override void OnConstruct()
     {
-      Collide.Mesh mesh = Shape as Collide.Mesh;
-      MeshFilter.sharedMesh = mesh.SourceObject;
     }
 
     /// <summary>
@@ -509,9 +479,9 @@ namespace AgXUnity.Rendering
     /// </summary>
     protected virtual void HandleMeshSource()
     {
-      var prevMaterial = MeshRenderer.sharedMaterial ?? DefaultMaterial;
-      MeshFilter.sharedMesh = (Shape as Collide.Mesh ).SourceObject;
-      SetMaterial( prevMaterial );
+      //var prevMaterial = MeshRenderer.sharedMaterial ?? DefaultMaterial;
+      //MeshFilter.sharedMesh = (Shape as Collide.Mesh ).SourceObject;
+      //SetMaterial( prevMaterial );
     }
   }
 
