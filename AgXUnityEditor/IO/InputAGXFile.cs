@@ -11,12 +11,8 @@ using Tree = AgXUnityEditor.IO.InputAGXFileTree;
 using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 
 // TODO:   RestoredAGXFile tool.
-//       v Create visual.
 //         Constraint animation.
-//       v Large meshes CAT365.agx.
-//       v Large meshes render data.
-//         HeightField
-//       v ShapeTool (or MeshShapeTool) to add remove source objects.
+//       v HeightField (partial, converts to mesh)
 
 namespace AgXUnityEditor.IO
 {
