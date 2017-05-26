@@ -577,12 +577,14 @@ namespace AgXUnityEditor
     private static UnityEngine.Object[] m_previousSelection = new UnityEngine.Object[] { };
     private static void OnSelectionChanged()
     {
+      Utils.GUI.DestroyCachedMaterialEditor();
+
       bool mouseOverHierarchy = EditorWindow.mouseOverWindow != null &&
                                 EditorWindow.mouseOverWindow.GetType().FullName == "UnityEditor.SceneHierarchyWindow";
 
       Func<GameObject, bool, bool> setOnSelectionProxyState = ( go, state ) =>
       {
-        var proxy = go?.GetComponent<OnSelectionProxy>();
+        var proxy = go != null ? go.GetComponent<OnSelectionProxy>() : null;
         if ( proxy != null )
           return ( EditorData.Instance.GetData( proxy, "SelectedInHierarchy" ).Bool = state );
         return false;

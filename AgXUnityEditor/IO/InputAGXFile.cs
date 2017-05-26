@@ -16,7 +16,7 @@ using Node = AgXUnityEditor.IO.InputAGXFileTreeNode;
 //       v Large meshes CAT365.agx.
 //       v Large meshes render data.
 //         HeightField
-//         ShapeTool (or MeshShapeTool) to add remove source objects.
+//       v ShapeTool (or MeshShapeTool) to add remove source objects.
 
 namespace AgXUnityEditor.IO
 {

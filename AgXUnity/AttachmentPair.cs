@@ -136,8 +136,8 @@ namespace AgXUnity
     public bool Contains( RigidBody rb )
     {
       return rb != null &&
-             ( ReferenceFrame.Parent?.GetComponentInParent<RigidBody>() == rb ||
-               ConnectedFrame.Parent?.GetComponentInParent<RigidBody>() == rb );
+             ( ( ReferenceFrame.Parent != null && ReferenceFrame.Parent.GetComponentInParent<RigidBody>() == rb ) ||
+               ( ConnectedFrame.Parent != null && ConnectedFrame.Parent.GetComponentInParent<RigidBody>() == rb ) );
     }
 
     /// <summary>

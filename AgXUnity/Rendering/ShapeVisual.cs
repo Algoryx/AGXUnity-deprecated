@@ -115,6 +115,34 @@ namespace AgXUnity.Rendering
     /// </summary>
     public static Material DefaultMaterial { get { return PrefabLoader.Load<Material>( DefaultMaterialPathResources ); } }
 
+    /// <summary>
+    /// Assigns material to renderer in <paramref name="go"/>, including all sub-meshes/materials.
+    /// </summary>
+    /// <param name="go">Game object with renderer and mesh filter.</param>
+    /// <param name="material">Material to assign.</param>
+    public static void SetMaterial( GameObject go, Material material )
+    {
+      if ( go == null )
+        return;
+
+      SetMaterial( go.GetComponent<MeshFilter>(), go.GetComponent<MeshRenderer>(), material );
+    }
+
+    /// <summary>
+    /// Assigns material to all meshes associated to <paramref name="filter"/>.
+    /// </summary>
+    /// <param name="filter">Mesh filter with mesh(es).</param>
+    /// <param name="renderer">Mesh renderer with material(s).</param>
+    /// <param name="material">Material to assign.</param>
+    public static void SetMaterial( MeshFilter filter, MeshRenderer renderer, Material material )
+    {
+      if ( renderer == null )
+        return;
+
+      var numMaterials = filter == null || filter.sharedMesh == null ? 1 : filter.sharedMesh.subMeshCount;
+      renderer.sharedMaterials = Enumerable.Repeat( material, numMaterials ).ToArray();
+    }
+
     [SerializeField]
     private Collide.Shape m_shape = null;
 
@@ -134,11 +162,8 @@ namespace AgXUnity.Rendering
     public void SetMaterial( Material material )
     {
       var renderers = GetComponentsInChildren<MeshRenderer>();
-      foreach ( var renderer in renderers ) {
-        var filter = renderer.GetComponent<MeshFilter>();
-        var numMaterials = filter == null || filter.sharedMesh == null ? 1 : filter.sharedMesh.subMeshCount;
-        renderer.sharedMaterials = Enumerable.Repeat( material, numMaterials ).ToArray();
-      }
+      foreach ( var renderer in renderers )
+        SetMaterial( renderer.GetComponent<MeshFilter>(), renderer, material );
     }
 
     /// <summary>
@@ -192,6 +217,19 @@ namespace AgXUnity.Rendering
                from material
                in renderer.sharedMaterials
                select material ).ToArray();
+    }
+
+    /// <summary>
+    /// Find material given mesh.
+    /// </summary>
+    /// <param name="source">Source mesh.</param>
+    /// <returns>Material used for source mesh.</returns>
+    public Material GetMaterial( Mesh source )
+    {
+      return ( from filter
+               in GetComponentsInChildren<MeshFilter>()
+               where filter.sharedMesh == source
+               select filter.GetComponent<MeshRenderer>().sharedMaterial ).FirstOrDefault();
     }
 
     /// <summary>
@@ -282,26 +320,48 @@ namespace AgXUnity.Rendering
       if ( parent == null )
         return null;
 
+      CreateOnSelectionProxy( parent, shape );
+
       var visual = AddVisualComponent( parent, shape, isRenderData );
       if ( visual == null )
         return null;
 
-      for ( int i = 0; i < meshes.Length; ++i ) {
-        var meshGameObject = meshes.Length == 1 ? parent : new GameObject( "" );
-        if ( meshes.Length > 1 ) {
-          meshGameObject.name = parent.name + "_" + ( i + 1 ).ToString();
-          parent.AddChild( meshGameObject );
-          meshGameObject.transform.localPosition = Vector3.zero;
-          meshGameObject.transform.localRotation = Quaternion.identity;
-        }
-
-        meshGameObject.AddComponent<MeshFilter>().sharedMesh = meshes[ i ];
-        meshGameObject.AddComponent<MeshRenderer>().sharedMaterial = material;
-      }
-
-      CreateOnSelectionProxy( parent, shape );
+      for ( int i = 0; i < meshes.Length; ++i )
+        AddChildMesh( shape, parent, meshes[ i ], parent.name + "_" + ( i + 1 ).ToString(), material );
 
       return parent;
+    }
+
+    /// <summary>
+    /// Adds child game object to visual parent (the one with ShapeVisual component).
+    /// </summary>
+    /// <param name="shape">Parent shape this visual belongs to.</param>
+    /// <param name="shapeVisualParent">Parent game object (the one with ShapeVisual component).</param>
+    /// <param name="mesh">Visual mesh.</param>
+    /// <param name="name">Name of the child.</param>
+    /// <param name="material">Material.</param>
+    /// <returns>Created child game object.</returns>
+    protected static GameObject AddChildMesh( Collide.Shape shape,
+                                              GameObject shapeVisualParent,
+                                              Mesh mesh,
+                                              string name,
+                                              Material material )
+    {
+      var meshGameObject = new GameObject( "" );
+      meshGameObject.name = name;
+      shapeVisualParent.AddChild( meshGameObject );
+      meshGameObject.transform.localPosition = Vector3.zero;
+      meshGameObject.transform.localRotation = Quaternion.identity;
+      meshGameObject.transform.hideFlags     = HideFlags.HideInInspector;
+
+      var filter   = meshGameObject.AddComponent<MeshFilter>();
+      var renderer = meshGameObject.AddComponent<MeshRenderer>();
+      filter.sharedMesh = mesh;
+      SetMaterial( filter, renderer, material );
+
+      CreateOnSelectionProxy( meshGameObject, shape );
+
+      return meshGameObject;
     }
 
     /// <summary>
@@ -450,11 +510,13 @@ namespace AgXUnity.Rendering
     /// the mesh.
     /// </summary>
     /// <param name="mesh">Mesh shape with updated source object.</param>
-    public static void HandleMeshSource( Collide.Mesh mesh )
+    /// <param name="source">Source mesh that has been changed.</param>
+    /// <param name="added">True if source has been added, false if removed.</param>
+    public static void HandleMeshSource( Collide.Mesh mesh, Mesh source, bool added )
     {
       var instance = Find( mesh ) as ShapeVisualMesh;
       if ( instance != null )
-        instance.HandleMeshSource();
+        instance.HandleMeshSource( source, added );
     }
 
     /// <summary>
@@ -477,11 +539,29 @@ namespace AgXUnity.Rendering
     /// source will be assigned to the new since we don't know if the number of
     /// sub-meshes are the same.
     /// </summary>
-    protected virtual void HandleMeshSource()
+    protected virtual void HandleMeshSource( Mesh source, bool added )
     {
-      //var prevMaterial = MeshRenderer.sharedMaterial ?? DefaultMaterial;
-      //MeshFilter.sharedMesh = (Shape as Collide.Mesh ).SourceObject;
-      //SetMaterial( prevMaterial );
+      if ( added ) {
+        var material = GetMaterials().LastOrDefault() ?? DefaultMaterial;
+        AddChildMesh( Shape,
+                      gameObject,
+                      source,
+                      gameObject.name + "_" + ( Array.IndexOf( ( Shape as Collide.Mesh ).SourceObjects, source ) + 1 ).ToString(),
+                      material );
+      }
+      else {
+        var filters = GetComponentsInChildren<MeshFilter>();
+        GameObject goToDestroy = null;
+        foreach ( var filter in filters ) {
+          if ( filter.sharedMesh == source ) {
+            goToDestroy = filter.gameObject;
+            break;
+          }
+        }
+
+        if ( goToDestroy != null )
+          DestroyImmediate( goToDestroy );
+      }
     }
   }
 

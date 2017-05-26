@@ -210,7 +210,7 @@ namespace AgXUnity.Rendering
         return;
 
       data.Synchronize( this );
-      if ( shapeEnabled != data.Node.activeSelf )
+      if ( data.Node != null && shapeEnabled != data.Node.activeSelf )
         data.Node.SetActive( shapeEnabled );
     }
 

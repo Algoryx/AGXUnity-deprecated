@@ -330,11 +330,16 @@ namespace AgXUnityEditor.Utils
 
     public static bool Foldout( EditorDataEntry state, GUIContent label, GUISkin skin, Action<bool> onStateChanged = null )
     {
+      return FoldoutEx( state, skin.button, label, skin.label, onStateChanged );
+    }
+
+    public static bool FoldoutEx( EditorDataEntry state, GUIStyle buttonStyle, GUIContent label, GUIStyle labelStyle, Action<bool> onStateChanged = null )
+    {
       GUILayout.BeginHorizontal();
       {
-        bool expandPressed = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) );
-        //state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) ) ? !state.Bool : state.Bool;
-        GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
+        var buttonSize = labelStyle.CalcHeight( label, Screen.width );
+        bool expandPressed = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), buttonStyle, GUILayout.Width( 20.0f ), GUILayout.Height( buttonSize ) );
+        GUILayout.Label( label, labelStyle, GUILayout.ExpandWidth( true ) );
         if ( expandPressed ||
              ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) &&
                Event.current.type == EventType.MouseDown &&
@@ -344,7 +349,7 @@ namespace AgXUnityEditor.Utils
           onStateChanged?.Invoke( state.Bool );
 
           if ( !expandPressed )
-          GUIUtility.ExitGUI();
+            GUIUtility.ExitGUI();
         }
       }
       GUILayout.EndHorizontal();
@@ -478,6 +483,12 @@ namespace AgXUnityEditor.Utils
     }
 
     private static Editor m_cachedMaterialEditor = null;
+    public static void DestroyCachedMaterialEditor()
+    {
+      if ( m_cachedMaterialEditor != null )
+        Editor.DestroyImmediate( m_cachedMaterialEditor );
+    }
+
     public static void MaterialEditor( GUIContent objFieldLabel,
                                        float objFieldLabelWidth,
                                        Material material,
@@ -488,9 +499,14 @@ namespace AgXUnityEditor.Utils
       bool createNewMaterialButton = false;
       GUILayout.BeginHorizontal();
       {
+        var buttonSize = skin.label.CalcHeight( objFieldLabel, Screen.width );
         GUILayout.Label( objFieldLabel, skin.label, GUILayout.Width( objFieldLabelWidth ) );
         newMaterial = EditorGUILayout.ObjectField( material, typeof( Material ), false ) as Material;
-        createNewMaterialButton = GUILayout.Button( MakeLabel( "New" ), GUILayout.Width( 46 ) );
+        GUILayout.Space( 4 );
+        using ( new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
+          createNewMaterialButton = GUILayout.Button( MakeLabel( "New", false, "Create new material" ),
+                                                      GUILayout.Width( 42 ),
+                                                      GUILayout.Height( buttonSize ) );
       }
       GUILayout.EndHorizontal();
 

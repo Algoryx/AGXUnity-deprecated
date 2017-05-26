@@ -56,7 +56,7 @@ namespace AgXUnity.Utils
         m_vertices.Add( m_transform.InverseTransformDirection( m_toWorld * v ).ToHandedVec3() );
       }
 
-      m_indices.Add( System.Convert.ToUInt32( index ) );
+      m_indices.Add( Convert.ToUInt32( index ) );
     }
   }
 }

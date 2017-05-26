@@ -170,13 +170,23 @@ namespace AgXUnityEditor.Tools
         return null;
 
       var types = Assembly.Load( "AgXUnityEditor" ).GetTypes();
+      var assignableFromTypes = new List<Type>();
       foreach ( var type in types ) {
-        object[] customToolAttributes = type.GetCustomAttributes( typeof( CustomTool ), false );
-        if ( customToolAttributes.Length > 0 && ( customToolAttributes[ 0 ] as CustomTool ).Type.IsAssignableFrom( obj.GetType() ) )
+        var customToolAttributes = type.GetCustomAttributes( typeof( CustomTool ), false );
+        if ( customToolAttributes.Length == 0 )
+          continue;
+
+        var attr = customToolAttributes.First() as CustomTool;
+        // Returning if we've found exact match.
+        if ( attr.Type == obj.GetType() )
           return type;
+        // Type of tool is assignable from current obj type - store this if
+        // an exact match comes after this type.
+        else if ( attr.Type.IsAssignableFrom( obj.GetType() ) )
+          assignableFromTypes.Add( type );
       }
 
-      return null;
+      return assignableFromTypes.FirstOrDefault();
     }
 
     /// <summary>

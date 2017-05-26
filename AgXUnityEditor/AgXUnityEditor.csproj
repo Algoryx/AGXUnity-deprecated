@@ -80,6 +80,7 @@
     <Compile Include="Tools\RouteTool.cs" />
     <Compile Include="Tools\SelectGameObjectDropdownMenuTool.cs" />
     <Compile Include="Tools\ShapeCreateTool.cs" />
+    <Compile Include="Tools\ShapeMeshTool.cs" />
     <Compile Include="Tools\ShapeTool.cs" />
     <Compile Include="Tools\SelectGameObjectTool.cs" />
     <Compile Include="Tools\ShapeResizeTool.cs" />

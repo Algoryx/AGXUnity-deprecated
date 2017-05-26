@@ -9,6 +9,15 @@ namespace AgXUnityEditor.Tools
 {
   public class ShapeVisualCreateTool : Tool
   {
+    public static bool CanCreateVisual( Shape shape )
+    {
+      return shape != null &&
+             ShapeVisual.SupportsShapeVisual( shape ) &&
+            !ShapeVisual.HasShapeVisual( shape ) &&
+             ( !( shape is AgXUnity.Collide.Mesh ) ||
+                ( shape as AgXUnity.Collide.Mesh ).SourceObjects.Length > 0 );
+    }
+
     public Shape Shape { get; private set; }
 
     public Material Material

@@ -309,16 +309,18 @@ namespace AgXUnityEditor
 
           GUILayout.BeginHorizontal();
           {
+            var objFieldLabel = MakeLabel( wrapper.Member );
+            var buttonSize = skin.label.CalcHeight( objFieldLabel, Screen.width );
             GUI.enabled = valInField != null;
             foldoutData.Bool = GUILayout.Button( Utils.GUI.MakeLabel( foldoutData.Bool ? "-" : "+" ),
                                                  skin.button,
-                                                 new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ?
+                                                 new GUILayoutOption[] { GUILayout.Width( 20.0f ), GUILayout.Height( buttonSize ) } ) ?
                                  // Button clicked - toggle current value.
                                  !foldoutData.Bool :
                                  // If foldout were enabled but valInField has changed to null - foldout will become disabled.
                                  valInField != null && foldoutData.Bool;
             GUI.enabled = true;
-            value = EditorGUILayout.ObjectField( MakeLabel( wrapper.Member ), valInField, type, allowSceneObject, new GUILayoutOption[] { } );
+            value = EditorGUILayout.ObjectField( objFieldLabel, valInField, type, allowSceneObject, new GUILayoutOption[] { } );
           }
           GUILayout.EndHorizontal();
 

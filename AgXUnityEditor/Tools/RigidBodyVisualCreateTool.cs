@@ -15,11 +15,11 @@ namespace AgXUnityEditor.Tools
         return false;
 
       var shapes = rb.GetComponentsInChildren<Shape>();
-      int numShapesWithoutVisual = 0;
+      int numSupportedNewShapeVisual = 0;
       foreach ( var shape in shapes )
-        numShapesWithoutVisual += System.Convert.ToInt32( !ShapeVisual.HasShapeVisual( shape ) );
+        numSupportedNewShapeVisual += System.Convert.ToInt32( ShapeVisualCreateTool.CanCreateVisual( shape ) );
 
-      return numShapesWithoutVisual > 0;
+      return numSupportedNewShapeVisual > 0;
     }
 
     public RigidBody RigidBody { get; private set; }

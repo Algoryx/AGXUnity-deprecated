@@ -19,39 +19,6 @@ namespace AgXUnity.Collide
     private UnityEngine.Mesh m_legacySourceObject = null;
 
     /// <summary>
-    /// Get or set source object (Unity Mesh).
-    /// </summary>
-    //[ShowInInspector]
-    //public UnityEngine.Mesh SourceObject
-    //{
-    //  get { return m_sourceObject; }
-    //  set
-    //  {
-    //    if ( value == m_sourceObject )
-    //      return;
-
-    //    // New source, destroy current debug rendering data.
-    //    if ( m_sourceObject != null ) {
-    //      Rendering.ShapeDebugRenderData data = GetComponent<Rendering.ShapeDebugRenderData>();
-    //      if ( data != null )
-    //        GameObject.DestroyImmediate( data.Node );
-    //      m_sourceObject = null;
-    //    }
-
-    //    // New source.
-    //    if ( m_sourceObject == null ) {
-    //      m_sourceObject = value;
-
-    //      // Instead of calling SizeUpdated we have to make sure
-    //      // a complete new instance of the debug render object
-    //      // is created (i.e., not only update scale if node exist).
-    //      Rendering.DebugRenderManager.HandleMeshSource( this );
-    //      Rendering.ShapeVisualMesh.HandleMeshSource( this );
-    //    }
-    //  }
-    //}
-
-    /// <summary>
     /// List of source mesh objects to include in the physical mesh.
     /// </summary>
     [SerializeField]
@@ -60,6 +27,7 @@ namespace AgXUnity.Collide
     /// <summary>
     /// Returns all source objects added to this shape.
     /// </summary>
+    [HideInInspector]
     public UnityEngine.Mesh[] SourceObjects
     {
       get { return m_sourceObjects.ToArray(); }
@@ -78,8 +46,12 @@ namespace AgXUnity.Collide
     /// <returns></returns>
     public bool SetSourceObject( UnityEngine.Mesh mesh )
     {
-      m_sourceObjects.Clear();
-      return AddSourceObject( mesh );
+      var sources = SourceObjects;
+      foreach ( var source in sources )
+        RemoveSourceObject( source );
+
+      // Returning true if mesh.SetSourceObject( null ) is made to clear source objects.
+      return mesh == null || AddSourceObject( mesh );
     }
 
     /// <summary>
@@ -92,7 +64,14 @@ namespace AgXUnity.Collide
       if ( mesh == null || m_sourceObjects.Contains( mesh ) )
         return false;
 
+      if ( !mesh.isReadable ) {
+        Debug.LogWarning( "Trying to add source mesh: " + mesh.name + ", which vertices/triangles isn't readable. Ignoring source.", this );
+        return false;
+      }
+
       m_sourceObjects.Add( mesh );
+
+      OnSourceObject( mesh, true );
 
       return true;
     }
@@ -104,7 +83,11 @@ namespace AgXUnity.Collide
     /// <returns>True if removed.</returns>
     public bool RemoveSourceObject( UnityEngine.Mesh mesh )
     {
-      return m_sourceObjects.Remove( mesh );
+      bool removed = m_sourceObjects.Remove( mesh );
+      if ( removed )
+        OnSourceObject( mesh, false );
+
+      return removed;
     }
 
     /// <summary>
@@ -123,6 +106,7 @@ namespace AgXUnity.Collide
     }
 
     /// <summary>
+    /// Scale of meshes are inherited by the parents and supports non-uniform scaling.
     /// </summary>
     public override Vector3 GetScale()
     {
@@ -151,35 +135,34 @@ namespace AgXUnity.Collide
     /// </summary>
     protected override bool Initialize()
     {
+      if ( m_legacySourceObject != null ) {
+        if ( m_sourceObjects.Count == 0 )
+          m_sourceObjects.Add( m_legacySourceObject );
+        m_legacySourceObject = null;
+      }
+
       return base.Initialize();
     }
 
     /// <summary>
-    /// Creates native mesh object given vertices and indices.
+    /// Called when any source object has been added or removed.
     /// </summary>
-    /// <remarks>
-    /// Because of the left handedness of Unity the triangles are "clockwise".
-    /// </remarks>
-    /// <param name="vertices">Mesh vertices.</param>
-    /// <param name="indices">Mesh indices/triangles.</param>
-    /// <param name="isConvex">True if the mesh is convex, otherwise (default) false.</param>
-    /// <returns>Native mesh object.</returns>
-    private agxCollide.Mesh Create( Vector3[] vertices, int[] indices, bool isConvex = false )
+    /// <param name="source">Source object that has been added or removed.</param>
+    /// <param name="added">True if <paramref name="source"/> has been added - otherwise false.</param>
+    private void OnSourceObject( UnityEngine.Mesh source, bool added )
     {
-      agx.Vec3Vector agxVertices = new agx.Vec3Vector( vertices.Length );
-      agx.UInt32Vector agxIndices = new agx.UInt32Vector( indices.Length );
+      var debugRenderData = GetComponent<Rendering.ShapeDebugRenderData>();
+      if ( debugRenderData != null && debugRenderData.Node != null )
+        DestroyImmediate( debugRenderData.Node );
 
-      Matrix4x4 toWorld = transform.localToWorldMatrix;
-      foreach ( Vector3 vertex in vertices )
-        agxVertices.Add( transform.InverseTransformDirection( toWorld * vertex ).ToHandedVec3() );
-
-      foreach ( var index in indices )
-        agxIndices.Add( (uint)index );
-
-      return isConvex ? new agxCollide.Convex( agxVertices, agxIndices, "Convex", (uint)agxCollide.Convex.TrimeshOptionsFlags.CLOCKWISE_ORIENTATION ) :
-                        new agxCollide.Trimesh( agxVertices, agxIndices, "Trimesh", (uint)agxCollide.Trimesh.TrimeshOptionsFlags.CLOCKWISE_ORIENTATION );
+      Rendering.ShapeVisualMesh.HandleMeshSource( this, source, added );
     }
 
+    /// <summary>
+    /// Merges all source objects to one mesh and creates a native trimesh.
+    /// </summary>
+    /// <param name="meshes">Source meshes.</param>
+    /// <returns>Native trimesh.</returns>
     private agxCollide.Mesh Create( UnityEngine.Mesh[] meshes )
     {
       var merger = MeshMerger.Merge( transform, meshes );

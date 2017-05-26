@@ -123,9 +123,7 @@ namespace AgXUnityEditor.Tools
                                                     "Disable collisions against other objects",
                                                     skin );
 
-          bool createShapeVisualValid = ShapeVisual.SupportsShapeVisual( Shape ) &&
-                                        !ShapeVisual.HasShapeVisual( Shape );
-          using ( new EditorGUI.DisabledGroupScope( !createShapeVisualValid ) )
+          using ( new EditorGUI.DisabledGroupScope( !Tools.ShapeVisualCreateTool.CanCreateVisual( Shape ) ) )
             toggleShapeVisualCreate = GUI.ToolButton( GUI.Symbols.ShapeVisualCreateTool,
                                                       ShapeVisualCreateTool,
                                                       "Create visual representation of the physical shape",
@@ -170,16 +168,19 @@ namespace AgXUnityEditor.Tools
         return;
 
       GUI.Separator();
-      if ( !GUI.Foldout( EditorData.Instance.GetData( Shape,
-                                                      "Visual",
-                                                      entry => entry.Bool = true ),
-                                                      GUI.MakeLabel( "Shape Visual" ),
-                                                      skin ) )
+      if ( !GUI.FoldoutEx( EditorData.Instance.GetData( Shape,
+                                                        "Visual",
+                                                        entry => entry.Bool = true ),
+                                                        skin.button,
+                                                        GUI.MakeLabel( "Shape Visual", 12, true ),
+                                                        new GUIStyle( skin.label ) { alignment = TextAnchor.UpperCenter } ) )
         return;
 
       GUI.Separator();
 
       GUILayout.Space( 6 );
+
+      Undo.RecordObjects( shapeVisual.GetComponentsInChildren<MeshRenderer>(), "Shape visual material" );
 
       var materials = shapeVisual.GetMaterials();
       if ( materials.Length > 1 ) {
