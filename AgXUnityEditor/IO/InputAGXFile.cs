@@ -394,7 +394,8 @@ namespace AgXUnityEditor.IO
         sphere.Radius = Convert.ToSingle( nativeShape.asSphere().getRadius() );
       }
       else if ( nativeShapeType == agxCollide.Shape.Type.CONVEX ||
-                nativeShapeType == agxCollide.Shape.Type.TRIMESH ) {
+                nativeShapeType == agxCollide.Shape.Type.TRIMESH ||
+                nativeShapeType == agxCollide.Shape.Type.HEIGHT_FIELD ) {
         var mesh          = node.GameObject.AddComponent<AgXUnity.Collide.Mesh>();
         var collisionData = nativeShape.asMesh().getMeshData();
         var nativeToWorld = nativeShape.getTransform();
