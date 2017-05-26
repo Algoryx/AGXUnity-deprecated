@@ -66,25 +66,8 @@ namespace AgXUnity
 
         // Creating a temporary native instance of the constraint, including a rigid body and frames.
         // Given this native instance we copy the default configuration.
-        using (agx.RigidBody tmpRb = new agx.RigidBody())
-        using ( agx.Frame tmpF1 = new agx.Frame() ) {
-          using ( agx.Frame tmpF2 = new agx.Frame() ) {
-            // Some constraints, e.g., Distance Joints depends on the constraint angle during
-            // creation so we feed the frames with the world transform of the reference and
-            // connecting frame.
-            constraint.AttachmentPair.Update();
-
-            tmpF1.setLocalTranslate( constraint.AttachmentPair.ReferenceFrame.Position.ToHandedVec3() );
-            tmpF1.setLocalRotate( constraint.AttachmentPair.ReferenceFrame.Rotation.ToHandedQuat() );
-
-            tmpF2.setLocalTranslate( constraint.AttachmentPair.ConnectedFrame.Position.ToHandedVec3() );
-            tmpF2.setLocalRotate( constraint.AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
-
-            using ( agx.Constraint tmpConstraint = (agx.Constraint)Activator.CreateInstance( constraint.NativeType, new object[] { tmpRb, tmpF1, null, tmpF2 } ) ) {
-              constraint.TryAddElementaryConstraints( tmpConstraint );
-            }
-          }
-        }
+        using ( var tmpNative = new TemporaryNative( constraint.NativeType, constraint.AttachmentPair ) )
+          constraint.TryAddElementaryConstraints( tmpNative.Instance );
 
         return constraint;
       }
@@ -359,80 +342,50 @@ namespace AgXUnity
     }
 
     /// <summary>
-    /// Adopting hinge implementation to current version of AGX Dynamics (number
-    /// of elementary constraints may change). This method can hopefully be removed later.
+    /// Patches primary and secondary elementary constraints to the current version of AGX.
     /// </summary>
-    /// <param name="referenceHinge">Reference hinge for current version of AGX Dynamics.</param>
-    /// <returns>True if any changed were made - otherwise false.</returns>
-    public bool AdoptToReferenceHinge( Constraint referenceHinge )
+    /// <param name="native">If given, the native configuration may be used.</param>
+    /// <returns>True if modification were applied - otherwise false.</returns>
+    public bool VerifyImplementation()
     {
-      if ( Type != ConstraintType.Hinge )
-        return false;
+      if ( Type == ConstraintType.Hinge ) {
+        var swing = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "SW" );
+        // Already created with swing - hinge is up to date.
+        if ( swing != null )
+          return false;
 
-      if ( referenceHinge.m_elementaryConstraints.Count == m_elementaryConstraints.Count )
-        return false;
+        var ecUn = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "D1_UN" );
+        var ecVn = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "D1_VN" );
+        // Not swing nor dot1's - this is an unknown configuration.
+        if ( ecUn == null || ecVn == null ) {
+          Debug.LogWarning( "Trying to patch hinge but the elementary constraint configuration is undefined.", this );
+          return false;
+        }
 
-      bool refHasSwing  = referenceHinge.m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "SW" ) != null;
-      bool thisHasSwing = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == "SW" ) != null;
-      if ( refHasSwing == thisHasSwing )
-        return false;
+        using ( var nativeHinge = new TemporaryNative( NativeType ) ) {
+          swing = ElementaryConstraint.Create( gameObject, nativeHinge.Instance.getElementaryConstraintGivenName( "SW" ) );
+        }
 
-      // Add all elementary constraints given reference. We now have both
-      // the old and the new representation. The old is located in m_elementaryConstraints
-      // and the new in newElementaryConstraints.
-      List<ElementaryConstraint> newElementaryConstraints = new List<ElementaryConstraint>();
-      foreach ( var refEc in referenceHinge.m_elementaryConstraints )
-        newElementaryConstraints.Add( refEc.FromLegacy( gameObject ) );
+        if ( swing == null ) {
+          Debug.LogWarning( "Unable to find elementary constraint \"SW\" in native hinge implementation.", this );
+          return false;
+        }
 
-      // Different if we're going from Dot1 -> Swing or the other way around.
-      var listWithDot1 = refHasSwing ? m_elementaryConstraints : newElementaryConstraints;
-      var listWithSwing = refHasSwing ? newElementaryConstraints : m_elementaryConstraints;
-
-      // Fetching the two Dot1 and the Swing object.
-      var ecUn = listWithDot1.FirstOrDefault( ec => ec.NativeName == "D1_UN" );
-      var ecVn = listWithDot1.FirstOrDefault( ec => ec.NativeName == "D1_VN" );
-      var swing = listWithSwing.FirstOrDefault( ec => ec.NativeName == "SW" );
-
-      // If we didn't find both Dot1 or the Swing object we have to bail out.
-      if ( ecUn == null || ecVn == null || swing == null ) {
-        foreach ( var newEc in newElementaryConstraints )
-          DestroyImmediate( newEc );
-        newElementaryConstraints.Clear();
-        return false;
-      }
-
-      // Copy U and V row data to Swing[ U ] and Swing[ V ].
-      if ( refHasSwing ) {
         swing.Enable = ecUn.Enable || ecVn.Enable;
         swing.RowData[ 0 ].CopyFrom( ecUn.RowData[ 0 ] );
         swing.RowData[ 1 ].CopyFrom( ecVn.RowData[ 0 ] );
-      }
-      // Copy Swing[ U ] and Swing[ V ] to U and V respectively.
-      else {
-        ecUn.Enable = swing.Enable;
-        ecVn.Enable = swing.Enable;
-        ecUn.RowData[ 0 ].CopyFrom( swing.RowData[ 0 ] );
-        ecVn.RowData[ 0 ].CopyFrom( swing.RowData[ 1 ] );
-      }
 
-      // Copy the elementary constraint state from the old ones to
-      // the new version for the resting matching elementary constraints.
-      for ( int i = 0; i < newElementaryConstraints.Count; ++i ) {
-        var old = m_elementaryConstraints.FirstOrDefault( ec => ec.NativeName == newElementaryConstraints[ i ].NativeName );
-        // This will skip swing (old == null) if we're moving Dot1 -> Swing.
-        // This will skip U, V (old == null) if we're moving Swing -> Dot1.
-        if ( old != null )
-          newElementaryConstraints[ i ].CopyFrom( old );
+        m_elementaryConstraints.Insert( m_elementaryConstraints.IndexOf( ecUn ), swing );
+        m_elementaryConstraints.Remove( ecUn );
+        m_elementaryConstraints.Remove( ecVn );
+
+        DestroyImmediate( ecUn );
+        DestroyImmediate( ecVn );
+
+        return true;
       }
 
-      // Destroy all old elementary constraints, the data has been copied.
-      foreach ( var old in m_elementaryConstraints )
-        DestroyImmediate( old );
-      m_elementaryConstraints.Clear();
-
-      m_elementaryConstraints = newElementaryConstraints;
-
-      return true;
+      return false;
     }
 
     /// <summary>
@@ -447,7 +400,7 @@ namespace AgXUnity
 
       for ( uint i = 0; i < native.getNumElementaryConstraints(); ++i ) {
         if ( native.getElementaryConstraint( i ).getName() == "" )
-          throw new AgXUnity.Exception( "Native elementary constraint doesn't have a name." );
+          throw new Exception( "Native elementary constraint doesn't have a name." );
 
         var ec = ElementaryConstraint.Create( gameObject, native.getElementaryConstraint( i ) );
         if ( ec == null )
@@ -458,7 +411,7 @@ namespace AgXUnity
 
       for ( uint i = 0; i < native.getNumSecondaryConstraints(); ++i ) {
         if ( native.getSecondaryConstraint( i ).getName() == "" )
-          throw new AgXUnity.Exception( "Native secondary constraint doesn't have a name." );
+          throw new Exception( "Native secondary constraint doesn't have a name." );
 
         var sc = ElementaryConstraint.Create( gameObject, native.getSecondaryConstraint( i ) );
         if ( sc == null )
@@ -634,6 +587,46 @@ namespace AgXUnity
           f2.setLocalRotate( AttachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
         }
       }
+    }
+
+    private class TemporaryNative : IDisposable
+    {
+      public agx.Constraint Instance { get { return m_native; } }
+
+      public TemporaryNative( Type nativeType, AttachmentPair attachmentPair = null )
+      {
+        m_rb1 = new agx.RigidBody();
+        m_f1 = new agx.Frame();
+        m_f2 = new agx.Frame();
+
+        if ( attachmentPair != null ) {
+          // Some constraints, e.g., Distance Joints depends on the constraint angle during
+          // creation so we feed the frames with the world transform of the reference and
+          // connecting frame.
+          attachmentPair.Update();
+
+          m_f1.setLocalTranslate( attachmentPair.ReferenceFrame.Position.ToHandedVec3() );
+          m_f1.setLocalRotate( attachmentPair.ReferenceFrame.Rotation.ToHandedQuat() );
+
+          m_f2.setLocalTranslate( attachmentPair.ConnectedFrame.Position.ToHandedVec3() );
+          m_f2.setLocalRotate( attachmentPair.ConnectedFrame.Rotation.ToHandedQuat() );
+        }
+
+        m_native = (agx.Constraint)Activator.CreateInstance( nativeType, new object[] { m_rb1, m_f1, null, m_f2 } );
+      }
+
+      public void Dispose()
+      {
+        m_native.Dispose();
+        m_rb1.Dispose();
+        m_f1.Dispose();
+        m_f2.Dispose();
+      }
+
+      private agx.Constraint m_native = null;
+      private agx.RigidBody m_rb1 = null;
+      private agx.Frame m_f1 = null;
+      private agx.Frame m_f2 = null;
     }
 
     private static Mesh m_gizmosMesh = null;

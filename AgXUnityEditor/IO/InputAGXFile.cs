@@ -589,70 +589,8 @@ namespace AgXUnityEditor.IO
       constraint.SetType( constraintType );
 
       try {
-        // Patching non-serialized elementary constraint names.
-        bool patchNames = ( nativeConstraint.getNumElementaryConstraints() > 0 && nativeConstraint.getElementaryConstraint( 0 ).getName() == "" ) ||
-                          ( nativeConstraint.getNumSecondaryConstraints() > 0 && nativeConstraint.getSecondaryConstraint( 0 ).getName() == "" );
-        if ( patchNames ) {
-          bool patchSuccessful = true;
-          Constraint tmp       = Constraint.Create( constraintType );
-          var tmpElementaryConstraints = tmp.GetOrdinaryElementaryConstraints();
-          var tmpSecondaryConstraints  = tmp.GetElementaryConstraintControllers();
-          int numNativeElementaryConstraints = Convert.ToInt32( nativeConstraint.getNumElementaryConstraints() );
-          int numNativeSecondaryConstraints  = Convert.ToInt32( nativeConstraint.getNumSecondaryConstraints() );
-          // If #elementary and #secondary we assume we've a match.
-          if ( tmpElementaryConstraints.Length == numNativeElementaryConstraints &&
-               tmpSecondaryConstraints.Length == numNativeSecondaryConstraints ) {
-            for ( int i = 0; i < numNativeElementaryConstraints; ++i )
-              nativeConstraint.getElementaryConstraint( (ulong)i ).setName( tmpElementaryConstraints[ i ].NativeName );
-            for ( int i = 0; i < numNativeSecondaryConstraints; ++i )
-              nativeConstraint.getSecondaryConstraint( (ulong)i ).setName( tmpSecondaryConstraints[ i ].NativeName );
-          }
-          // We know how to patch hinge with mismatching secondary constraints.
-          else if ( constraintType == ConstraintType.Hinge ) {
-            // Swing joint version.
-            if ( nativeConstraint.getNumElementaryConstraints() == 2ul ) {
-              nativeConstraint.getElementaryConstraint( 0ul ).setName( "SR" );
-              nativeConstraint.getElementaryConstraint( 1ul ).setName( "SW" );
-            }
-            // Dot1 version.
-            else if ( nativeConstraint.getNumElementaryConstraints() == 3ul ) {
-              nativeConstraint.getElementaryConstraint( 0ul ).setName( "SR" );
-              nativeConstraint.getElementaryConstraint( 1ul ).setName( "D1_VN" );
-              nativeConstraint.getElementaryConstraint( 2ul ).setName( "D1_UN" );
-            }
-            else {
-              Debug.LogWarning( "Unknown version of hinge instance." );
-              patchSuccessful = false;
-            }
-
-            for ( int i = 0; patchSuccessful && i < numNativeSecondaryConstraints; ++i )
-              nativeConstraint.getSecondaryConstraint( (ulong)i ).setName( tmpSecondaryConstraints[ i ].NativeName );
-          }
-          else {
-            Debug.LogWarning( "Unable to recover mismatching constraint configuration of constraint with name: " +
-                              node.GameObject.name +
-                              " (UUID: " + node.Uuid.str() + ")" );
-            patchSuccessful = false;
-          }
-
-          try {
-            constraint.TryAddElementaryConstraints( nativeConstraint );
-          }
-          catch ( System.Exception e ) {
-            Debug.LogException( e );
-            patchSuccessful = false;
-          }
-
-          if ( patchSuccessful && constraint.Type == ConstraintType.Hinge )
-            constraint.AdoptToReferenceHinge( tmp );
-
-          GameObject.DestroyImmediate( tmp.gameObject );
-
-          if ( !patchSuccessful )
-            return false;
-        }
-        else
-          constraint.TryAddElementaryConstraints( nativeConstraint );
+        constraint.TryAddElementaryConstraints( nativeConstraint );
+        constraint.VerifyImplementation();
       }
       catch ( System.Exception e ) {
         Debug.LogException( e );

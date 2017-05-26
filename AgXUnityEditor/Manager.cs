@@ -469,24 +469,17 @@ namespace AgXUnityEditor
           }
         }
 
-        // Patching old hinges with two Dot1 to new Swing.
+        // Patching old constraints to new versions.
         {
-          var hingeGameObject = AgXUnity.Factory.Create( AgXUnity.ConstraintType.Hinge );
-          var refHinge = hingeGameObject.GetComponent<AgXUnity.Constraint>();
           AgXUnity.Constraint[] constraints = UnityEngine.Object.FindObjectsOfType<AgXUnity.Constraint>();
           foreach ( var constraint in constraints ) {
-            if ( constraint.Type != AgXUnity.ConstraintType.Hinge )
+            if ( !constraint.VerifyImplementation() )
               continue;
 
-            if ( !constraint.AdoptToReferenceHinge( refHinge ) )
-              continue;
-
-            Debug.Log( "Hinge: " + constraint.name + " successfully updated to match AGX Dynamics Hinge.", constraint );
+            Debug.Log( "Constraint: " + constraint.name + " successfully updated to new version.", constraint );
 
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
           }
-
-          GameObject.DestroyImmediate( hingeGameObject );
         }
 
         // Patching OnSelectionProxy (Target == null) in the wire rendering SegmentSpawner.
