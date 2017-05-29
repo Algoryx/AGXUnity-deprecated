@@ -693,7 +693,26 @@ namespace AgXUnityEditor.IO
 
       while ( !nativeIt.EqualWith( nativeEndIt ) ) {
         var nativeNode = nativeIt.get();
-        route.Add( nativeNode, findRigidBody( nativeNode.getRigidBody() ) );
+
+        // Handing ContactNode and ShapeContactNode parenting.
+        GameObject nodeParent = null;
+        if ( nativeNode.getType() == agxWire.Node.Type.CONTACT ) {
+          var nativeGeometry = nativeNode.getAsContact().getGeometry();
+          var geometryNode = m_tree.GetNode( nativeGeometry.getUuid() );
+          if ( geometryNode != null && geometryNode.GetChildren( Node.NodeType.Shape ).Length > 0 )
+            nodeParent = geometryNode.GetChildren( Node.NodeType.Shape )[ 0 ].GameObject;
+        }
+        else if ( nativeNode.getType() == agxWire.Node.Type.SHAPE_CONTACT ) {
+          var nativeShape = nativeNode.getAsShapeContact().getShape();
+          var shapeNode = m_tree.GetNode( nativeShape.getUuid() );
+          if ( shapeNode != null )
+            nodeParent = shapeNode.GameObject;
+        }
+
+        if ( nodeParent == null )
+          nodeParent = findRigidBody( nativeNode.getRigidBody() );
+
+        route.Add( nativeNode, nodeParent );
         nativeIt.inc();
       }
 

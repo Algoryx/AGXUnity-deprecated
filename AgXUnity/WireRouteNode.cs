@@ -115,9 +115,8 @@ namespace AgXUnity
         Native = new agxWire.ConnectingNode( nativeRb, point, double.PositiveInfinity );
       else if ( Type == Wire.NodeType.EyeNode )
         Native = new agxWire.EyeNode( nativeRb, point );
-      else if ( Type == Wire.NodeType.ContactNode ) {
+      else if ( Type == Wire.NodeType.ContactNode )
         Native = new agxWire.ContactNode( shape.NativeGeometry, CalculateLocalPosition( shape.gameObject ).ToHandedVec3() );
-      }
       else if ( Type == Wire.NodeType.WinchNode ) {
         if ( m_winch == null )
           throw new AgXUnity.Exception( "No reference to a wire winch component in the winch node." );
