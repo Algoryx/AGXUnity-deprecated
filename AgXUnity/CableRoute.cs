@@ -38,7 +38,7 @@ namespace AgXUnity
     /// <param name="nativeSegment">Native cable segment.</param>
     /// <param name="attachmentParentCallback">
     /// Callback that maps native rigid body to game object, i.e., an rigid body game object
-    /// created given the attachment.
+    /// created given the attachment. When attachment == null the parent object should be returned - null if world.
     /// </param>
     /// <returns>Cable route node with attachments (if any). Null if not added.</returns>
     public CableRouteNode Add( agxCable.CableSegment nativeSegment, Func<agxCable.SegmentAttachment, GameObject> attachmentParentCallback )
@@ -64,7 +64,7 @@ namespace AgXUnity
       }
       else {
         node = CableRouteNode.Create( Cable.NodeType.FreeNode,
-                                      null,
+                                      attachmentParentCallback( null ),
                                       nativeSegment.getBeginPosition().ToHandedVector3(),
                                       Quaternion.LookRotation( nativeSegment.getDirection().ToHandedVector3(), Vector3.up ) );
       }

@@ -631,6 +631,9 @@ namespace AgXUnityEditor.IO
 
       if ( bodyNodes.Length > 1 )
         constraint.AttachmentPair.ConnectedFrame.SetParent( bodyNodes[ 1 ].GameObject );
+      else
+        constraint.AttachmentPair.ConnectedFrame.SetParent( Parent );
+
       constraint.AttachmentPair.ConnectedFrame.LocalPosition = nativeConstraint.getAttachment( 1ul ).getFrame().getLocalTranslate().ToHandedVector3();
       constraint.AttachmentPair.ConnectedFrame.LocalRotation = nativeConstraint.getAttachment( 1ul ).getFrame().getLocalRotate().ToHandedQuaternion();
 
@@ -651,20 +654,20 @@ namespace AgXUnityEditor.IO
       Func<agx.RigidBody, GameObject> findRigidBody = ( nativeRb ) =>
       {
         if ( nativeRb == null )
-          return null;
+          return Parent;
 
         // Do not reference lumped nodes!
         if ( agxWire.Wire.isLumpedNode( nativeRb ) )
-          return null;
+          return Parent;
 
         Node rbNode = m_tree.GetNode( nativeRb.getUuid() );
         if ( rbNode == null ) {
           Debug.LogWarning( "Unable to find reference rigid body: " + nativeRb.getName() + " (UUID: " + nativeRb.getUuid().str() + ")" );
-          return null;
+          return Parent;
         }
         if ( rbNode.GameObject == null ) {
           Debug.LogWarning( "Referenced native rigid body hasn't a game object: " + nativeRb.getName() + " (UUID: " + rbNode.Uuid.str() + ")" );
-          return null;
+          return Parent;
         }
 
         return rbNode.GameObject;
@@ -752,12 +755,12 @@ namespace AgXUnityEditor.IO
         var segment = it.get();
         route.Add( segment, attachment =>
                             {
-                              if ( attachment.getRigidBody() == null )
-                                return null;
+                              if ( attachment == null || attachment.getRigidBody() == null )
+                                return Parent;
                               var rbNode = m_tree.GetNode( attachment.getRigidBody().getUuid() );
                               if ( rbNode == null ) {
                                 Debug.LogWarning( "Unable to find rigid body in cable attachment." );
-                                return null;
+                                return Parent;
                               }
                               return rbNode.GameObject;
                             } );
@@ -767,8 +770,8 @@ namespace AgXUnityEditor.IO
       if ( materials.Length > 0 )
         cable.Material = materials[ 0 ].Asset as ShapeMaterial;
 
-      cable.GetComponent<AgXUnity.Rendering.CableRenderer>().InitializeRenderer();
-      cable.GetComponent<AgXUnity.Rendering.CableRenderer>().Material = null;
+      cable.GetComponent<CableRenderer>().InitializeRenderer();
+      cable.GetComponent<CableRenderer>().Material = null;
 
       // Adding collision group from restored instance since the disabled pair
       // will be read from Space (cable.setEnableCollisions( foo, false ) will

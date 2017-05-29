@@ -40,7 +40,12 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    RouteNodeTool SelectedTool { get { return FindActive<RouteNodeTool>( this, tool => tool.Node == m_selected ); } }
+    public RouteNodeTool SelectedTool { get { return FindActive<RouteNodeTool>( this, tool => tool.Node == m_selected ); } }
+
+    /// <summary>
+    /// Not visual in scene view when the editor is playing or selected in project (asset).
+    /// </summary>
+    public bool VisualInSceneView { get; private set; }
 
     public bool DisableCollisionsTool
     {
@@ -60,13 +65,17 @@ namespace AgXUnityEditor.Tools
     {
       Parent = parent;
       Route = route;
+
+      VisualInSceneView = true;
     }
 
     public override void OnAdd()
     {
+      VisualInSceneView = !EditorApplication.isPlaying && !AssetDatabase.Contains( Parent.gameObject );
+
       HideDefaultHandlesEnableWhenRemoved();
 
-      if ( !EditorApplication.isPlaying ) {
+      if ( VisualInSceneView ) {
         foreach ( var node in Route ) {
           CreateRouteNodeTool( node );
           if ( GetFoldoutData( node ).Bool )
@@ -77,7 +86,7 @@ namespace AgXUnityEditor.Tools
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      if ( EditorApplication.isPlaying )
+      if ( !VisualInSceneView )
         return;
 
       // Something happens to our child tools when Unity is performing

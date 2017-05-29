@@ -54,7 +54,9 @@ namespace AgXUnity.Rendering
     /// <returns>ShapeVisual instance if present, otherwise null.</returns>
     public static ShapeVisual Find( Collide.Shape shape )
     {
-      return shape?.GetComponentsInChildren<ShapeVisual>().FirstOrDefault( instance => instance.Shape == shape );
+      return shape != null ?
+               shape.GetComponentsInChildren<ShapeVisual>().FirstOrDefault( instance => instance.Shape == shape ) :
+               null;
     }
 
     /// <summary>

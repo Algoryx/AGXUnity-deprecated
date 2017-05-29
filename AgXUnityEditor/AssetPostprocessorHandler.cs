@@ -45,18 +45,23 @@ namespace AgXUnityEditor
         return;
       }
 
+      Undo.SetCurrentGroupName( "Adding: " + instance.name + " to scene." );
+      var grouId = Undo.GetCurrentGroup();
+
       foreach ( var cm in fileInfo.GetAssets<ContactMaterial>() )
-        ContactMaterialManager.Instance.Add( cm );
+        TopMenu.GetOrCreateUniqueGameObject<ContactMaterialManager>().Add( cm );
 
       var fileData = fileInfo.Parent.GetComponent<AgXUnity.IO.RestoredAGXFile>();
       foreach ( var disabledGroup in fileData.DisabledGroups )
-        CollisionGroupsManager.Instance.SetEnablePair( disabledGroup.First, disabledGroup.Second, false );
+        TopMenu.GetOrCreateUniqueGameObject<CollisionGroupsManager>().SetEnablePair( disabledGroup.First, disabledGroup.Second, false );
 
       var renderDatas = instance.GetComponentsInChildren<AgXUnity.Rendering.ShapeVisual>();
       foreach ( var renderData in renderDatas ) {
         renderData.hideFlags |= HideFlags.NotEditable;
         renderData.transform.hideFlags |= HideFlags.NotEditable;
       }
+
+      Undo.CollapseUndoOperations( grouId );
     }
 
     private static void OnPostprocessAllAssets( string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths )

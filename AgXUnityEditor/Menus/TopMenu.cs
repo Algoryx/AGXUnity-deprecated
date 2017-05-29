@@ -281,7 +281,7 @@ namespace AgXUnityEditor
         UniqueGameObject<T>.ResetDestroyedState();
 
       T obj = UniqueGameObject<T>.Instance;
-      if ( obj != null )
+      if ( !hadInstance && obj != null )
         Undo.RegisterCreatedObjectUndo( obj.gameObject, "Created " + obj.name );
 
       return obj;
