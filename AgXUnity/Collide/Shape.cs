@@ -1,4 +1,6 @@
-﻿using AgXUnity.Utils;
+﻿using System;
+using System.Collections.Generic;
+using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity.Collide
@@ -221,6 +223,20 @@ namespace AgXUnity.Collide
       if ( m_utils == null )
         m_utils = ShapeUtils.Create( this );
       return m_utils;
+    }
+
+    /// <summary>
+    /// Finds all objects that may be affected when changing a shape. E.g., shape visual.
+    /// </summary>
+    /// <returns>Array of objects that may be affected when changing this instance.</returns>
+    public UnityEngine.Object[] GetUndoCollection()
+    {
+      var collection = new List<UnityEngine.Object>();
+      collection.Add( this );
+      collection.AddRange( GetComponentsInChildren<Rendering.ShapeVisual>() );
+      collection.AddRange( GetComponentsInChildren<MeshRenderer>() );
+      collection.AddRange( GetComponentsInChildren<MeshFilter>() );
+      return collection.ToArray();
     }
 
     /// <summary>

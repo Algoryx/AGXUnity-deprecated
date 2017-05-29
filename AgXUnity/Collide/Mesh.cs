@@ -99,7 +99,7 @@ namespace AgXUnity.Collide
       if ( m_legacySourceObject == null )
         return false;
 
-      m_sourceObjects.Add( m_legacySourceObject );
+      SetSourceObject( m_legacySourceObject );
       m_legacySourceObject = null;
 
       return true;

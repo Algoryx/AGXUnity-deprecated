@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using AgXUnity;
@@ -273,7 +275,16 @@ namespace AgXUnityEditor.Tools
 
           GUI.Separator();
           using ( new GUI.Indent( 12 ) ) {
+            Undo.RecordObjects( shape.GetUndoCollection(), "Shape" );
+
             shape.enabled = GUI.Toggle( GUI.MakeLabel( "Enable" ), shape.enabled, skin.button, skin.label );
+            if ( shape is AgXUnity.Collide.Mesh ) {
+              GUI.Separator();
+
+              var newMeshSource = GUI.ShapeMeshSourceGUI( ( shape as AgXUnity.Collide.Mesh ).SourceObjects.FirstOrDefault(), skin );
+              if ( newMeshSource != null )
+                ( shape as AgXUnity.Collide.Mesh ).SetSourceObject( newMeshSource );
+            }
             GUI.Separator();
             BaseEditor<Shape>.Update( shape, shape, skin );
           }

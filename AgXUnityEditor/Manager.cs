@@ -175,7 +175,7 @@ namespace AgXUnityEditor
       var proxy  = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
       // If proxy target is null we're ignoring it.
       var result = proxy != null &&
-                  !EditorData.Instance.GetData( proxy, "SelectedInHierarchy", entry => entry.Bool = false ).Bool &&
+                  !GetSelectedInHierarchyData( proxy ).Bool &&
                    proxy.Target != null ?
                      proxy.Target :
                      obj;
@@ -574,7 +574,26 @@ namespace AgXUnityEditor
       }
     }
 
+    /// <summary>
+    /// Previous selection used to reset used EditorDataEntry entries.
+    /// </summary>
     private static UnityEngine.Object[] m_previousSelection = new UnityEngine.Object[] { };
+
+    /// <summary>
+    /// Editor data entry for "SelectedInHierarchy" property.
+    /// </summary>
+    /// <param name="proxy">OnSelectionProxy instance. Invalid if null.</param>
+    /// <returns>EditorDataEntry for given <paramref name="proxy"/>.</returns>
+    private static EditorDataEntry GetSelectedInHierarchyData( OnSelectionProxy proxy )
+    {
+      return EditorData.Instance.GetData( proxy, "SelectedInHierarchy" );
+    }
+    
+    /// <summary>
+    /// Callback when selection has been changed in the editor. Mainly used to
+    /// catch when the user selects an OnSelectionProxy route in the hierarchy
+    /// tab, i.e., such that it shouldn't be routed when clicking in hierarchy.
+    /// </summary>
     private static void OnSelectionChanged()
     {
       Utils.GUI.DestroyCachedMaterialEditor();
@@ -582,14 +601,17 @@ namespace AgXUnityEditor
       bool mouseOverHierarchy = EditorWindow.mouseOverWindow != null &&
                                 EditorWindow.mouseOverWindow.GetType().FullName == "UnityEditor.SceneHierarchyWindow";
 
+      // Assigns and saves 'state' in editor data for game object with OnSelectionProxy.
+      // If OnSelectionProxy is present the given state is returned.
       Func<GameObject, bool, bool> setOnSelectionProxyState = ( go, state ) =>
       {
         var proxy = go != null ? go.GetComponent<OnSelectionProxy>() : null;
         if ( proxy != null )
-          return ( EditorData.Instance.GetData( proxy, "SelectedInHierarchy" ).Bool = state );
+          return GetSelectedInHierarchyData( proxy ).Bool = state;
         return false;
       };
 
+      // Reset previously selected as "not selected in hierarchy".
       foreach ( var prevSelected in m_previousSelection ) {
         // Could be deleted - only valid to check if null.
         if ( prevSelected == null )
@@ -599,8 +621,16 @@ namespace AgXUnityEditor
       }
 
       bool toolsHidden = false;
+      // If newly selected object(s) are selected in the hierarchy window we shouldn't
+      // route it in this.RouteObject.
       foreach ( var selected in Selection.objects )
         toolsHidden = setOnSelectionProxyState( selected as GameObject, mouseOverHierarchy ) || toolsHidden;
+
+      // Hides transform tool when e.g., DebugRenderManager is selected.
+      if ( !toolsHidden &&
+           Selection.activeGameObject != null &&
+           ( Selection.activeGameObject.transform.hideFlags & HideFlags.NotEditable ) != 0 )
+        toolsHidden = true;
 
       UnityEditor.Tools.hidden = toolsHidden;
 

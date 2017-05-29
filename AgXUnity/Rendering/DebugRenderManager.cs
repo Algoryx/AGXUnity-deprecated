@@ -44,7 +44,7 @@ namespace AgXUnity.Rendering
     /// <param name="shape"></param>
     public static void SynchronizeScale( Collide.Shape shape )
     {
-      if ( !ActiveForSynchronize )
+      if ( !IsActiveForSynchronize )
         return;
 
       Instance.SynchronizeScaleIfNodeExist( shape );
@@ -55,7 +55,7 @@ namespace AgXUnity.Rendering
     /// </summary>
     public static void HandleMeshSource( Collide.Mesh mesh )
     {
-      if ( !ActiveForSynchronize )
+      if ( !IsActiveForSynchronize )
         return;
 
       Instance.SynchronizeShape( mesh );
@@ -66,7 +66,7 @@ namespace AgXUnity.Rendering
     /// </summary>
     public static void OnPostSynchronizeTransforms( Collide.Shape shape )
     {
-      if ( !ActiveForSynchronize )
+      if ( !IsActiveForSynchronize )
         return;
 
       Instance.SynchronizeShape( shape );
@@ -78,7 +78,7 @@ namespace AgXUnity.Rendering
     /// </summary>
     public static void OnShapeDisable( Collide.Shape shape )
     {
-      if ( !ActiveForSynchronize )
+      if ( !IsActiveForSynchronize )
         return;
 
       var data = shape.GetComponent<ShapeDebugRenderData>();
@@ -91,7 +91,7 @@ namespace AgXUnity.Rendering
     /// </summary>
     public static void OnPostSynchronizeTransforms( RigidBody rb )
     {
-      if ( !ActiveForSynchronize )
+      if ( !IsActiveForSynchronize )
         return;
 
       Collide.Shape[] shapes = rb.GetComponentsInChildren<Collide.Shape>();
@@ -121,12 +121,13 @@ namespace AgXUnity.Rendering
           gameObject.hideFlags = HideFlags.None;
         else
           gameObject.hideFlags = HideFlags.DontSaveInBuild;
+
+        transform.hideFlags = gameObject.hideFlags | HideFlags.NotEditable;
       }
     }
 
     protected override bool Initialize()
     {
-      gameObject.isStatic  = true;
       gameObject.hideFlags = HideFlags.None;
 
       return base.Initialize();
@@ -137,6 +138,8 @@ namespace AgXUnity.Rendering
       SetVisible( true );
 
       base.OnEnable();
+
+      UpdateIsActiveForSynchronize();
     }
 
     protected override void OnDisable()
@@ -144,6 +147,8 @@ namespace AgXUnity.Rendering
       SetVisible( false );
 
       base.OnDisable();
+
+      UpdateIsActiveForSynchronize();
     }
 
     protected void Update()
@@ -156,6 +161,8 @@ namespace AgXUnity.Rendering
       // Fix - set scale after set parent.
       gameObject.transform.parent     = null;
       gameObject.transform.localScale = Vector3.one;
+
+      UpdateIsActiveForSynchronize();
 
       // When the application is playing we rely on callbacks
       // from the objects when they've synchronized their
@@ -195,7 +202,13 @@ namespace AgXUnity.Rendering
       }
     }
 
-    private static bool ActiveForSynchronize { get { return HasInstance && Instance.gameObject.activeInHierarchy && Instance.enabled; } }
+    private static bool m_isActiveForSynchronize = false;
+    private static bool IsActiveForSynchronize { get { return m_isActiveForSynchronize; } }
+
+    private bool UpdateIsActiveForSynchronize()
+    {
+      return ( m_isActiveForSynchronize = gameObject.activeInHierarchy && enabled );
+    }
 
     private void SynchronizeShape( Collide.Shape shape )
     {

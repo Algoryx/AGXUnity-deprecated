@@ -51,6 +51,12 @@ namespace AgXUnityEditor
       var fileData = fileInfo.Parent.GetComponent<AgXUnity.IO.RestoredAGXFile>();
       foreach ( var disabledGroup in fileData.DisabledGroups )
         CollisionGroupsManager.Instance.SetEnablePair( disabledGroup.First, disabledGroup.Second, false );
+
+      var renderDatas = instance.GetComponentsInChildren<AgXUnity.Rendering.ShapeVisual>();
+      foreach ( var renderData in renderDatas ) {
+        renderData.hideFlags |= HideFlags.NotEditable;
+        renderData.transform.hideFlags |= HideFlags.NotEditable;
+      }
     }
 
     private static void OnPostprocessAllAssets( string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths )

@@ -30,18 +30,13 @@ namespace AgXUnityEditor.Tools
     {
       base.OnPreTargetMembersGUI( skin );
 
-      var sourceObjects    = Mesh.SourceObjects;
-      var singleSource     = sourceObjects.FirstOrDefault();
-      Mesh newSingleSource = null;
+      var sourceObjects = Mesh.SourceObjects;
+      var singleSource  = sourceObjects.FirstOrDefault();
 
-      GUILayout.BeginHorizontal();
-      {
-        GUILayout.Label( GUI.MakeLabel( "Source:" ), skin.label, GUILayout.Width( 76 ) );
-        newSingleSource = EditorGUILayout.ObjectField( singleSource, typeof( Mesh ), false ) as Mesh;
-      }
-      GUILayout.EndHorizontal();
+      Undo.RecordObjects( Mesh.GetUndoCollection(), "Mesh source" );
 
-      if ( newSingleSource != singleSource )
+      var newSingleSource = GUI.ShapeMeshSourceGUI( singleSource, skin );
+      if ( newSingleSource != null )
         Mesh.SetSourceObject( newSingleSource );
 
       GUI.Separator();

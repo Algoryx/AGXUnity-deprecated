@@ -576,6 +576,19 @@ namespace AgXUnityEditor.Utils
                              CreateCancelState.Nothing;
     }
 
+    public static Mesh ShapeMeshSourceGUI( Mesh currentSource, GUISkin skin )
+    {
+      Mesh newSource = null;
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Label( MakeLabel( "Source:" ), skin.label, GUILayout.Width( 76 ) );
+        newSource = EditorGUILayout.ObjectField( currentSource, typeof( Mesh ), false ) as Mesh;
+      }
+      GUILayout.EndHorizontal();
+
+      return newSource != currentSource ? newSource : null;
+    }
+
     private static void OnToolInspectorGUI( object target, GUISkin skin, TargetToolGUICallbackType callbackType )
     {
       var targetTool = Tools.Tool.GetActiveTool( target );

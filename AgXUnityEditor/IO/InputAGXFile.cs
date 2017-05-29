@@ -539,13 +539,20 @@ namespace AgXUnityEditor.IO
       var material       = new Material( shader );
       material.name      = shape.name + "_Visual_Material";
 
-      if ( renderMaterial.hasDiffuseColor() )
-        material.SetVector( "_Color", renderMaterial.getDiffuseColor().ToColor() );
+      if ( renderMaterial.hasDiffuseColor() ) {
+        var color = renderMaterial.getDiffuseColor().ToColor();
+        color.a = 1.0f - renderMaterial.getTransparency();
+
+        material.SetVector( "_Color", color );
+      }
       if ( renderMaterial.hasEmissiveColor() )
         material.SetVector( "_EmissionColor", renderMaterial.getEmissiveColor().ToColor() );
 
       material.SetFloat( "_Metallic", 0.3f );
       material.SetFloat( "_Glossiness", 0.8f );
+
+      if ( renderMaterial.getTransparency() > 0.0f )
+        material.SetBlendMode( BlendMode.Transparent );
 
       FileInfo.AddAsset( material );
       foreach ( var mesh in meshes )

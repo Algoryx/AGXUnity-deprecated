@@ -327,7 +327,12 @@ namespace AgXUnity.Rendering
         return null;
 
       for ( int i = 0; i < meshes.Length; ++i )
-        AddChildMesh( shape, parent, meshes[ i ], parent.name + "_" + ( i + 1 ).ToString(), material );
+        AddChildMesh( shape, 
+                      parent,
+                      meshes[ i ],
+                      parent.name + "_" + ( i + 1 ).ToString(),
+                      material,
+                      i > 0 );
 
       return parent;
     }
@@ -345,23 +350,32 @@ namespace AgXUnity.Rendering
                                               GameObject shapeVisualParent,
                                               Mesh mesh,
                                               string name,
-                                              Material material )
+                                              Material material,
+                                              bool createNewGameObject )
     {
-      var meshGameObject = new GameObject( "" );
-      meshGameObject.name = name;
-      shapeVisualParent.AddChild( meshGameObject );
-      meshGameObject.transform.localPosition = Vector3.zero;
-      meshGameObject.transform.localRotation = Quaternion.identity;
-      meshGameObject.transform.hideFlags     = HideFlags.HideInInspector;
+      GameObject child = shapeVisualParent;
+      if ( createNewGameObject ) {
+        child = new GameObject( "" );
+        child.name = name;
 
-      var filter   = meshGameObject.AddComponent<MeshFilter>();
-      var renderer = meshGameObject.AddComponent<MeshRenderer>();
+        shapeVisualParent.AddChild( child );
+        child.transform.localPosition = Vector3.zero;
+        child.transform.localRotation = Quaternion.identity;
+        child.transform.hideFlags = HideFlags.NotEditable;
+
+        child.AddComponent<MeshFilter>();
+        child.AddComponent<MeshRenderer>();
+      }
+
+      var filter   = child.GetComponent<MeshFilter>();
+      var renderer = child.GetComponent<MeshRenderer>();
       filter.sharedMesh = mesh;
+
       SetMaterial( filter, renderer, material );
 
-      CreateOnSelectionProxy( meshGameObject, shape );
+      CreateOnSelectionProxy( child, shape );
 
-      return meshGameObject;
+      return child;
     }
 
     /// <summary>
@@ -384,7 +398,7 @@ namespace AgXUnity.Rendering
         }
 
         go.name                = shape.name + "_Visual";
-        go.transform.hideFlags = HideFlags.HideInInspector;
+        go.transform.hideFlags = HideFlags.NotEditable;
 
         shape.gameObject.AddChild( go );
         go.transform.localPosition = Vector3.zero;
@@ -437,7 +451,7 @@ namespace AgXUnity.Rendering
         instance = go.AddComponent<ShapeVisualMesh>();
 
       if ( instance != null ) {
-        instance.hideFlags = HideFlags.HideInInspector;
+        instance.hideFlags = HideFlags.NotEditable;
         instance.Shape     = shape;
 
         instance.OnConstruct();
@@ -532,6 +546,8 @@ namespace AgXUnity.Rendering
     /// </summary>
     protected override void OnConstruct()
     {
+      gameObject.AddComponent<MeshFilter>();
+      gameObject.AddComponent<MeshRenderer>();
     }
 
     /// <summary>
@@ -541,13 +557,16 @@ namespace AgXUnity.Rendering
     /// </summary>
     protected virtual void HandleMeshSource( Mesh source, bool added )
     {
+      var shapeMesh = Shape as Collide.Mesh;
       if ( added ) {
         var material = GetMaterials().LastOrDefault() ?? DefaultMaterial;
+        var sourceIndex = Array.IndexOf( shapeMesh.SourceObjects, source );
         AddChildMesh( Shape,
                       gameObject,
                       source,
-                      gameObject.name + "_" + ( Array.IndexOf( ( Shape as Collide.Mesh ).SourceObjects, source ) + 1 ).ToString(),
-                      material );
+                      gameObject.name + "_" + ( sourceIndex + 1 ).ToString(),
+                      material,
+                      sourceIndex > 0 );
       }
       else {
         var filters = GetComponentsInChildren<MeshFilter>();
@@ -559,7 +578,11 @@ namespace AgXUnity.Rendering
           }
         }
 
-        if ( goToDestroy != null )
+        if ( goToDestroy == gameObject ) {
+          GetComponent<MeshFilter>().sharedMesh = null;
+          GetComponent<MeshRenderer>().sharedMaterials = new Material[] { };
+        }
+        else if ( goToDestroy != null )
           DestroyImmediate( goToDestroy );
       }
     }
@@ -581,7 +604,8 @@ namespace AgXUnity.Rendering
 
     protected override void OnConstruct()
     {
-      // Don't do anything. The user handles mesh + materials.
+      gameObject.AddComponent<MeshFilter>();
+      gameObject.AddComponent<MeshRenderer>();
     }
   }
 }
