@@ -40,7 +40,7 @@ namespace AgXUnityEditor
       if ( !fileInfo.IsValid || fileInfo.Type != IO.AGXFileInfo.FileType.AGXPrefab )
         return;
 
-      if ( fileInfo.Parent == null ) {
+      if ( fileInfo.ExistingPrefab == null ) {
         Debug.LogWarning( "Unable to load parent prefab from file: " + fileInfo.NameWithExtension );
         return;
       }
@@ -51,7 +51,7 @@ namespace AgXUnityEditor
       foreach ( var cm in fileInfo.GetAssets<ContactMaterial>() )
         TopMenu.GetOrCreateUniqueGameObject<ContactMaterialManager>().Add( cm );
 
-      var fileData = fileInfo.Parent.GetComponent<AgXUnity.IO.RestoredAGXFile>();
+      var fileData = fileInfo.ExistingPrefab.GetComponent<AgXUnity.IO.RestoredAGXFile>();
       foreach ( var disabledGroup in fileData.DisabledGroups )
         TopMenu.GetOrCreateUniqueGameObject<CollisionGroupsManager>().SetEnablePair( disabledGroup.First, disabledGroup.Second, false );
 

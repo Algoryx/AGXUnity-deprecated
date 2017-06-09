@@ -56,6 +56,7 @@
     <Compile Include="IO\InputAGXFile.cs" />
     <Compile Include="IO\InputAGXFileTree.cs" />
     <Compile Include="IO\InputAGXFileTreeNode.cs" />
+    <Compile Include="IO\UuidObjectDb.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="Menus\AssetsMenu.cs" />
     <Compile Include="Menus\GameObjectMenu.cs" />

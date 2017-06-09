@@ -66,17 +66,17 @@ namespace AgXUnityEditor.Tools
       float handleSize = HandleUtility.GetHandleSize( position );
       Color color      = Handles.color;
       Handles.color    = GetXAxisColor( alpha );
-      position         = Handles.Slider( position, rotation * Vector3.right, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.x );
+      position         = Handles.Slider( position, rotation * Vector3.right, scale * handleSize, Handles.ArrowHandleCap, snapSetting.x );
       Handles.color    = GetYAxisColor( alpha );
-      position         = Handles.Slider( position, rotation * Vector3.up, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.y );
+      position         = Handles.Slider( position, rotation * Vector3.up, scale * handleSize, Handles.ArrowHandleCap, snapSetting.y );
       Handles.color    = GetZAxisColor( alpha );
-      position         = Handles.Slider( position, rotation * Vector3.forward, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting.z );
+      position         = Handles.Slider( position, rotation * Vector3.forward, scale * handleSize, Handles.ArrowHandleCap, snapSetting.z );
 
       float slider2DSize = scale * handleSize * 0.15f;
       Func<Vector3, Vector3, Vector3, Vector3> PlaneHandle = ( normal, dir1, dir2 ) =>
       {
         Vector3 offset = slider2DSize * ( rotation * dir1 + rotation * dir2 );
-        Vector3 result = Handles.Slider2D( position + offset, rotation * normal, rotation * dir1, rotation * dir2, slider2DSize, new Handles.DrawCapFunction( Handles.RectangleCap ), snapSetting.x );
+        Vector3 result = Handles.Slider2D( position + offset, rotation * normal, rotation * dir1, rotation * dir2, slider2DSize, Handles.RectangleHandleCap, snapSetting.x );
         result -= offset;
         return result;
       };
@@ -139,7 +139,7 @@ namespace AgXUnityEditor.Tools
       Color prevColor = Handles.color;
       Handles.color = color;
       float handleSize = HandleUtility.GetHandleSize( position );
-      position = Handles.Slider( position, direction, scale * handleSize, new Handles.DrawCapFunction( Handles.ArrowCap ), snapSetting );
+      position = Handles.Slider( position, direction, scale * handleSize, Handles.ArrowHandleCap, snapSetting );
       Handles.color = prevColor;
 
       return position;

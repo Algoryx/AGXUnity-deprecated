@@ -634,8 +634,8 @@ namespace AgXUnity
     {
       // Unity crashes before first scene view frame has been rendered on startup
       // if we load resources. Wait some time before we show this gizmo...
-      if ( !Application.isPlaying && Time.realtimeSinceStartup < 30.0f )
-        return null;
+      //if ( !Application.isPlaying && Time.realtimeSinceStartup < 30.0f )
+      //  return null;
 
       if ( m_gizmosMesh != null )
         return m_gizmosMesh;

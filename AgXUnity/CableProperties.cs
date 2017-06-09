@@ -104,10 +104,10 @@ namespace AgXUnity
 
     public Action<Direction> OnPropertyUpdated = delegate { };
 
-    public void RestoreLocalDataFrom( agxCable.CableProperties native, agxCable.CablePlasticity plasticity )
+    public CableProperties RestoreLocalDataFrom( agxCable.CableProperties native, agxCable.CablePlasticity plasticity )
     {
       if ( native == null )
-        return;
+        return this;
 
       foreach ( Direction dir in Directions ) {
         this[ dir ].YoungsModulus = Convert.ToSingle( native.getYoungsModulus( ToNative( dir ) ) );
@@ -117,6 +117,8 @@ namespace AgXUnity
                                       Convert.ToSingle( plasticity.getYieldPoint( ToNative( dir ) ) ) :
                                       float.PositiveInfinity;
       }
+
+      return this;
     }
 
     public bool IsListening( Cable cable )

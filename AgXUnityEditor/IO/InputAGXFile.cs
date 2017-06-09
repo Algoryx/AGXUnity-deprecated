@@ -37,12 +37,6 @@ namespace AgXUnityEditor.IO
     public agxSDK.Simulation Simulation { get; private set; }
 
     /// <summary>
-    /// Parent game object the simulation tree adds objects to. This
-    /// object is destroyed when this object is disposed.
-    /// </summary>
-    public GameObject Parent { get; private set; }
-
-    /// <summary>
     /// True when the prefab has been successfully created.
     /// </summary>
     public bool Successful { get; private set; }
@@ -83,8 +77,10 @@ namespace AgXUnityEditor.IO
     /// </summary>
     public void TryParse()
     {
+      FileInfo.CreateInstance();
+
       using ( m_progressBar.Progress( "Parsing: " + FileInfo.NameWithExtension, 1 ) )
-        m_tree.Parse( Simulation );
+        m_tree.Parse( Simulation, FileInfo );
     }
 
     /// <summary>
@@ -98,10 +94,9 @@ namespace AgXUnityEditor.IO
       // Adding one for disabled collisions.
       int numSubProgresses = m_tree.Roots.Length + 1;
       using ( var subProgress = m_progressBar.Progress( "Generating: " + FileInfo.NameWithExtension, numSubProgresses ) ) {
-        Parent                    = new GameObject( FileInfo.Name );
-        Parent.transform.position = Vector3.zero;
-        Parent.transform.rotation = Quaternion.identity;
-        var fileData              = Parent.AddComponent<AgXUnity.IO.RestoredAGXFile>();
+        FileInfo.PrefabInstance.transform.position = Vector3.zero;
+        FileInfo.PrefabInstance.transform.rotation = Quaternion.identity;
+        var fileData = FileInfo.PrefabInstance.GetOrCreateComponent<AgXUnity.IO.RestoredAGXFile>();
 
         foreach ( var root in m_tree.Roots ) {
           subProgress.Tick( root.Name == string.Empty ? root.Type.ToString() : root.Name );
@@ -147,15 +142,16 @@ namespace AgXUnityEditor.IO
     public UnityEngine.Object TryCreatePrefab()
     {
       using ( m_progressBar.Progress( "Creating prefab and saving assets.", 1 ) ) {
-        if ( FileInfo.CreatePrefab( Parent ) == null )
+        var prefab = FileInfo.SavePrefab();
+        if ( prefab == null )
           throw new AgXUnity.Exception( "Unable to create prefab: " + FileInfo.PrefabPath );
 
         FileInfo.Save();
+
+        Successful = true;
+
+        return prefab;
       }
-
-      Successful = true;
-
-      return FileInfo.Parent;
     }
 
     /// <summary>
@@ -168,8 +164,8 @@ namespace AgXUnityEditor.IO
         Simulation.Dispose();
       Simulation = null;
 
-      if ( Parent != null )
-        GameObject.DestroyImmediate( Parent );
+      if ( FileInfo.PrefabInstance != null )
+        GameObject.DestroyImmediate( FileInfo.PrefabInstance );
 
       if ( m_progressBar != null )
         m_progressBar.Dispose();
@@ -180,133 +176,142 @@ namespace AgXUnityEditor.IO
       if ( node == null )
         return;
 
-      if ( node.GameObject == null ) {
-        switch ( node.Type ) {
-          case Node.NodeType.Assembly:
-            agx.Frame frame = m_tree.GetAssembly( node.Uuid );
-            node.GameObject = new GameObject( FindName( "", node.Type.ToString() ) );
-            Add( node );
-            node.GameObject.transform.position = frame.getTranslate().ToHandedVector3();
-            node.GameObject.transform.rotation = frame.getRotate().ToHandedQuaternion();
+      // TODO: Skip if node.GameObject != null means "use Unity configuration".
 
-            node.GameObject.AddComponent<Assembly>();
+      switch ( node.Type ) {
+        case Node.NodeType.Assembly:
+          agx.Frame frame      = m_tree.GetAssembly( node.Uuid );
+          node.GameObject      = GetOrCreateGameObject( node );
+          node.GameObject.name = FindName( "", node.Type.ToString() );
 
-            break;
-          case Node.NodeType.RigidBody:
-            agx.RigidBody nativeRb = m_tree.GetRigidBody( node.Uuid );
-            node.GameObject = new GameObject( FindName( nativeRb.getName(), node.Type.ToString() ) );
-            Add( node );
-            node.GameObject.transform.position = nativeRb.getPosition().ToHandedVector3();
-            node.GameObject.transform.rotation = nativeRb.getRotation().ToHandedQuaternion();
+          node.GameObject.transform.position = frame.getTranslate().ToHandedVector3();
+          node.GameObject.transform.rotation = frame.getRotate().ToHandedQuaternion();
 
-            node.GameObject.AddComponent<RigidBody>().RestoreLocalDataFrom( nativeRb );
+          node.GameObject.GetOrCreateComponent<Assembly>();
 
-            break;
-          case Node.NodeType.Geometry:
-            // Ignoring geometries - handling Shape == Geometry.
-            // The shapes are children to this node.
-            break;
-          case Node.NodeType.Shape:
-            var nativeGeometry  = m_tree.GetGeometry( node.Parent.Uuid );
-            var nativeShape     = m_tree.GetShape( node.Uuid );
-            var nativeShapeType = (agxCollide.Shape.Type)nativeShape.getType();
+          break;
+        case Node.NodeType.RigidBody:
+          agx.RigidBody nativeRb = m_tree.GetRigidBody( node.Uuid );
+          node.GameObject        = GetOrCreateGameObject( node );
+          node.GameObject.name   = FindName( nativeRb.getName(), node.Type.ToString() );
 
-            node.GameObject = new GameObject( FindName( nativeGeometry.getName() +
-                                                        "_" +
-                                                        nativeShapeType.ToString().ToLower().FirstCharToUpperCase(),
-                                                        node.Type.ToString() ) );
-            Add( node );
-            node.GameObject.transform.position = nativeShape.getTransform().getTranslate().ToHandedVector3();
-            node.GameObject.transform.rotation = nativeShape.getTransform().getRotate().ToHandedQuaternion();
+          node.GameObject.transform.position = nativeRb.getPosition().ToHandedVector3();
+          node.GameObject.transform.rotation = nativeRb.getRotation().ToHandedQuaternion();
 
-            if ( !CreateShape( node ) )
-              GameObject.DestroyImmediate( node.GameObject );
+          node.GameObject.GetOrCreateComponent<RigidBody>().RestoreLocalDataFrom( nativeRb );
 
-            break;
-          case Node.NodeType.Material:
-            var nativeMaterial = m_tree.GetMaterial( node.Uuid );
-            node.Asset         = ScriptAsset.Create<ShapeMaterial>().RestoreLocalDataFrom( nativeMaterial );
-            node.Asset.name    = FindName( nativeMaterial.getName(), node.Type.ToString() );
+          break;
+        case Node.NodeType.Geometry:
+          // Ignoring geometries - handling Shape == Geometry.
+          // The shapes are children to this node.
+          break;
+        case Node.NodeType.Shape:
+          var nativeGeometry  = m_tree.GetGeometry( node.Parent.Uuid );
+          var nativeShape     = m_tree.GetShape( node.Uuid );
+          var nativeShapeType = (agxCollide.Shape.Type)nativeShape.getType();
 
-            FileInfo.AddAsset( node.Asset );
+          node.GameObject      = GetOrCreateGameObject( node );
+          node.GameObject.name = FindName( nativeGeometry.getName() +
+                                           "_" +
+                                           nativeShapeType.ToString().ToLower().FirstCharToUpperCase(),
+                                           node.Type.ToString() );
 
-            break;
-          case Node.NodeType.ContactMaterial:
-            var nativeContactMaterial = m_tree.GetContactMaterial( node.Uuid );
-            var nativeFrictionModel   = nativeContactMaterial.getFrictionModel();
-            node.Asset                = ScriptAsset.Create<ContactMaterial>().RestoreLocalDataFrom( nativeContactMaterial );
-            node.Asset.name           = FindName( "ContactMaterial_" +
-                                                  nativeContactMaterial.getMaterial1().getName() +
-                                                  "_" +
-                                                  nativeContactMaterial.getMaterial2().getName(),
-                                                  node.Type.ToString() );
+          node.GameObject.transform.position = nativeShape.getTransform().getTranslate().ToHandedVector3();
+          node.GameObject.transform.rotation = nativeShape.getTransform().getRotate().ToHandedQuaternion();
 
-            ContactMaterial contactMaterial = node.Asset as ContactMaterial;
-            var materials = node.GetReferences( Node.NodeType.Material );
-            if ( materials.Length == 0 )
-              Debug.LogWarning( "No materials referenced to ContactMaterial node." );
-            else if ( materials.Length == 1 )
-              contactMaterial.Material1 = contactMaterial.Material2 = materials[ 0 ].Asset as ShapeMaterial;
-            else if ( materials.Length > 1 ) {
-              contactMaterial.Material1 = materials[ 0 ].Asset as ShapeMaterial;
-              contactMaterial.Material2 = materials[ 1 ].Asset as ShapeMaterial;
-              if ( materials.Length > 2 )
-                Debug.LogWarning( "More than two materials referenced to ContactMaterial (" + node.Asset.name + "). First two are used." );
-            }
+          if ( !CreateShape( node ) )
+            GameObject.DestroyImmediate( node.GameObject );
 
-            if ( nativeFrictionModel != null ) {
-              var frictionModelAsset = ScriptAsset.Create<FrictionModel>().RestoreLocalDataFrom( nativeFrictionModel );
-              frictionModelAsset.name = "FrictionModel_" + contactMaterial.name;
-              FileInfo.AddAsset( frictionModelAsset );
-              contactMaterial.FrictionModel = frictionModelAsset;
-            }
+          break;
+        case Node.NodeType.Material:
+          var nativeMaterial = m_tree.GetMaterial( node.Uuid );
+          node.Asset         = ScriptAsset.Create<ShapeMaterial>().RestoreLocalDataFrom( nativeMaterial );
+          node.Asset.name    = FindName( nativeMaterial.getName(), node.Type.ToString() );
 
-            FileInfo.AddAsset( node.Asset );
+          node.Asset = AddOrReplaceAsset( node.Asset as ShapeMaterial, node, AgXUnity.IO.AssetType.ShapeMaterial );
 
-            break;
-          case Node.NodeType.Constraint:
-            var nativeConstraint = m_tree.GetConstraint( node.Uuid );
-            node.GameObject      = new GameObject( FindName( nativeConstraint.getName(),
-                                                             "AgXUnity." + Constraint.FindType( nativeConstraint ) ) );
-            Add( node );
+          break;
+        case Node.NodeType.ContactMaterial:
+          var nativeContactMaterial = m_tree.GetContactMaterial( node.Uuid );
+          var nativeFrictionModel   = nativeContactMaterial.getFrictionModel();
 
-            if ( !CreateConstraint( node ) )
-              GameObject.DestroyImmediate( node.GameObject );
+          var contactMaterial  = ScriptAsset.Create<ContactMaterial>().RestoreLocalDataFrom( nativeContactMaterial );
+          contactMaterial.name = FindName( "ContactMaterial_" +
+                                           nativeContactMaterial.getMaterial1().getName() +
+                                           "_" +
+                                           nativeContactMaterial.getMaterial2().getName(),
+                                           node.Type.ToString() );
 
-            break;
-          case Node.NodeType.Wire:
-            var nativeWire = m_tree.GetWire( node.Uuid );
-            node.GameObject = new GameObject( FindName( nativeWire.getName(), "AgXUnity.Wire" ) );
+          var materials = node.GetReferences( Node.NodeType.Material );
+          if ( materials.Length == 0 )
+            Debug.LogWarning( "No materials referenced to ContactMaterial node." );
+          else if ( materials.Length == 1 )
+            contactMaterial.Material1 = contactMaterial.Material2 = materials[ 0 ].Asset as ShapeMaterial;
+          else if ( materials.Length > 1 ) {
+            contactMaterial.Material1 = materials[ 0 ].Asset as ShapeMaterial;
+            contactMaterial.Material2 = materials[ 1 ].Asset as ShapeMaterial;
+            if ( materials.Length > 2 )
+              Debug.LogWarning( "More than two materials referenced to ContactMaterial (" + node.Asset.name + "). First two are used." );
+          }
 
-            Add( node );
+          if ( nativeFrictionModel != null ) {
+            var frictionModelAsset        = ScriptAsset.Create<FrictionModel>().RestoreLocalDataFrom( nativeFrictionModel );
+            frictionModelAsset.name       = "FrictionModel_" + contactMaterial.name;
+            contactMaterial.FrictionModel = AddOrReplaceAsset( frictionModelAsset, node, AgXUnity.IO.AssetType.FrictionModel );
+          }
 
-            if ( !CreateWire( node ) )
-              GameObject.DestroyImmediate( node.GameObject );
+          node.Asset = contactMaterial = AddOrReplaceAsset( contactMaterial, node, AgXUnity.IO.AssetType.ContactMaterial );
 
-            break;
-          case Node.NodeType.Cable:
-            var nativeCable = m_tree.GetCable( node.Uuid );
-            node.GameObject = new GameObject( FindName( nativeCable.getName(), "AgXUnity.Cable" ) );
+          break;
+        case Node.NodeType.Constraint:
+          var nativeConstraint = m_tree.GetConstraint( node.Uuid );
 
-            Add( node );
+          node.GameObject      = GetOrCreateGameObject( node );
+          node.GameObject.name = FindName( nativeConstraint.getName(),
+                                           "AgXUnity." + Constraint.FindType( nativeConstraint ) );
 
-            if ( !CreateCable( node ) )
-              GameObject.DestroyImmediate( node.GameObject );
+          if ( !CreateConstraint( node ) )
+            GameObject.DestroyImmediate( node.GameObject );
 
-            break;
-        }
+          break;
+        case Node.NodeType.Wire:
+          var nativeWire = m_tree.GetWire( node.Uuid );
+
+          node.GameObject      = GetOrCreateGameObject( node );
+          node.GameObject.name = FindName( nativeWire.getName(), "AgXUnity.Wire" );
+
+          if ( !CreateWire( node ) )
+            GameObject.DestroyImmediate( node.GameObject );
+
+          break;
+        case Node.NodeType.Cable:
+          var nativeCable = m_tree.GetCable( node.Uuid );
+
+          node.GameObject      = GetOrCreateGameObject( node );
+          node.GameObject.name = FindName( nativeCable.getName(), "AgXUnity.Cable" );
+
+          if ( !CreateCable( node ) )
+            GameObject.DestroyImmediate( node.GameObject );
+
+          break;
       }
 
       foreach ( var child in node.Children )
         Generate( child );
     }
 
-    private void Add( Node node )
+    private GameObject GetOrCreateGameObject( Node node )
     {
-      if ( node.GameObject == null ) {
-        Debug.LogWarning( "Trying to add node with null GameObject." );
-        return;
-      }
+      if ( node.GameObject != null )
+        return node.GameObject;
+
+      node.GameObject = FileInfo.ObjectDb.GetGameObject( node.Uuid ) ?? new GameObject();
+      node.GameObject.GetOrCreateComponent<AgXUnity.IO.Uuid>().Native = node.Uuid;
+
+      // Is it safe to exit if the node has a parent?
+      // I.e., the node has been read from an existing prefab.
+      if ( FileInfo.PrefabInstance.HasChild( node.GameObject ) )
+        return node.GameObject;
 
       // Passing parents with null game objects - e.g., shapes
       // has geometry as parent but we're not creating objects
@@ -318,52 +323,23 @@ namespace AgXUnityEditor.IO
       if ( localParent != null )
         localParent.GameObject.AddChild( node.GameObject );
       else
-        Parent.AddChild( node.GameObject );
+        FileInfo.PrefabInstance.AddChild( node.GameObject );
+
+      return node.GameObject;
     }
 
-    private class SubMeshData
+    private T AddOrReplaceAsset<T>( T asset, Node node, AgXUnity.IO.AssetType type )
+      where T : UnityEngine.Object
     {
-      private Dictionary<Vector3, int> m_vertexToIndexTable = new Dictionary<Vector3, int>();
-      private List<Vector3> m_vertices = new List<Vector3>();
-      private List<int> m_indices = new List<int>();
-
-      public int NumVertices { get { return m_vertices.Count; } }
-      public int NumIndices { get { return m_indices.Count; } }
-
-      public SubMeshData()
-      {
-        m_vertices.Capacity = Int16.MaxValue;
-        m_indices.Capacity = Int16.MaxValue;
+      var existingAsset = AssetDatabase.LoadAssetAtPath<T>( FileInfo.GetAssetPath( asset ) );
+      if ( existingAsset == null ) {
+        FileInfo.AddAssetToDataDirectory( asset, type );
+        existingAsset = asset;
       }
+      else
+        EditorUtility.CopySerialized( asset, existingAsset );
 
-      public void Add( Vector3 v1, Vector3 v2, Vector3 v3 )
-      {
-        Add( v1 );
-        Add( v2 );
-        Add( v3 );
-      }
-
-      public void Apply( ref Mesh mesh )
-      {
-        mesh.SetVertices( m_vertices );
-        mesh.SetTriangles( m_indices, 0, false );
-
-        mesh.RecalculateBounds();
-        mesh.RecalculateNormals();
-        mesh.RecalculateTangents();
-      }
-
-      private void Add( Vector3 v )
-      {
-        int index;
-        if ( !m_vertexToIndexTable.TryGetValue( v, out index ) ) {
-          index = m_vertices.Count;
-          m_vertexToIndexTable.Add( v, index );
-          m_vertices.Add( v );
-        }
-
-        m_indices.Add( index );
-      }
+      return existingAsset;
     }
 
     private bool CreateShape( Node node )
@@ -373,26 +349,26 @@ namespace AgXUnityEditor.IO
       var nativeShapeType = (agxCollide.Shape.Type)nativeShape.getType();
 
       if ( nativeShapeType == agxCollide.Shape.Type.BOX ) {
-        node.GameObject.AddComponent<AgXUnity.Collide.Box>().HalfExtents = nativeShape.asBox().getHalfExtents().ToVector3();
+        node.GameObject.GetOrCreateComponent<AgXUnity.Collide.Box>().HalfExtents = nativeShape.asBox().getHalfExtents().ToVector3();
       }
       else if ( nativeShapeType == agxCollide.Shape.Type.CYLINDER ) {
-        var cylinder = node.GameObject.AddComponent<AgXUnity.Collide.Cylinder>();
+        var cylinder    = node.GameObject.GetOrCreateComponent<AgXUnity.Collide.Cylinder>();
         cylinder.Radius = Convert.ToSingle( nativeShape.asCylinder().getRadius() );
         cylinder.Height = Convert.ToSingle( nativeShape.asCylinder().getHeight() );
       }
       else if ( nativeShapeType == agxCollide.Shape.Type.CAPSULE ) {
-        var capsule = node.GameObject.AddComponent<AgXUnity.Collide.Capsule>();
+        var capsule    = node.GameObject.GetOrCreateComponent<AgXUnity.Collide.Capsule>();
         capsule.Radius = Convert.ToSingle( nativeShape.asCapsule().getRadius() );
         capsule.Height = Convert.ToSingle( nativeShape.asCapsule().getHeight() );
       }
       else if ( nativeShapeType == agxCollide.Shape.Type.SPHERE ) {
-        var sphere = node.GameObject.AddComponent<AgXUnity.Collide.Sphere>();
+        var sphere    = node.GameObject.GetOrCreateComponent<AgXUnity.Collide.Sphere>();
         sphere.Radius = Convert.ToSingle( nativeShape.asSphere().getRadius() );
       }
       else if ( nativeShapeType == agxCollide.Shape.Type.CONVEX ||
                 nativeShapeType == agxCollide.Shape.Type.TRIMESH ||
                 nativeShapeType == agxCollide.Shape.Type.HEIGHT_FIELD ) {
-        var mesh          = node.GameObject.AddComponent<AgXUnity.Collide.Mesh>();
+        var mesh          = node.GameObject.GetOrCreateComponent<AgXUnity.Collide.Mesh>();
         var collisionData = nativeShape.asMesh().getMeshData();
         var nativeToWorld = nativeShape.getTransform();
         var meshToLocal   = mesh.transform.worldToLocalMatrix;
@@ -407,8 +383,7 @@ namespace AgXUnityEditor.IO
           var subMeshes      = splitter.Meshes;
           for ( int i = 0; i < subMeshes.Length; ++i ) {
             subMeshes[ i ].name = "Mesh_" + mesh.name + ( i == 0 ? "" : "_Sub_" + i.ToString() );
-            FileInfo.AddAsset( subMeshes[ i ] );
-            mesh.AddSourceObject( subMeshes[ i ] );
+            mesh.AddSourceObject( AddOrReplaceAsset( subMeshes[ i ], node, AgXUnity.IO.AssetType.CollisionMesh ) );
           }
         }
         else {
@@ -434,7 +409,7 @@ namespace AgXUnityEditor.IO
           source.RecalculateNormals();
           source.RecalculateTangents();
 
-          FileInfo.AddAsset( source );
+          source = AddOrReplaceAsset( source, node, AgXUnity.IO.AssetType.CollisionMesh );
 
           mesh.SetSourceObject( source );
         }
@@ -445,11 +420,11 @@ namespace AgXUnityEditor.IO
       }
 
       var shape = node.GameObject.GetComponent<AgXUnity.Collide.Shape>();
-      var shapeMaterials = node.GetReferences( Node.NodeType.Material );
-      if ( shapeMaterials.Length > 0 ) {
-        shape.Material = shapeMaterials[ 0 ].Asset as ShapeMaterial;
-        if ( shapeMaterials.Length > 1 )
-          Debug.LogWarning( "More than one material referenced to shape: " + node.GameObject.name );
+      if ( nativeGeometry.getMaterial() != null ) {
+        var shapeMaterial = m_tree.GetNode( nativeGeometry.getMaterial().getUuid() ).Asset as ShapeMaterial;
+        if ( shapeMaterial == null )
+          Debug.LogWarning( "Shape material from geometry: " + nativeGeometry.getName() + " isn't found in UUID database." );
+        shape.Material = shapeMaterial;
       }
 
       shape.CollisionsEnabled = nativeGeometry.getEnableCollisions();
@@ -463,8 +438,7 @@ namespace AgXUnityEditor.IO
             groupsComponent.AddGroup( group.Object as string, false );
       }
 
-      if ( nativeShape.getRenderData() != null )
-        CreateRenderData( node );
+      CreateRenderData( node );
 
       return true;
     }
@@ -554,11 +528,16 @@ namespace AgXUnityEditor.IO
       if ( renderMaterial.getTransparency() > 0.0f )
         material.SetBlendMode( BlendMode.Transparent );
 
-      FileInfo.AddAsset( material );
+      material = AddOrReplaceAsset( material, node, AgXUnity.IO.AssetType.Material );
       foreach ( var mesh in meshes )
-        FileInfo.AddAsset( mesh );
+        AddOrReplaceAsset( mesh, node, AgXUnity.IO.AssetType.RenderMesh );
 
-      ShapeVisual.CreateRenderData( shape, meshes, material );
+      var shapeVisual = ShapeVisual.Find( shape );
+      if ( shapeVisual != null ) {
+        // Verify so that the meshes matches the current configuration?
+      }
+      else
+        ShapeVisual.CreateRenderData( shape, meshes, material );
 
       return true;
     }
@@ -632,7 +611,7 @@ namespace AgXUnityEditor.IO
       if ( bodyNodes.Length > 1 )
         constraint.AttachmentPair.ConnectedFrame.SetParent( bodyNodes[ 1 ].GameObject );
       else
-        constraint.AttachmentPair.ConnectedFrame.SetParent( Parent );
+        constraint.AttachmentPair.ConnectedFrame.SetParent( FileInfo.PrefabInstance );
 
       constraint.AttachmentPair.ConnectedFrame.LocalPosition = nativeConstraint.getAttachment( 1ul ).getFrame().getLocalTranslate().ToHandedVector3();
       constraint.AttachmentPair.ConnectedFrame.LocalRotation = nativeConstraint.getAttachment( 1ul ).getFrame().getLocalRotate().ToHandedQuaternion();
@@ -654,20 +633,20 @@ namespace AgXUnityEditor.IO
       Func<agx.RigidBody, GameObject> findRigidBody = ( nativeRb ) =>
       {
         if ( nativeRb == null )
-          return Parent;
+          return FileInfo.PrefabInstance;
 
         // Do not reference lumped nodes!
         if ( agxWire.Wire.isLumpedNode( nativeRb ) )
-          return Parent;
+          return FileInfo.PrefabInstance;
 
         Node rbNode = m_tree.GetNode( nativeRb.getUuid() );
         if ( rbNode == null ) {
           Debug.LogWarning( "Unable to find reference rigid body: " + nativeRb.getName() + " (UUID: " + nativeRb.getUuid().str() + ")" );
-          return Parent;
+          return FileInfo.PrefabInstance;
         }
         if ( rbNode.GameObject == null ) {
           Debug.LogWarning( "Referenced native rigid body hasn't a game object: " + nativeRb.getName() + " (UUID: " + rbNode.Uuid.str() + ")" );
-          return Parent;
+          return FileInfo.PrefabInstance;
         }
 
         return rbNode.GameObject;
@@ -731,9 +710,9 @@ namespace AgXUnityEditor.IO
       if ( materials.Length > 0 )
         wire.Material = materials[ 0 ].Asset as ShapeMaterial;
 
-      wire.GetComponent<AgXUnity.Rendering.WireRenderer>().InitializeRenderer();
+      wire.GetComponent<WireRenderer>().InitializeRenderer();
       // Reset to assign default material.
-      wire.GetComponent<AgXUnity.Rendering.WireRenderer>().Material = null;
+      wire.GetComponent<WireRenderer>().Material = null;
 
       // Adding collision group from restored instance since the disabled pair
       // will be read from Space (wire.setEnableCollisions( foo, false ) will
@@ -761,25 +740,21 @@ namespace AgXUnityEditor.IO
       cable.RestoreLocalDataFrom( nativeCable );
       cable.RouteAlgorithm = Cable.RouteType.Identity;
 
-      var properties  = ScriptAsset.Create<CableProperties>();
-      properties.name = cable.name + "_properties";
-
-      properties.RestoreLocalDataFrom( nativeCable.getCableProperties(), nativeCable.getCablePlasticity() );
-
-      FileInfo.AddAsset( properties );
-
-      cable.Properties = properties;
+      var properties = CableProperties.Create<CableProperties>().RestoreLocalDataFrom( nativeCable.getCableProperties(),
+                                                                                       nativeCable.getCablePlasticity() );
+      properties.name  = cable.name + "_properties";
+      cable.Properties = properties = AddOrReplaceAsset( properties, node, AgXUnity.IO.AssetType.CableProperties );
 
       for ( var it = nativeCable.getSegments().begin(); !it.EqualWith( nativeCable.getSegments().end() ); it.inc() ) {
         var segment = it.get();
         route.Add( segment, attachment =>
                             {
                               if ( attachment == null || attachment.getRigidBody() == null )
-                                return Parent;
+                                return FileInfo.PrefabInstance;
                               var rbNode = m_tree.GetNode( attachment.getRigidBody().getUuid() );
                               if ( rbNode == null ) {
                                 Debug.LogWarning( "Unable to find rigid body in cable attachment." );
-                                return Parent;
+                                return FileInfo.PrefabInstance;
                               }
                               return rbNode.GameObject;
                             } );

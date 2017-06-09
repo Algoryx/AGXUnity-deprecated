@@ -88,6 +88,7 @@
     <Compile Include="Frame.cs" />
     <Compile Include="IFrame.cs" />
     <Compile Include="IO\RestoredAGXFile.cs" />
+    <Compile Include="IO\Uuid.cs" />
     <Compile Include="Legacy\CableRouteData.cs" />
     <Compile Include="Legacy\WireRouteData.cs" />
     <Compile Include="PickHandler.cs" />

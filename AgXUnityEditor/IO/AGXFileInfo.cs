@@ -20,20 +20,6 @@ namespace AgXUnityEditor.IO
     }
 
     /// <summary>
-    /// Asset types grouped together.
-    /// </summary>
-    public enum AssetType
-    {
-      Material,
-      Mesh,
-      ShapeMaterial,
-      ContactMaterial,
-      FrictionModel,
-      NumTypes,
-      Unknown
-    }
-
-    /// <summary>
     /// Makes relative path given complete path.
     /// </summary>
     /// <param name="complete">Complete path.</param>
@@ -93,26 +79,6 @@ namespace AgXUnityEditor.IO
     }
 
     /// <summary>
-    /// Find type given asset.
-    /// </summary>
-    /// <param name="asset">An asset.</param>
-    /// <returns>AssetType.</returns>
-    public AssetType FindAssetType( UnityEngine.Object asset )
-    {
-      return asset is Material ?
-               AssetType.Material :
-             asset is Mesh ?
-               AssetType.Mesh :
-             asset is AgXUnity.ShapeMaterial ?
-               AssetType.ShapeMaterial :
-             asset is AgXUnity.ContactMaterial ?
-               AssetType.ContactMaterial :
-             asset is AgXUnity.FrictionModel ?
-               AssetType.FrictionModel :
-               AssetType.Unknown;
-    }
-
-    /// <summary>
     /// Find file type given file path.
     /// </summary>
     /// <param name="path">File path.</param>
@@ -121,12 +87,12 @@ namespace AgXUnityEditor.IO
     {
       return FindType( new FileInfo( path ) );
     }
+
     /// <summary>
     /// Find file type given file info.
     /// </summary>
     /// <param name="info">File info.</param>
     /// <returns>File type.</returns>
-
     public static FileType FindType( FileInfo info )
     {
       if ( info == null )
@@ -187,9 +153,19 @@ namespace AgXUnityEditor.IO
     public bool Exists { get { return m_fileInfo.Exists; } }
 
     /// <summary>
-    /// Prefab parent if it exist.
+    /// Prefab parent in project if it exist.
     /// </summary>
-    public GameObject Parent { get; private set; }
+    public GameObject ExistingPrefab { get; private set; }
+
+    /// <summary>
+    /// Prefab instance (in scene) if it exist.
+    /// </summary>
+    public GameObject PrefabInstance { get; private set; }
+
+    /// <summary>
+    /// Object database with UUID -> game object and assets.
+    /// </summary>
+    public UuidObjectDb ObjectDb { get { return m_uuidObjectDb; } }
 
     /// <summary>
     /// Construct given path to file.
@@ -206,10 +182,25 @@ namespace AgXUnityEditor.IO
     /// <param name="prefabInstance"></param>
     public AGXFileInfo( GameObject prefabInstance )
     {
-      Parent = PrefabUtility.GetPrefabParent( prefabInstance ) as GameObject;
-      var prefabPath = AssetDatabase.GetAssetPath( Parent );
+      PrefabInstance = prefabInstance;
+      Construct( AssetDatabase.GetAssetPath( PrefabUtility.GetPrefabParent( prefabInstance ) as GameObject ) );
+    }
 
-      Construct( prefabPath );
+    /// <summary>
+    /// Creates an instance from an existing project prefab or creates
+    /// a new game object. Accessible trough this.PrefabInstance.
+    /// </summary>
+    /// <returns>this.PrefabInstance</returns>
+    public GameObject CreateInstance()
+    {
+      if ( ExistingPrefab != null )
+        PrefabInstance = GameObject.Instantiate<GameObject>( ExistingPrefab );
+      else
+        PrefabInstance = new GameObject( Name );
+
+      m_uuidObjectDb = new UuidObjectDb( this );
+
+      return PrefabInstance;
     }
 
     /// <summary>
@@ -238,7 +229,8 @@ namespace AgXUnityEditor.IO
     /// Add an asset to in the data directory.
     /// </summary>
     /// <param name="asset">Asset to add.</param>
-    public void AddAsset( UnityEngine.Object asset )
+    /// <param name="type">Asset type.</param>
+    public void AddAssetToDataDirectory( UnityEngine.Object asset, AgXUnity.IO.AssetType type )
     {
       if ( asset == null ) {
         Debug.LogWarning( "Trying to add null asset to file: " + NameWithExtension );
@@ -246,8 +238,7 @@ namespace AgXUnityEditor.IO
       }
 
       // Grouping assets given known types - unknown types are written directly to the data folder.
-      var type = FindAssetType( asset );
-      if ( type == AssetType.Unknown ) {
+      if ( type == AgXUnity.IO.AssetType.Unknown ) {
         AssetDatabase.CreateAsset( asset, GetAssetPath( asset ) );
         return;
       }
@@ -279,19 +270,19 @@ namespace AgXUnityEditor.IO
     /// <summary>
     /// Creates prefab given source game object and returns the prefab if successful.
     /// </summary>
-    /// <param name="gameObject">Source game object.</param>
     /// <returns>Prefab if successful - otherwise null.</returns>
-    public GameObject CreatePrefab( GameObject gameObject )
+    public GameObject SavePrefab()
     {
-      var prefab = PrefabUtility.CreateEmptyPrefab( PrefabPath );
-      if ( prefab == null ) {
-        Debug.LogWarning( "Unable to create prefab: " + PrefabPath );
+      if ( PrefabInstance == null ) {
+        Debug.LogWarning( "Trying to save prefab without an existing instance: " + Name );
         return null;
       }
 
-      Parent = PrefabUtility.ReplacePrefab( gameObject, prefab );
+      var prefab = ExistingPrefab ?? PrefabUtility.CreateEmptyPrefab( PrefabPath );
+      if ( prefab == null )
+        return null;
 
-      return Parent;
+      return PrefabUtility.ReplacePrefab( PrefabInstance, prefab, ReplacePrefabOptions.ReplaceNameBased );
     }
 
     /// <summary>
@@ -308,14 +299,17 @@ namespace AgXUnityEditor.IO
       if ( path == "" )
         return;
 
-      m_fileInfo    = new FileInfo( path );
-      Name          = Path.GetFileNameWithoutExtension( m_fileInfo.Name );
-      Type          = FindType( m_fileInfo );
-      RootDirectory = MakeRelative( m_fileInfo.Directory.FullName, Application.dataPath ).Replace( '\\', '/' );
-      DataDirectory = RootDirectory + "/" + Name + "_Data";
+      m_fileInfo     = new FileInfo( path );
+      Name           = Path.GetFileNameWithoutExtension( m_fileInfo.Name );
+      Type           = FindType( m_fileInfo );
+      RootDirectory  = MakeRelative( m_fileInfo.Directory.FullName, Application.dataPath ).Replace( '\\', '/' );
+      DataDirectory  = RootDirectory + "/" + Name + "_Data";
+
+      ExistingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>( PrefabPath );
     }
 
-    private FileInfo m_fileInfo = null;
-    private UnityEngine.Object[] m_assetRoots = new UnityEngine.Object[ (int)AssetType.NumTypes ];
+    private FileInfo m_fileInfo               = null;
+    private UnityEngine.Object[] m_assetRoots = new UnityEngine.Object[ (int)AgXUnity.IO.AssetType.NumTypes ];
+    private UuidObjectDb m_uuidObjectDb       = null;
   }
 }

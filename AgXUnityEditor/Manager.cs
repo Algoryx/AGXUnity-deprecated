@@ -550,7 +550,8 @@ namespace AgXUnityEditor
 
                 Debug.Log( "Shape visual with null material. Assigning default.", shapeVisual );
 
-                UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
+                if ( !EditorApplication.isPlaying )
+                  UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty( scene );
               }
             }
           }

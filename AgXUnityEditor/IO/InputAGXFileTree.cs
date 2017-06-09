@@ -132,7 +132,7 @@ namespace AgXUnityEditor.IO
       return null;
     }
 
-    public void Parse( agxSDK.Simulation simulation )
+    public void Parse( agxSDK.Simulation simulation, AGXFileInfo fileInfo )
     {
       if ( simulation == null )
         throw new ArgumentNullException( "simulation", "agxSDK.Simulation instance is null." );
@@ -373,7 +373,12 @@ namespace AgXUnityEditor.IO
 
     private Node CreateNode( NodeType type, agx.Uuid uuid, bool isRoot )
     {
-      Node node = new Node() { Type = type, Uuid = uuid };
+      Node node = new Node()
+      {
+        Type       = type,
+        Uuid       = uuid
+      };
+
       if ( isRoot ) {
         if ( type == NodeType.Constraint )
           m_constraintRoot.AddChild( node );
@@ -396,35 +401,22 @@ namespace AgXUnityEditor.IO
       return node;
     }
 
-    private class UuidComparer : IEqualityComparer<agx.Uuid>
-    {
-      public bool Equals( agx.Uuid id1, agx.Uuid id2 )
-      {
-        return id1.EqualWith( id2 );
-      }
+    private Dictionary<agx.Uuid, Node>                m_nodeCache        = new Dictionary<agx.Uuid, Node>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agx.Frame>           m_assemblies       = new Dictionary<agx.Uuid, agx.Frame>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agx.RigidBody>       m_bodies           = new Dictionary<agx.Uuid, agx.RigidBody>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agxCollide.Geometry> m_geometries       = new Dictionary<agx.Uuid, agxCollide.Geometry>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agxCollide.Shape>    m_shapes           = new Dictionary<agx.Uuid, agxCollide.Shape>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agx.Constraint>      m_constraints      = new Dictionary<agx.Uuid, agx.Constraint>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agxWire.Wire>        m_wires            = new Dictionary<agx.Uuid, agxWire.Wire>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agxCable.Cable>      m_cables           = new Dictionary<agx.Uuid, agxCable.Cable>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agx.Material>        m_materials        = new Dictionary<agx.Uuid, agx.Material>( new AgXUnity.IO.UuidComparer() );
+    private Dictionary<agx.Uuid, agx.ContactMaterial> m_contactMaterials = new Dictionary<agx.Uuid, agx.ContactMaterial>( new AgXUnity.IO.UuidComparer() );
 
-      public int GetHashCode( agx.Uuid id )
-      {
-        return id.str().GetHashCode();
-      }
-    }
-
-    private Dictionary<agx.Uuid, Node>                m_nodeCache        = new Dictionary<agx.Uuid, Node>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agx.Frame>           m_assemblies       = new Dictionary<agx.Uuid, agx.Frame>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agx.RigidBody>       m_bodies           = new Dictionary<agx.Uuid, agx.RigidBody>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agxCollide.Geometry> m_geometries       = new Dictionary<agx.Uuid, agxCollide.Geometry>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agxCollide.Shape>    m_shapes           = new Dictionary<agx.Uuid, agxCollide.Shape>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agx.Constraint>      m_constraints      = new Dictionary<agx.Uuid, agx.Constraint>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agxWire.Wire>        m_wires            = new Dictionary<agx.Uuid, agxWire.Wire>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agxCable.Cable>      m_cables           = new Dictionary<agx.Uuid, agxCable.Cable>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agx.Material>        m_materials        = new Dictionary<agx.Uuid, agx.Material>( new UuidComparer() );
-    private Dictionary<agx.Uuid, agx.ContactMaterial> m_contactMaterials = new Dictionary<agx.Uuid, agx.ContactMaterial>( new UuidComparer() );
-
-    private List<Node> m_roots = new List<Node>();
-    private Node m_constraintRoot = new Node() { Type = NodeType.Placeholder, Name = "Constraints" };
-    private Node m_wireRoot = new Node() { Type = NodeType.Placeholder, Name = "Wires" };
-    private Node m_cableRoot = new Node() { Type = NodeType.Placeholder, Name = "Cables" };
-    private Node m_materialRoot = new Node() { Type = NodeType.Placeholder, Name = "Shape materials" };
+    private List<Node> m_roots         = new List<Node>();
+    private Node m_constraintRoot      = new Node() { Type = NodeType.Placeholder, Name = "Constraints" };
+    private Node m_wireRoot            = new Node() { Type = NodeType.Placeholder, Name = "Wires" };
+    private Node m_cableRoot           = new Node() { Type = NodeType.Placeholder, Name = "Cables" };
+    private Node m_materialRoot        = new Node() { Type = NodeType.Placeholder, Name = "Shape materials" };
     private Node m_contactMaterialRoot = new Node() { Type = NodeType.Placeholder, Name = "Contact materials" };
   }
 }
