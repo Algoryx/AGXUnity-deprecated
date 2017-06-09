@@ -568,8 +568,9 @@ namespace AgXUnityEditor.IO
         return false;
       }
 
-      Constraint constraint = node.GameObject.AddComponent<Constraint>();
-      constraint.SetType( constraintType );
+      Constraint constraint = node.GameObject.GetOrCreateComponent<Constraint>();
+
+      constraint.SetType( constraintType, true );
 
       try {
         constraint.TryAddElementaryConstraints( nativeConstraint );

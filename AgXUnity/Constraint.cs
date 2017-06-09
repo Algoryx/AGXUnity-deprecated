@@ -398,6 +398,8 @@ namespace AgXUnity
       if ( native == null )
         throw new ArgumentNullException( "native", "Native constraint is null." );
 
+      m_elementaryConstraints.Clear();
+
       for ( uint i = 0; i < native.getNumElementaryConstraints(); ++i ) {
         if ( native.getElementaryConstraint( i ).getName() == "" )
           throw new Exception( "Native elementary constraint doesn't have a name." );
@@ -425,9 +427,10 @@ namespace AgXUnity
     /// Assign constraint type given this constraint hasn't been constructed yet.
     /// </summary>
     /// <param name="type">Constraint type.</param>
-    public void SetType( ConstraintType type )
+    /// <param name="force">Force change, i.e., ignore that this constraint has been initialized.</param>
+    public void SetType( ConstraintType type, bool force )
     {
-      if ( m_elementaryConstraints.Count > 0 ) {
+      if ( !force && m_elementaryConstraints.Count > 0 ) {
         Debug.LogWarning( "Not possible to change constraint type when the constraint has been constructed. Ignoring new type.", this );
         return;
       }
