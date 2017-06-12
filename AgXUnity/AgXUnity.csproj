@@ -103,6 +103,7 @@
     <Compile Include="StepCallbackFunctions.cs" />
     <Compile Include="Utils\ConstraintUtils.cs" />
     <Compile Include="Utils\DisposableCallback.cs" />
+    <Compile Include="Utils\GUI.cs" />
     <Compile Include="Utils\InvokeWrapper.cs" />
     <Compile Include="Utils\MeshMerger.cs" />
     <Compile Include="Utils\MeshSplitter.cs" />

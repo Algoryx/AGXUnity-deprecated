@@ -1,4 +1,5 @@
-﻿using AgXUnity.Utils;
+﻿using System;
+using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity
@@ -14,7 +15,6 @@ namespace AgXUnity
     /// Native instance.
     /// </summary>
     private agxSDK.Simulation m_simulation = null;
-    private double m_stepForwardTime = 0.0;
     
     public static float DefaultTimeStep { get { return Time.fixedDeltaTime; } }
 
@@ -60,6 +60,31 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Display statistics window toggle.
+    /// </summary>
+    [SerializeField]
+    private bool m_displayStatistics = false;
+
+    /// <summary>
+    /// Enable/disable statistics window showing timing and simulation data.
+    /// </summary>
+    public bool DisplayStatistics
+    {
+      get { return m_displayStatistics; }
+      set
+      {
+        m_displayStatistics = value;
+
+        if ( m_displayStatistics && m_statisticsWindowData == null )
+          m_statisticsWindowData = new StatisticsWindowData( new Rect( new Vector2( 10, 10 ), new Vector2( 260, 175 ) ) );
+        else if ( !m_displayStatistics && m_statisticsWindowData != null ) {
+          m_statisticsWindowData.Dispose();
+          m_statisticsWindowData = null;
+        }
+      }
+    }
+
+    /// <summary>
     /// Get the native instance, if not deleted.
     /// </summary>
     public agxSDK.Simulation Native { get { return GetOrCreateSimulation(); } }
@@ -86,26 +111,91 @@ namespace AgXUnity
 
         StepCallbacks.PreStepForward?.Invoke();
         StepCallbacks.PreSynchronizeTransforms?.Invoke();
-
-        agx.Timer t = new agx.Timer( true );
-        
+       
         m_simulation.stepForward();
-
-        t.stop();
-        m_stepForwardTime = t.getTime();
 
         StepCallbacks.PostSynchronizeTransforms?.Invoke();
         StepCallbacks.PostStepForward?.Invoke();
       }
     }
 
-    // TODO: Add scene view window (editor) with stats.
-    //protected void OnGUI()
-    //{
-    //  GUILayout.Label( "Step forward time: " + m_stepForwardTime + " ms." );
-    //  GUILayout.Label( "Step forward FPS:  " + (int)( 1000.0 / m_stepForwardTime + 0.5 ) );
-    //  GUILayout.Label( "Update frequencey: " + (int)( 1.0f / Time.fixedDeltaTime ) );
-    //}
+    private class StatisticsWindowData : IDisposable
+    {
+      public int Id { get; private set; }
+      public Rect Rect { get; set; }
+      public Font Font { get; private set; }
+      public GUIStyle LabelStyle { get; set; }
+
+      public StatisticsWindowData( Rect rect )
+      {
+        agx.Statistics.instance().setEnable( true );
+        Id = GUIUtility.GetControlID( FocusType.Passive );
+        Rect = rect;
+
+        var fonts = Font.GetOSInstalledFontNames();
+        foreach ( var font in fonts )
+          if ( font == "Consolas" )
+            Font = Font.CreateDynamicFontFromOSFont( font, 12 );
+
+        LabelStyle = Utils.GUI.Align( Utils.GUI.Skin.label, TextAnchor.MiddleLeft );
+        if ( Font != null )
+          LabelStyle.font = Font;
+      }
+
+      public void Dispose()
+      {
+        agx.Statistics.instance().setEnable( false );
+      }
+    }
+
+    private StatisticsWindowData m_statisticsWindowData = null;
+
+    protected void OnGUI()
+    {
+      if ( m_simulation == null || m_statisticsWindowData == null )
+        return;
+
+      var simColor      = Color.Lerp( Color.white, Color.blue, 0.2f );
+      var spaceColor    = Color.Lerp( Color.white, Color.green, 0.2f );
+      var dynamicsColor = Color.Lerp( Color.white, Color.yellow, 0.2f );
+      var eventColor    = Color.Lerp( Color.white, Color.cyan, 0.2f );
+      var dataColor     = Color.Lerp( Color.white, Color.magenta, 0.2f );
+
+      var labelStyle = m_statisticsWindowData.LabelStyle;
+
+      var simTime            = agx.Statistics.instance().getTimingInfo( "Simulation", "Step forward time" );
+      var spaceTime          = agx.Statistics.instance().getTimingInfo( "Simulation", "Collision-detection time" );
+      var dynamicsSystemTime = agx.Statistics.instance().getTimingInfo( "Simulation", "Dynamics-system time" );
+      var preCollideTime     = agx.Statistics.instance().getTimingInfo( "Simulation", "Pre-collide event time" );
+      var preTime            = agx.Statistics.instance().getTimingInfo( "Simulation", "Pre-step event time" );
+      var postTime           = agx.Statistics.instance().getTimingInfo( "Simulation", "Post-step event time" );
+      var lastTime           = agx.Statistics.instance().getTimingInfo( "Simulation", "Last-step event time" );
+
+      var numBodies      = m_simulation.getDynamicsSystem().getRigidBodies().Count;
+      var numShapes      = m_simulation.getSpace().getGeometries().Count;
+      var numConstraints = m_simulation.getDynamicsSystem().getConstraints().Count +
+                           m_simulation.getSpace().getGeometryContacts().Count;
+
+      GUILayout.Window( m_statisticsWindowData.Id,
+                        m_statisticsWindowData.Rect,
+                        id =>
+                        {
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "Total time:            ", simColor ) + simTime.current.ToString( "0.00" ) + " ms", 14, true ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre-collide step:      ", eventColor ) + preCollideTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Collision detection:   ", spaceColor ) + spaceTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre step:              ", eventColor ) + preTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Dynamics solvers:      ", dynamicsColor ) + dynamicsSystemTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Post step:             ", eventColor ) + postTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Last step:             ", eventColor ) + lastTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "Data:                  ", dataColor ), 14, true ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Update frequency:      ", dataColor ) + (int)( 1.0f / TimeStep + 0.5f ) + " Hz" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Number of bodies:      ", dataColor ) + numBodies ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Number of shapes:      ", dataColor ) + numShapes ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Number of constraints: ", dataColor ) + numConstraints ), labelStyle );
+                        },
+                        "AGX Dynamics statistics",
+                        Utils.GUI.Skin.window );
+    }
 
     protected override void OnApplicationQuit()
     {

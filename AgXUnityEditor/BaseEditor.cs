@@ -7,6 +7,7 @@ using AgXUnity;
 using AgXUnity.Utils;
 using UnityEngine;
 using UnityEditor;
+using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor
 {
@@ -163,9 +164,9 @@ namespace AgXUnityEditor
                            Utils.GUI.MakeLabel( attribute.Label ) :
                            MakeLabel( methodInfo );
 
-      bool guiWasEnabled = GUI.enabled;
+      bool guiWasEnabled = UnityEngine.GUI.enabled;
       if ( attribute.OnlyInStatePlay && !( EditorApplication.isPlaying || EditorApplication.isPaused ) )
-        GUI.enabled = false;
+        UnityEngine.GUI.enabled = false;
 
       bool invoked = false;
       if ( GUILayout.Button( label, skin.button, new GUILayoutOption[]{} ) ) {
@@ -173,7 +174,7 @@ namespace AgXUnityEditor
         invoked = true;
       }
 
-      GUI.enabled = guiWasEnabled;
+      UnityEngine.GUI.enabled = guiWasEnabled;
 
       return invoked;
     }
@@ -311,7 +312,7 @@ namespace AgXUnityEditor
           {
             var objFieldLabel = MakeLabel( wrapper.Member );
             var buttonSize = skin.label.CalcHeight( objFieldLabel, Screen.width );
-            GUI.enabled = valInField != null;
+            UnityEngine.GUI.enabled = valInField != null;
             foldoutData.Bool = GUILayout.Button( Utils.GUI.MakeLabel( foldoutData.Bool ? "-" : "+" ),
                                                  skin.button,
                                                  new GUILayoutOption[] { GUILayout.Width( 20.0f ), GUILayout.Height( buttonSize ) } ) ?
@@ -319,7 +320,7 @@ namespace AgXUnityEditor
                                  !foldoutData.Bool :
                                  // If foldout were enabled but valInField has changed to null - foldout will become disabled.
                                  valInField != null && foldoutData.Bool;
-            GUI.enabled = true;
+            UnityEngine.GUI.enabled = true;
             value = EditorGUILayout.ObjectField( objFieldLabel, valInField, type, allowSceneObject, new GUILayoutOption[] { } );
           }
           GUILayout.EndHorizontal();
@@ -365,7 +366,7 @@ namespace AgXUnityEditor
       else if ( type.IsClass && wrapper.CanRead() ) {
       }
 
-      return GUI.changed &&
+      return UnityEngine.GUI.changed &&
              ( value != null || isNullable ) &&
              wrapper.ConditionalSet( value );
     }
