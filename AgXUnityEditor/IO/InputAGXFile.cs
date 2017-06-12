@@ -653,8 +653,10 @@ namespace AgXUnityEditor.IO
         return rbNode.GameObject;
       };
 
-      var wire  = node.GameObject.AddComponent<Wire>();
+      var wire  = node.GameObject.GetOrCreateComponent<Wire>();
       var route = wire.Route;
+
+      route.Clear();
 
       wire.RestoreLocalDataFrom( nativeWire );
 
@@ -735,8 +737,10 @@ namespace AgXUnityEditor.IO
         return false;
       }
 
-      var cable = node.GameObject.AddComponent<Cable>();
+      var cable = node.GameObject.GetOrCreateComponent<Cable>();
       var route = cable.Route;
+
+      route.Clear();
 
       cable.RestoreLocalDataFrom( nativeCable );
       cable.RouteAlgorithm = Cable.RouteType.Identity;

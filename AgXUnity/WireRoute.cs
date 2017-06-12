@@ -165,6 +165,15 @@ namespace AgXUnity
       return node;
     }
 
+    public override void Clear()
+    {
+      var nodes = this.ToArray();
+      for ( int i = 0; i < nodes.Length; ++i )
+        OnRemovedFromList( nodes[ i ], i );
+
+      base.Clear();
+    }
+
     private WireRoute()
     {
       OnNodeAdded   += this.OnAddedToList;

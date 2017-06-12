@@ -90,5 +90,10 @@ namespace AgXUnity
 
       return node;
     }
+
+    public override void Clear()
+    {
+      base.Clear();
+    }
   }
 }
