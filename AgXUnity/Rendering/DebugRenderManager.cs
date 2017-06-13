@@ -202,6 +202,9 @@ namespace AgXUnity.Rendering
     [HideInInspector]
     public Color ContactColor = new Color( 0.75f, 0.25f, 0.25f, 1.0f );
 
+    [HideInInspector]
+    public float ContactScale = 0.2f;
+
     /// <summary>
     /// Visualizes shapes and visuals in bodies with different colors (wire frame gizmos).
     /// </summary>

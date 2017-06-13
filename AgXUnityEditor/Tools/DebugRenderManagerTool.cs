@@ -37,6 +37,8 @@ namespace AgXUnityEditor.Tools
         Manager.ContactColor = EditorGUILayout.ColorField( Manager.ContactColor );
       }
 
+      Manager.ContactScale = EditorGUILayout.Slider( GUI.MakeLabel( "Scale" ), Manager.ContactScale, 0.0f, 1.0f );
+
       GUI.Separator();
 
       Manager.ColorizeBodies = GUI.Toggle( GUI.MakeLabel( "Colorize bodies",

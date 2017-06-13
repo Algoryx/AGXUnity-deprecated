@@ -138,7 +138,7 @@ namespace AgXUnityEditor.Utils
         Gizmos.DrawMesh( Constraint.GetOrCreateGizmosMesh(),
                          contact.Point,
                          Quaternion.FromToRotation( Vector3.up, contact.Normal ),
-                         0.2f * Spawner.Utils.FindConstantScreenSizeScale( contact.Point, Camera.current ) * Vector3.one );
+                         manager.ContactScale * Spawner.Utils.FindConstantScreenSizeScale( contact.Point, Camera.current ) * Vector3.one );
       }
     }
   }
