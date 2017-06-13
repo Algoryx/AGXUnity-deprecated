@@ -214,8 +214,15 @@ namespace AgXUnity.Rendering
     [HideInInspector]
     public bool HighlightMouseOverObject = false;
 
+    /// <summary>
+    /// Toggle to include debug rendering in build or not. Default "do not include in build".
+    /// </summary>
     [SerializeField]
     private bool m_includeInBuild = false;
+
+    /// <summary>
+    /// Enable/disable debug rendering in builds. Default false ("do not include in build").
+    /// </summary>
     [HideInInspector]
     public bool IncludeInBuild
     {
@@ -232,7 +239,14 @@ namespace AgXUnity.Rendering
       }
     }
 
+    /// <summary>
+    /// Contact list built after each simulation step if debug render of contacts is enabled.
+    /// </summary>
     private List<ContactData> m_contactList = new List<ContactData>();
+
+    /// <summary>
+    /// Get current contact points.
+    /// </summary>
     public IEnumerable<ContactData> ContactList { get { return m_contactList; } }
 
     protected override bool Initialize()
