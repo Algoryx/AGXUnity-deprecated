@@ -10,25 +10,25 @@ namespace AgXUnityEditor
     [MenuItem( "Assets/AgXUnity/Shape Material" )]
     public static UnityEngine.Object CreateMaterial()
     {
-      return Utils.AssetFactory.Create<ShapeMaterial>( "material" );
+      return Selection.activeObject = Utils.AssetFactory.Create<ShapeMaterial>( "material" );
     }
 
     [MenuItem( "Assets/AgXUnity/Contact Material" )]
     public static UnityEngine.Object CreateContactMaterial()
     {
-      return Utils.AssetFactory.Create<ContactMaterial>( "contact material" );
+      return Selection.activeObject = Utils.AssetFactory.Create<ContactMaterial>( "contact material" );
     }
 
     [MenuItem( "Assets/AgXUnity/Friction Model" )]
     public static UnityEngine.Object CreateFrictionModel()
     {
-      return Utils.AssetFactory.Create<FrictionModel>( "friction model" );
+      return Selection.activeObject = Utils.AssetFactory.Create<FrictionModel>( "friction model" );
     }
 
     [MenuItem( "Assets/AgXUnity/Cable Properties" )]
     public static UnityEngine.Object CreateCableProperties()
     {
-      return Utils.AssetFactory.Create<CableProperties>( "cable properties" );
+      return Selection.activeObject = Utils.AssetFactory.Create<CableProperties>( "cable properties" );
     }
 
     [MenuItem( "Assets/Import AGX file as prefab", validate = true )]
