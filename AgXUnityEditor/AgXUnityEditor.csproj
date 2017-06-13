@@ -70,6 +70,7 @@
     <Compile Include="Tools\ConstraintCreateTool.cs" />
     <Compile Include="Tools\ConstraintTool.cs" />
     <Compile Include="Tools\ContactMaterialManagerTool.cs" />
+    <Compile Include="Tools\DebugRenderManagerTool.cs" />
     <Compile Include="Tools\DirectionTool.cs" />
     <Compile Include="Tools\DisableCollisionsTool.cs" />
     <Compile Include="Tools\EdgeDetectionTool.cs" />

@@ -13,6 +13,12 @@ namespace AgXUnity.Rendering
   [ExecuteInEditMode]
   public class DebugRenderManager : UniqueGameObject<DebugRenderManager>
   {
+    public struct ContactData
+    {
+      public Vector3 Point;
+      public Vector3 Normal;
+    }
+
     /// <summary>
     /// BaseEditor.cs is calling this method when the editor receives
     /// an OnDestroy call and the application isn't playing. This
@@ -100,17 +106,117 @@ namespace AgXUnity.Rendering
     }
 
     /// <summary>
+    /// Callback from Simulation when a full update has been executed.
+    /// This method collects contact data if "render contacts" is enabled.
+    /// </summary>
+    /// <param name="simulation">Simulation instance.</param>
+    public static void OnActiveSimulationPostStep( agxSDK.Simulation simulation )
+    {
+      if ( !IsActiveForSynchronize )
+        return;
+
+      Instance.OnSimulationPostStep( simulation );
+    }
+
+    /// <summary>
+    /// Debug render shapes enabled toggle.
+    /// </summary>
+    [SerializeField]
+    private bool m_renderShapes = true;
+
+    /// <summary>
+    /// Toggle to enable/disable debug rendering of shapes.
+    /// </summary>
+    [HideInInspector]
+    public bool RenderShapes
+    {
+      get { return m_renderShapes; }
+      set
+      {
+        if ( !enabled )
+          return;
+
+        m_renderShapes = value;
+        SetShapesVisible( m_renderShapes );
+        UpdateIsActiveForSynchronize();
+      }
+    }
+
+    /// <summary>
+    /// Material used by the shapes.
+    /// </summary>
+    [SerializeField]
+    private Material m_shapeRenderMaterial = null;
+
+    /// <summary>
+    /// Instance of shape debug render material used by all debug rendered shapes.
+    /// </summary>
+    [HideInInspector]
+    public Material ShapeRenderMaterial
+    {
+      get
+      {
+        if ( m_shapeRenderMaterial == null )
+          m_shapeRenderMaterial = PrefabLoader.Instantiate<Material>( "Materials/DebugRendererMaterial" );
+        return m_shapeRenderMaterial;
+      }
+      set
+      {
+        if ( m_shapeRenderMaterial == value )
+          return;
+
+        m_shapeRenderMaterial = value;
+        var renderers = GetComponentsInChildren<Renderer>();
+        foreach ( var renderer in renderers )
+          renderer.sharedMaterial = m_shapeRenderMaterial;
+      }
+    }
+
+    /// <summary>
+    /// Render contacts toggle.
+    /// </summary>
+    [SerializeField]
+    private bool m_renderContacts = true;
+
+    /// <summary>
+    /// Toggle to enable/disable debug rendering of contacts.
+    /// </summary>
+    [HideInInspector]
+    public bool RenderContacts
+    {
+      get { return m_renderContacts; }
+      set
+      {
+        if ( !enabled )
+          return;
+
+        m_renderContacts = value;
+        if ( !m_renderContacts )
+          m_contactList.Clear();
+      }
+    }
+
+    /// <summary>
+    /// Color of the rendered contact points.
+    /// </summary>
+    [HideInInspector]
+    public Color ContactColor = new Color( 0.75f, 0.25f, 0.25f, 1.0f );
+
+    /// <summary>
     /// Visualizes shapes and visuals in bodies with different colors (wire frame gizmos).
     /// </summary>
+    [HideInInspector]
     public bool ColorizeBodies = false;
 
     /// <summary>
     /// Highlights the shape or visual the mouse is currently hovering in the scene view.
     /// </summary>
+    [HideInInspector]
     public bool HighlightMouseOverObject = false;
 
     [SerializeField]
     private bool m_includeInBuild = false;
+    [HideInInspector]
     public bool IncludeInBuild
     {
       get { return m_includeInBuild; }
@@ -126,6 +232,9 @@ namespace AgXUnity.Rendering
       }
     }
 
+    private List<ContactData> m_contactList = new List<ContactData>();
+    public IEnumerable<ContactData> ContactList { get { return m_contactList; } }
+
     protected override bool Initialize()
     {
       gameObject.hideFlags = HideFlags.None;
@@ -135,7 +244,7 @@ namespace AgXUnity.Rendering
 
     protected override void OnEnable()
     {
-      SetVisible( true );
+      SetShapesVisible( RenderShapes );
 
       base.OnEnable();
 
@@ -144,7 +253,7 @@ namespace AgXUnity.Rendering
 
     protected override void OnDisable()
     {
-      SetVisible( false );
+      SetShapesVisible( false );
 
       base.OnDisable();
 
@@ -223,8 +332,8 @@ namespace AgXUnity.Rendering
         return;
 
       data.Synchronize( this );
-      if ( data.Node != null && shapeEnabled != data.Node.activeSelf )
-        data.Node.SetActive( shapeEnabled );
+      if ( data.Node != null && ( RenderShapes && shapeEnabled ) != data.Node.activeSelf )
+        data.Node.SetActive( RenderShapes && shapeEnabled );
     }
 
     private void SynchronizeScaleIfNodeExist( Collide.Shape shape )
@@ -234,10 +343,33 @@ namespace AgXUnity.Rendering
         data.SynchronizeScale( shape );
     }
 
-    private void SetVisible( bool visible )
+    private void SetShapesVisible( bool visible )
     {
       foreach ( Transform child in transform )
         child.gameObject.SetActive( visible );
+    }
+
+    private void OnSimulationPostStep( agxSDK.Simulation simulation )
+    {
+      if ( simulation == null )
+        return;
+
+      var gcs = simulation.getSpace().getGeometryContacts();
+      m_contactList.Clear();
+      m_contactList.Capacity = 4 * gcs.Count;
+      for ( int i = 0; i < gcs.Count; ++i ) {
+        var gc = gcs[ i ];
+        if ( !gc.isEnabled() )
+          continue;
+
+        for ( uint j = 0; j < gc.points().size(); ++j ) {
+          var p = gc.points().at( j );
+          if ( !p.enabled )
+            continue;
+
+          m_contactList.Add( new ContactData() { Point = p.point.ToHandedVector3(), Normal = p.normal.ToHandedVector3() } );
+        }
+      }
     }
   }
 }

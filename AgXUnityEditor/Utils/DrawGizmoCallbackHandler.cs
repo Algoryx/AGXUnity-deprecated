@@ -20,6 +20,12 @@ namespace AgXUnityEditor.Utils
       if ( !manager.isActiveAndEnabled )
         return;
 
+      HandleColorizedBodies( manager );
+      HandleContacts( manager );
+    }
+
+    private static void HandleColorizedBodies( DebugRenderManager manager )
+    {
       // List containing active tools decisions of what could be considered selected.
       var toolsSelections = new List<Tool.VisualizedSelectionData>();
       // Active assembly tool has special rendering needs.
@@ -119,6 +125,20 @@ namespace AgXUnityEditor.Utils
       }
       else if ( ( filter = selected.GetComponent<MeshFilter>() ) != null ) {
         m_colorHandler.Highlight( filter, selectionType );
+      }
+    }
+
+    private static void HandleContacts( DebugRenderManager manager )
+    {
+      if ( !manager.RenderContacts )
+        return;
+
+      Gizmos.color = manager.ContactColor;
+      foreach ( var contact in manager.ContactList ) {
+        Gizmos.DrawMesh( Constraint.GetOrCreateGizmosMesh(),
+                         contact.Point,
+                         Quaternion.FromToRotation( Vector3.up, contact.Normal ),
+                         0.2f * Spawner.Utils.FindConstantScreenSizeScale( contact.Point, Camera.current ) * Vector3.one );
       }
     }
   }

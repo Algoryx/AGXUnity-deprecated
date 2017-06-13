@@ -116,6 +116,8 @@ namespace AgXUnity
 
         StepCallbacks.PostSynchronizeTransforms?.Invoke();
         StepCallbacks.PostStepForward?.Invoke();
+
+        Rendering.DebugRenderManager.OnActiveSimulationPostStep( m_simulation );
       }
     }
 

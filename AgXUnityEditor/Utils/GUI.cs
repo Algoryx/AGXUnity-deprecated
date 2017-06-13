@@ -346,7 +346,8 @@ namespace AgXUnityEditor.Utils
                                        float objFieldLabelWidth,
                                        Material material,
                                        GUISkin skin,
-                                       Action<Material> onMaterialChanged )
+                                       Action<Material> onMaterialChanged,
+                                       bool forceEnableEditing = false )
     {
       Material newMaterial = null;
       bool createNewMaterialButton = false;
@@ -369,7 +370,7 @@ namespace AgXUnityEditor.Utils
 
       Editor.CreateCachedEditor( material, typeof( MaterialEditor ), ref m_cachedMaterialEditor );
       var materialEditor = m_cachedMaterialEditor as MaterialEditor;
-      using ( new EditorGUI.DisabledGroupScope( isBuiltInMaterial ) ) {
+      using ( new EditorGUI.DisabledGroupScope( !forceEnableEditing && isBuiltInMaterial ) ) {
         if ( materialEditor != null ) {
           materialEditor.DrawHeader();
           materialEditor.OnInspectorGUI();

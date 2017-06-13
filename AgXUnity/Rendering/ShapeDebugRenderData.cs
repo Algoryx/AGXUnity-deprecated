@@ -94,7 +94,7 @@ namespace AgXUnity.Rendering
     {
       try {
         Shape shape      = GetShape();
-        bool nodeCreated = TryInitialize( shape );
+        bool nodeCreated = TryInitialize( shape, manager );
 
         if ( Node == null )
           return;
@@ -156,7 +156,7 @@ namespace AgXUnity.Rendering
     /// given the Collide.Shape component in this game object.
     /// </summary>
     /// <returns>True if the node was created - otherwise false.</returns>
-    private bool TryInitialize( Shape shape )
+    private bool TryInitialize( Shape shape, DebugRenderManager manager )
     {
       if ( Node != null )
         return false;
@@ -170,6 +170,12 @@ namespace AgXUnity.Rendering
       else {
         Node = PrefabLoader.Instantiate<GameObject>( PrefabName );
         Node.transform.localScale = GetShape().GetScale();
+      }
+
+      if ( Node != null ) {
+        var renderers = Node.GetComponentsInChildren<Renderer>();
+        foreach ( var renderer in renderers )
+          renderer.sharedMaterial = manager.ShapeRenderMaterial;
       }
 
       return Node != null;
@@ -207,8 +213,6 @@ namespace AgXUnity.Rendering
         filter.sharedMesh = new UnityEngine.Mesh();
 
         RescaleRenderedMesh( mesh, sub, filter );
-
-        renderer.sharedMaterial = Resources.Load<Material>( "Materials/DebugRendererMaterial" );
       }
 
       m_storedLossyScale = mesh.transform.lossyScale;
