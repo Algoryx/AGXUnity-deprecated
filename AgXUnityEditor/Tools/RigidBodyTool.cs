@@ -143,6 +143,16 @@ namespace AgXUnityEditor.Tools
       }
     }
 
+    public override void OnAdd()
+    {
+      var forceUpdateMassProperties = RigidBody.MassProperties.Mass.UseDefault &&
+                                      RigidBody.MassProperties.Mass.Value == 1.0f &&
+                                      RigidBody.MassProperties.InertiaDiagonal.UseDefault &&
+                                      RigidBody.MassProperties.InertiaDiagonal.Value == Vector3.one;
+      if ( forceUpdateMassProperties )
+        RigidBody.MassProperties.OnForcedMassInertiaUpdate();
+    }
+
     public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       bool toggleFindTransformGivenPoint = false;

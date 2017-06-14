@@ -16,11 +16,6 @@ namespace AgXUnityEditor.Tools
       Manager = manager;
     }
 
-    public override void OnRemove()
-    {
-      GUI.DestroyCachedMaterialEditor();
-    }
-
     public override void OnPreTargetMembersGUI( GUISkin skin )
     {
       GUILayout.Label( GUI.MakeLabel( "Debug render manager", 16, true ), GUI.Align( skin.label, TextAnchor.MiddleCenter ) );

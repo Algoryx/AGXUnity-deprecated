@@ -111,10 +111,10 @@ namespace AgXUnityEditor.Utils
       MethodInfo floatMethod   = typeof( EditorGUILayout ).GetMethod( "FloatField", new[] { typeof( string ), typeof( float ), typeof( GUILayoutOption[] ) } );
       MethodInfo vector3Method = typeof( EditorGUILayout ).GetMethod( "Vector3Field", new[] { typeof( string ), typeof( Vector3 ), typeof( GUILayoutOption[] ) } );
       MethodInfo method        = typeof( ValueT ) == typeof( float ) ?
-                                  floatMethod :
+                                   floatMethod :
                                  typeof( ValueT ) == typeof( Vector3 ) ?
-                                  vector3Method :
-                                  null;
+                                   vector3Method :
+                                   null;
       if ( method == null )
         throw new NullReferenceException( "Unknown DefaultAndUserValue type: " + typeof( ValueT ).Name );
 
@@ -149,7 +149,7 @@ namespace AgXUnityEditor.Utils
       }
 
       if ( updateDefaultValue )
-        valInField.FireOnForcedUpdate();
+        valInField.OnForcedUpdate();
 
       return newValue;
     }
@@ -335,13 +335,6 @@ namespace AgXUnityEditor.Utils
       return selected ? CreateSelectedStyle( orgStyle ) : orgStyle;
     }
 
-    private static Editor m_cachedMaterialEditor = null;
-    public static void DestroyCachedMaterialEditor()
-    {
-      if ( m_cachedMaterialEditor != null )
-        Editor.DestroyImmediate( m_cachedMaterialEditor );
-    }
-
     public static void MaterialEditor( GUIContent objFieldLabel,
                                        float objFieldLabelWidth,
                                        Material material,
@@ -368,8 +361,7 @@ namespace AgXUnityEditor.Utils
                                !AssetDatabase.GetAssetPath( material ).StartsWith( "Assets" ) ||
                                material == Manager.GetOrCreateShapeVisualDefaultMaterial();
 
-      Editor.CreateCachedEditor( material, typeof( MaterialEditor ), ref m_cachedMaterialEditor );
-      var materialEditor = m_cachedMaterialEditor as MaterialEditor;
+      var materialEditor = Editor.CreateEditor( material, typeof( MaterialEditor ) ) as MaterialEditor;
       using ( new EditorGUI.DisabledGroupScope( !forceEnableEditing && isBuiltInMaterial ) ) {
         if ( materialEditor != null ) {
           materialEditor.DrawHeader();
@@ -390,6 +382,8 @@ namespace AgXUnityEditor.Utils
           AssetDatabase.Refresh();
         }
       }
+
+      Editor.DestroyImmediate( materialEditor );
 
       if ( newMaterial != null && newMaterial != material )
         onMaterialChanged?.Invoke( newMaterial );

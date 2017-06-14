@@ -597,8 +597,6 @@ namespace AgXUnityEditor
     /// </summary>
     private static void OnSelectionChanged()
     {
-      Utils.GUI.DestroyCachedMaterialEditor();
-
       bool mouseOverHierarchy = EditorWindow.mouseOverWindow != null &&
                                 EditorWindow.mouseOverWindow.GetType().FullName == "UnityEditor.SceneHierarchyWindow";
 

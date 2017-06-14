@@ -45,9 +45,12 @@ namespace AgXUnity
       set
       {
         m_mass = value;
+
         agx.RigidBody native = GetNative();
-        if ( native != null )
+        if ( native != null ) {
           native.getMassProperties().setMass( m_mass.Value );
+          native.getMassProperties().setInertiaTensor( m_inertiaDiagonal.Value.ToVec3() );
+        }
       }
     }
 
@@ -110,17 +113,47 @@ namespace AgXUnity
       // a callback to update mass of the body.
       Mass.OnForcedUpdate            += OnForcedMassInertiaUpdate;
       InertiaDiagonal.OnForcedUpdate += OnForcedMassInertiaUpdate;
+
+      Mass.OnNewUserValue += OnUserMassUpdated;
+      Mass.OnUseDefaultToggle += OnUseDefaultMassUpdated;
     }
 
+    /// <summary>
+    /// Callback from RigidBody when mass properties has been calculated for a native instance.
+    /// </summary>
+    /// <param name="nativeRb">Native rigid body instance.</param>
     public void SetDefaultCalculated( agx.RigidBody nativeRb )
     {
-      if ( nativeRb == null )
+      if ( nativeRb == null || nativeRb == GetNative() )
         return;
 
       Mass.DefaultValue = Convert.ToSingle( nativeRb.getMassProperties().getMass() );
-      InertiaDiagonal.DefaultValue = nativeRb.getMassProperties().getPrincipalInertiae().ToVector3();
+
+      float inertiaScale = 1.0f;
+      if ( !Mass.UseDefault )
+        inertiaScale = Mass.UserValue / Mass.DefaultValue;
+
+      InertiaDiagonal.DefaultValue = inertiaScale * nativeRb.getMassProperties().getPrincipalInertiae().ToVector3();
     }
 
+    /// <summary>
+    /// Callback when the user hits "Update" in the mass/inertia GUI or
+    /// to verify the default values are up to date.
+    /// </summary>
+    public void OnForcedMassInertiaUpdate()
+    {
+      // Assuming we've an updated default value when the native rigid body is present.
+      if ( GetNative() != null )
+        return;
+
+      if ( RigidBody != null )
+        RigidBody.UpdateMassProperties();
+    }
+
+    /// <summary>
+    /// Copies values from source instance.
+    /// </summary>
+    /// <param name="source">Source instance to copy values from.</param>
     public void CopyFrom( MassProperties source )
     {
       m_mass.CopyFrom( source.m_mass );
@@ -130,6 +163,10 @@ namespace AgXUnity
       m_inertiaCoefficients = source.m_inertiaCoefficients;
     }
 
+    /// <summary>
+    /// Reads values from native instance.
+    /// </summary>
+    /// <param name="native">Source native instance.</param>
     public void RestoreLocalDataFrom( agx.MassProperties native )
     {
       Mass.UserValue = Convert.ToSingle( native.getMass() );
@@ -151,15 +188,39 @@ namespace AgXUnity
       return true;
     }
 
+    /// <summary>
+    /// Finds the native rigid body instance this mass properties belongs to.
+    /// </summary>
+    /// <returns>Native rigid body instance where native.getMassproperties() == this (native).</returns>
     private agx.RigidBody GetNative()
     {
       return m_rb != null ? m_rb.Native : null;
     }
 
-    private void OnForcedMassInertiaUpdate()
+    /// <summary>
+    /// Callback when the mass is about the receive a new value. We scale
+    /// the default inertia given this new value.
+    /// </summary>
+    /// <param name="newValue">New mass value.</param>
+    private void OnUserMassUpdated( float newValue )
     {
-      if ( RigidBody != null )
-        RigidBody.UpdateMassProperties();
+      float scale = newValue / Mass.Value;
+      m_inertiaDiagonal.DefaultValue = scale * m_inertiaDiagonal.DefaultValue;
+    }
+
+    /// <summary>
+    /// Called when the user toggles "UseDefault".
+    /// </summary>
+    /// <param name="newUseDefault">New value of UseDefault (before assigned).</param>
+    private void OnUseDefaultMassUpdated( bool newUseDefault )
+    {
+      if ( newUseDefault == Mass.UseDefault )
+        return;
+
+      if ( newUseDefault )
+        OnUserMassUpdated( Mass.DefaultValue );
+      else
+        OnUserMassUpdated( Mass.UserValue );
     }
   }
 }

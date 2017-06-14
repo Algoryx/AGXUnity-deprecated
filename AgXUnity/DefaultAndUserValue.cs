@@ -18,25 +18,68 @@ namespace AgXUnity
     [SerializeField]
     private T m_userValue;
 
+    /// <summary>
+    /// Construct given default and user value.
+    /// </summary>
+    /// <param name="defaultValue">Default value.</param>
+    /// <param name="userValue">User specified value.</param>
     public DefaultAndUserValue( T defaultValue, T userValue )
     {
       m_defaultValue = defaultValue;
       m_userValue = userValue;
     }
 
-    public bool UseDefault { get { return m_defaultToggle; } set { m_defaultToggle = value; } }
-    public T DefaultValue { get { return m_defaultValue; } set { m_defaultValue = value; } }
-    public T UserValue { get { return m_userValue; } set { m_userValue = value; } }
-
-    public delegate void OnForcedUpdateDelegate();
-
-    public event OnForcedUpdateDelegate OnForcedUpdate = delegate { };
-
-    public void FireOnForcedUpdate()
+    /// <summary>
+    /// Use default value toggle. True to use default value when
+    /// accessing this.Value.
+    /// </summary>
+    public bool UseDefault
     {
-      OnForcedUpdate();
+      get { return m_defaultToggle; }
+      set
+      {
+        OnUseDefaultToggle( value );
+        m_defaultToggle = value;
+      }
     }
 
+    /// <summary>
+    /// The default value to use if UseDefault == true.
+    /// </summary>
+    public T DefaultValue
+    {
+      get { return m_defaultValue; }
+      set
+      {
+        m_defaultValue = value;
+      }
+    }
+
+    /// <summary>
+    /// The user value to use if UseDefault == false.
+    /// </summary>
+    public T UserValue
+    {
+      get { return m_userValue; }
+      set
+      {
+        OnNewUserValue( value );
+        m_userValue = value;
+      }
+    }
+
+    /// <summary>
+    /// Callback when button "Update" has been pressed.
+    /// </summary>
+    public Action OnForcedUpdate = delegate { };
+
+    public Action<T> OnNewUserValue = delegate { };
+    public Action<bool> OnUseDefaultToggle = delegate { };
+
+    /// <summary>
+    /// Copies values from source to this.
+    /// </summary>
+    /// <param name="source">Source object.</param>
     public void CopyFrom( DefaultAndUserValue<T> source )
     {
       m_defaultToggle = source.m_defaultToggle;
