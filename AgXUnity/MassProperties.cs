@@ -114,8 +114,11 @@ namespace AgXUnity
       Mass.OnForcedUpdate            += OnForcedMassInertiaUpdate;
       InertiaDiagonal.OnForcedUpdate += OnForcedMassInertiaUpdate;
 
-      Mass.OnNewUserValue += OnUserMassUpdated;
+      Mass.OnNewUserValue     += OnUserMassUpdated;
       Mass.OnUseDefaultToggle += OnUseDefaultMassUpdated;
+
+      InertiaDiagonal.OnNewUserValue     += OnUserInertiaUpdated;
+      InertiaDiagonal.OnUseDefaultToggle += OnUseDefaultInertiaUpdated;
     }
 
     /// <summary>
@@ -124,7 +127,7 @@ namespace AgXUnity
     /// <param name="nativeRb">Native rigid body instance.</param>
     public void SetDefaultCalculated( agx.RigidBody nativeRb )
     {
-      if ( nativeRb == null || nativeRb == GetNative() )
+      if ( nativeRb == null )
         return;
 
       Mass.DefaultValue = Convert.ToSingle( nativeRb.getMassProperties().getMass() );
@@ -204,8 +207,21 @@ namespace AgXUnity
     /// <param name="newValue">New mass value.</param>
     private void OnUserMassUpdated( float newValue )
     {
+      if ( !Mass.UseDefault && GetNative() != null )
+        GetNative().getMassProperties().setMass( newValue );
+
       float scale = newValue / Mass.Value;
       m_inertiaDiagonal.DefaultValue = scale * m_inertiaDiagonal.DefaultValue;
+    }
+
+    /// <summary>
+    /// Callback when the inertia is about the receive a new value.
+    /// </summary>
+    /// <param name="newValue">New inertia diagonal.</param>
+    private void OnUserInertiaUpdated( Vector3 newValue )
+    {
+      if ( !InertiaDiagonal.UseDefault && GetNative() != null )
+        GetNative().getMassProperties().setInertiaTensor( newValue.ToVec3() );
     }
 
     /// <summary>
@@ -221,6 +237,17 @@ namespace AgXUnity
         OnUserMassUpdated( Mass.DefaultValue );
       else
         OnUserMassUpdated( Mass.UserValue );
+    }
+
+    private void OnUseDefaultInertiaUpdated( bool newUseDefault )
+    {
+      if ( newUseDefault == InertiaDiagonal.UseDefault )
+        return;
+
+      if ( newUseDefault )
+        OnUserInertiaUpdated( InertiaDiagonal.DefaultValue );
+      else
+        OnUserInertiaUpdated( InertiaDiagonal.UserValue );
     }
   }
 }
