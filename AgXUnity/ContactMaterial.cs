@@ -85,7 +85,7 @@ namespace AgXUnity
     /// Young's modulus of this contact material, paired with property YoungsModulus.
     /// </summary>
     [SerializeField]
-    private float m_youngsModulus = 1.0E10f;
+    private float m_youngsModulus = 4.0E8f;
 
     /// <summary>
     /// Get or set Young's modulus of this contact material.
@@ -106,7 +106,7 @@ namespace AgXUnity
     /// Surface viscosity of this contact material, paired with property SurfaceViscosity.
     /// </summary>
     [SerializeField]
-    private Vector2 m_surfaceViscosity = new Vector2( 1.0E-7f, 1.0E-7f );
+    private Vector2 m_surfaceViscosity = new Vector2( 5.0E-9f, 5.0E-9f );
 
     /// <summary>
     /// Get or set surface viscosity of this contact material.
@@ -129,7 +129,7 @@ namespace AgXUnity
     /// Friction coefficients of this contact material, paired with property FrictionCoefficients.
     /// </summary>
     [SerializeField]
-    private Vector2 m_frictionCoefficients = new Vector2( 0.4f, 0.4f );
+    private Vector2 m_frictionCoefficients = new Vector2( 0.41667f, 0.41667f );
 
     /// <summary>
     /// Get or set friction coefficients of this contact material.
@@ -152,7 +152,7 @@ namespace AgXUnity
     /// Restitution of this contact material, paired with property Restitution.
     /// </summary>
     [SerializeField]
-    private float m_restitution = 0.45f;
+    private float m_restitution = 0.5f;
 
     /// <summary>
     /// Get or set restitution of this contact material.
