@@ -299,7 +299,7 @@ namespace AgXUnityEditor
         IFrame frame = wrapper.Get<IFrame>();
         Utils.GUI.HandleFrame( frame, skin );
       }
-      else if ( ( type.BaseType == typeof( ScriptAsset ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
+      else if ( ( typeof( ScriptAsset ).IsAssignableFrom( type ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
         bool allowSceneObject         = type == typeof( GameObject ) ||
                                         type.BaseType == typeof( ScriptComponent );
         UnityEngine.Object valInField = wrapper.Get<UnityEngine.Object>();
