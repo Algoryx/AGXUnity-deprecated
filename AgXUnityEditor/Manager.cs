@@ -57,14 +57,9 @@ namespace AgXUnityEditor
       if ( !VerifyCompatibility() )
         return;
 
-      if ( !Directory.Exists( Utils.CustomEditorGenerator.Path ) )
-        Directory.CreateDirectory( Utils.CustomEditorGenerator.Path );
-
-      Utils.CustomEditorGenerator.Synchronize();
-
-      SceneView.onSceneGUIDelegate             += OnSceneView;
+      SceneView.onSceneGUIDelegate += OnSceneView;
       EditorApplication.hierarchyWindowChanged += OnHierarchyWindowChanged;
-      Selection.selectionChanged               += OnSelectionChanged;
+      Selection.selectionChanged += OnSelectionChanged;
 
       while ( VisualsParent != null && VisualsParent.transform.childCount > 0 )
         GameObject.DestroyImmediate( VisualsParent.transform.GetChild( 0 ).gameObject );
@@ -81,7 +76,7 @@ namespace AgXUnityEditor
 
       Tools.Tool.ActivateBuiltInTools();
 
-      GetOrCreateShapeVisualDefaultMaterial();
+      CreateDefaultAssets();
     }
 
     /// <summary>
@@ -116,7 +111,7 @@ namespace AgXUnityEditor
 
       EventType currentMouseEventType = current.GetTypeForControl( GUIUtility.GetControlID( FocusType.Passive ) );
       bool hijackMouseDown = currentMouseEventType == EventType.MouseDown &&
-                             current.button == 0 &&                           
+                             current.button == 0 &&
                             !RightMouseDown &&                                // button 1 is FPS camera movement
                             !current.alt;                                     // alt down is track ball camera movement
       if ( hijackMouseDown ) {
@@ -172,7 +167,7 @@ namespace AgXUnityEditor
     public static UnityEngine.Object RouteObject( UnityEngine.Object obj )
     {
       GameObject gameObject = obj as GameObject;
-      var proxy  = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
+      var proxy = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
       // If proxy target is null we're ignoring it.
       var result = proxy != null &&
                   !GetSelectedInHierarchyData( proxy ).Bool &&
@@ -206,16 +201,8 @@ namespace AgXUnityEditor
     /// <returns>Material asset.</returns>
     public static Material GetOrCreateShapeVisualDefaultMaterial()
     {
-      var visualsMaterial = AssetDatabase.LoadAssetAtPath<Material>( AgXUnity.Rendering.ShapeVisual.DefaultMaterialPath );
-      if ( visualsMaterial == null ) {
-        Debug.Log( "Shape visuals material doesn't exist. Creating new." );
-        visualsMaterial = AgXUnity.Rendering.ShapeVisual.CreateDefaultMaterial();
-        AssetDatabase.CreateAsset( visualsMaterial, AgXUnity.Rendering.ShapeVisual.DefaultMaterialPath );
-        AssetDatabase.SaveAssets();
-        AssetDatabase.Refresh();
-      }
-
-      return visualsMaterial;
+      return GetOrCreateAsset<Material>( AgXUnity.Rendering.ShapeVisual.DefaultMaterialPath,
+                                         () => AgXUnity.Rendering.ShapeVisual.CreateDefaultMaterial() );
     }
 
     public static void OnVisualPrimitiveNodeCreate( Utils.VisualPrimitive primitive )
@@ -288,9 +275,9 @@ namespace AgXUnityEditor
         m_requestSceneViewFocus = false;
       }
 
-      Event current   = Event.current;
-      LeftMouseClick  = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
-      KeyEscapeDown   = IsKeyEscapeDown( current );
+      Event current = Event.current;
+      LeftMouseClick = !current.control && !current.shift && !current.alt && current.type == EventType.MouseDown && current.button == 0;
+      KeyEscapeDown = IsKeyEscapeDown( current );
       RightMouseClick = current.type == EventType.MouseDown && current.button == 1;
 
       if ( RightMouseClick )
@@ -306,7 +293,7 @@ namespace AgXUnityEditor
       UpdateMouseOverPrimitives( current );
 
       Tools.Tool.HandleOnSceneViewGUI( sceneView );
- 
+
       HandleWindowsGUI( sceneView );
 
       LeftMouseClick = false;
@@ -338,7 +325,7 @@ namespace AgXUnityEditor
         // If the mouse is hovering a scene view window - MouseOverObject should be null.
         if ( SceneViewWindow.GetMouseOverWindow( current.mousePosition ) != null )
           MouseOverObject = null;
-        else 
+        else
           MouseOverObject = RouteObject( HandleUtility.PickGameObject( current.mousePosition,
                                                                        false,
                                                                        ignoreList.ToArray() ) ) as GameObject;
@@ -428,13 +415,13 @@ namespace AgXUnityEditor
                                               "Update", "Ignore" ) ) {
               AgXUnity.Constraint newConstraint = AgXUnity.Constraint.Create( constraint.Type );
 
-              newConstraint.AttachmentPair.ReferenceObject              = constraint.AttachmentPair.ReferenceObject;
+              newConstraint.AttachmentPair.ReferenceObject = constraint.AttachmentPair.ReferenceObject;
               newConstraint.AttachmentPair.ReferenceFrame.LocalPosition = constraint.AttachmentPair.ReferenceFrame.LocalPosition;
               newConstraint.AttachmentPair.ReferenceFrame.LocalRotation = constraint.AttachmentPair.ReferenceFrame.LocalRotation;
 
-              newConstraint.AttachmentPair.Synchronized                 = constraint.AttachmentPair.Synchronized;
+              newConstraint.AttachmentPair.Synchronized = constraint.AttachmentPair.Synchronized;
 
-              newConstraint.AttachmentPair.ConnectedObject              = constraint.AttachmentPair.ConnectedObject;
+              newConstraint.AttachmentPair.ConnectedObject = constraint.AttachmentPair.ConnectedObject;
               newConstraint.AttachmentPair.ConnectedFrame.LocalPosition = constraint.AttachmentPair.ConnectedFrame.LocalPosition;
               newConstraint.AttachmentPair.ConnectedFrame.LocalRotation = constraint.AttachmentPair.ConnectedFrame.LocalRotation;
 
@@ -589,7 +576,7 @@ namespace AgXUnityEditor
     {
       return EditorData.Instance.GetData( proxy, "SelectedInHierarchy" );
     }
-    
+
     /// <summary>
     /// Callback when selection has been changed in the editor. Mainly used to
     /// catch when the user selects an OnSelectionProxy route in the hierarchy
@@ -686,6 +673,46 @@ namespace AgXUnityEditor
       }
 
       return true;
+    }
+
+    private static T GetOrCreateAsset<T>( string assetPath, Func<T> createFunc = null )
+      where T : UnityEngine.Object
+    {
+      var obj = AssetDatabase.LoadAssetAtPath<T>( assetPath );
+      if ( obj == null ) {
+        if ( createFunc != null )
+          obj = createFunc();
+        else if ( typeof( AgXUnity.ScriptAsset ).IsAssignableFrom( typeof( T ) ) )
+          obj = AgXUnity.ScriptAsset.Create( typeof( T ) ) as T;
+        else if ( typeof( ScriptableObject ).IsAssignableFrom( typeof( T ) ) )
+          obj = ScriptableObject.CreateInstance( typeof( T ) ) as T;
+
+        if ( obj == null )
+          throw new Exception( "Unable to create asset at path: " + assetPath );
+
+        AssetDatabase.CreateAsset( obj, assetPath );
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+      }
+
+      return obj;
+    }
+
+    private static void CreateDefaultAssets()
+    {
+      // Generate/synchronize custom editors.
+      if ( !Directory.Exists( Utils.CustomEditorGenerator.Path ) )
+        Directory.CreateDirectory( Utils.CustomEditorGenerator.Path );
+      Utils.CustomEditorGenerator.Synchronize();
+
+      // Shape visual material.
+      GetOrCreateShapeVisualDefaultMaterial();
+
+      // Merge split thresholds.
+      if ( !Directory.Exists( AgXUnity.MergeSplitThresholds.AssetDirectory ) )
+        Directory.CreateDirectory( AgXUnity.MergeSplitThresholds.AssetDirectory );
+      GetOrCreateAsset<AgXUnity.GeometryContactMergeSplitThresholds>( AgXUnity.GeometryContactMergeSplitThresholds.AssetPath );
+      GetOrCreateAsset<AgXUnity.ConstraintMergeSplitThresholds>( AgXUnity.ConstraintMergeSplitThresholds.AssetPath );
     }
   }
 }

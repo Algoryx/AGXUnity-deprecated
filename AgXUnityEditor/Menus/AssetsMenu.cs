@@ -31,6 +31,18 @@ namespace AgXUnityEditor
       return Selection.activeObject = Utils.AssetFactory.Create<CableProperties>( "cable properties" );
     }
 
+    [MenuItem( "Assets/AgXUnity/Geometry Contact Merge Split Thresholds" )]
+    public static UnityEngine.Object CreateGeometryContactMergeSplitThresholds()
+    {
+      return Selection.activeObject = Utils.AssetFactory.Create<GeometryContactMergeSplitThresholds>( "contact merge split thresholds" );
+    }
+
+    [MenuItem( "Assets/AgXUnity/Constraint Merge Split Thresholds" )]
+    public static UnityEngine.Object CreateConstraintMergeSplitThresholds()
+    {
+      return Selection.activeObject = Utils.AssetFactory.Create<ConstraintMergeSplitThresholds>( "constraint merge split thresholds" );
+    }
+
     [MenuItem( "Assets/Import AGX file as prefab", validate = true )]
     public static bool IsAGXFileSelected()
     {

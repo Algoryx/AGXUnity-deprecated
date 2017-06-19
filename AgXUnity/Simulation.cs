@@ -84,6 +84,19 @@ namespace AgXUnity
       }
     }
 
+    [SerializeField]
+    private bool m_enableMergeSplitHandler = false;
+    public bool EnableMergeSplitHandler
+    {
+      get { return m_enableMergeSplitHandler; }
+      set
+      {
+        m_enableMergeSplitHandler = value;
+        if ( m_simulation != null )
+          m_simulation.getMergeSplitHandler().setEnable( m_enableMergeSplitHandler );
+      }
+    }
+
     /// <summary>
     /// Get the native instance, if not deleted.
     /// </summary>
