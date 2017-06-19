@@ -100,6 +100,8 @@ namespace AgXUnityEditor.Utils
             Gizmos.matrix = filterColorPair.Key.transform.localToWorldMatrix;
             Gizmos.DrawWireMesh( filterColorPair.Key.sharedMesh );
           }
+
+          Gizmos.matrix = Matrix4x4.identity;
         }
       }
       catch ( System.Exception e ) {
