@@ -7,6 +7,31 @@ namespace AgXUnity
   [Serializable]
   public class IFrame
   {
+    /// <summary>
+    /// Construct an IFrame given parent game object, local position to parent and
+    /// local rotation to parent.
+    /// </summary>
+    /// <param name="parent">Parent game object - world if null.</param>
+    /// <param name="localPosition">Position in parent frame. If parent is null this is the position in world frame.</param>
+    /// <param name="localRotation">Rotation in parent frame. If parent is null this is the rotation in world frame.</param>
+    /// <returns>IFrame instance.</returns>
+    public static T Create<T>( GameObject parent = null,
+                               Vector3 localPosition = default( Vector3 ),
+                               Quaternion localRotation = default( Quaternion ) )
+      where T : IFrame, new()
+    {
+      T frame = new T();
+
+      if ( object.Equals( localRotation, default( Quaternion ) ) )
+        localRotation = Quaternion.identity;
+
+      frame.SetParent( parent );
+      frame.LocalPosition = localPosition;
+      frame.LocalRotation = localRotation;
+
+      return frame;
+    }
+
     [SerializeField]
     private GameObject m_parent = null;
     /// <summary>

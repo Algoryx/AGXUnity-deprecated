@@ -34,7 +34,11 @@ namespace AgXUnity.Rendering
     /// <param name="node">Capsule prefab node with three children.</param>
     /// <param name="radius">Radius of the capsule.</param>
     /// <param name="height">Height of the capsule.</param>
-    public static void SetCapsuleSize( GameObject node, float radius, float height )
+    /// <param name="unscaleParentLossyScale">
+    /// True to use parent lossy scale to unscale size and position for persistent size
+    /// of this capsule.
+    /// </param>
+    public static void SetCapsuleSize( GameObject node, float radius, float height, bool unscaleParentLossyScale = true )
     {
       if ( node == null )
         return;
@@ -42,17 +46,23 @@ namespace AgXUnity.Rendering
       if ( node.transform.childCount != 3 )
         throw new Exception( "Capsule debug rendering node doesn't contain three children." );
 
+      var additionalScale = Vector3.one;
+      if ( unscaleParentLossyScale && node.transform.parent != null ) {
+        var ls = node.transform.parent.lossyScale;
+        additionalScale = new Vector3( 1.0f / ls.x, 1.0f / ls.y, 1.0f / ls.z );
+      }
+
       Transform sphereUpper = node.transform.GetChild( 0 );
       Transform cylinder = node.transform.GetChild( 1 );
       Transform sphereLower = node.transform.GetChild( 2 );
 
-      cylinder.localScale = new Vector3( 2.0f * radius, height, 2.0f * radius );
+      cylinder.localScale = Vector3.Scale( new Vector3( 2.0f * radius, height, 2.0f * radius ), additionalScale );
 
-      sphereUpper.localScale = 2.0f * radius * Vector3.one;
-      sphereUpper.localPosition = 0.5f * height * Vector3.up;
+      sphereUpper.localScale    = Vector3.Scale( 2.0f * radius * Vector3.one, additionalScale );
+      sphereUpper.localPosition = Vector3.Scale( 0.5f * height * Vector3.up, additionalScale );
 
-      sphereLower.localScale = 2.0f * radius * Vector3.one;
-      sphereLower.localPosition = 0.5f * height * Vector3.down;
+      sphereLower.localScale    = Vector3.Scale( 2.0f * radius * Vector3.one, additionalScale );
+      sphereLower.localPosition = Vector3.Scale( 0.5f * height * Vector3.down, additionalScale );
     }
 
     /// <summary>
@@ -84,14 +94,16 @@ namespace AgXUnity.Rendering
     {
       try {
         Shape shape      = GetShape();
-        bool nodeCreated = TryInitialize( shape );
+        bool nodeCreated = TryInitialize( shape, manager );
 
         if ( Node == null )
           return;
 
         // Node created - set properties and extra components.
         if ( nodeCreated ) {
-          Node.hideFlags = HideFlags.DontSave;
+          Node.hideFlags           = HideFlags.DontSave;
+          Node.transform.hideFlags = HideFlags.DontSave | HideFlags.HideInInspector;
+
           Node.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
           foreach ( Transform child in Node.transform )
             child.gameObject.GetOrCreateComponent<OnSelectionProxy>().Component = shape;
@@ -125,7 +137,11 @@ namespace AgXUnity.Rendering
 
       if ( shape is Collide.Mesh ) {
         if ( m_storedLossyScale != transform.lossyScale ) {
-          RescaleRenderedMesh( shape as Collide.Mesh, Node.GetComponent<MeshFilter>() );
+          var mesh = shape as Collide.Mesh;
+          for ( int i = 0; i < mesh.SourceObjects.Length; ++i ) {
+            var sub = mesh.SourceObjects[ i ];
+            RescaleRenderedMesh( mesh, sub, Node.transform.GetChild( i ).GetComponent<MeshFilter>() );
+          }
           m_storedLossyScale = transform.lossyScale;
         }
       }
@@ -140,7 +156,7 @@ namespace AgXUnity.Rendering
     /// given the Collide.Shape component in this game object.
     /// </summary>
     /// <returns>True if the node was created - otherwise false.</returns>
-    private bool TryInitialize( Shape shape )
+    private bool TryInitialize( Shape shape, DebugRenderManager manager )
     {
       if ( Node != null )
         return false;
@@ -154,6 +170,12 @@ namespace AgXUnity.Rendering
       else {
         Node = PrefabLoader.Instantiate<GameObject>( PrefabName );
         Node.transform.localScale = GetShape().GetScale();
+      }
+
+      if ( Node != null ) {
+        var renderers = Node.GetComponentsInChildren<Renderer>();
+        foreach ( var renderer in renderers )
+          renderer.sharedMaterial = manager.ShapeRenderMaterial;
       }
 
       return Node != null;
@@ -175,18 +197,24 @@ namespace AgXUnity.Rendering
     /// </summary>
     private GameObject InitializeMeshGivenSourceObject( Collide.Mesh mesh )
     {
-      if ( mesh.SourceObject == null )
-        throw new AgXUnity.Exception( "Mesh has no source." );
+      if ( mesh.SourceObjects.Length == 0 )
+        throw new Exception( "Mesh has no source." );
 
       GameObject meshData = new GameObject( "MeshData" );
-      MeshRenderer renderer = meshData.AddComponent<MeshRenderer>();
-      MeshFilter filter = meshData.AddComponent<MeshFilter>();
 
-      filter.sharedMesh = new UnityEngine.Mesh();
+      foreach ( var sub in mesh.SourceObjects ) {
+        GameObject subMesh = new GameObject( "SubMeshData" );
+        subMesh.transform.parent = meshData.transform;
+        subMesh.transform.localPosition = Vector3.zero;
+        subMesh.transform.localRotation = Quaternion.identity;
 
-      RescaleRenderedMesh( mesh, filter );
+        MeshRenderer renderer = subMesh.AddComponent<MeshRenderer>();
+        MeshFilter filter = subMesh.AddComponent<MeshFilter>();
+        filter.sharedMesh = new UnityEngine.Mesh();
 
-      renderer.sharedMaterial = Resources.Load<UnityEngine.Material>( "Materials/DebugRendererMaterial" );
+        RescaleRenderedMesh( mesh, sub, filter );
+      }
+
       m_storedLossyScale = mesh.transform.lossyScale;
 
       return meshData;
@@ -200,9 +228,8 @@ namespace AgXUnity.Rendering
       return new GameObject( "HeightFieldData" );
     }
 
-    private void RescaleRenderedMesh( Collide.Mesh mesh, MeshFilter filter )
+    private void RescaleRenderedMesh( Collide.Mesh mesh, UnityEngine.Mesh source, MeshFilter filter )
     {
-      UnityEngine.Mesh source = mesh.SourceObject;
       if ( source == null )
         throw new AgXUnity.Exception( "Source object is null during rescale." );
 
@@ -218,7 +245,7 @@ namespace AgXUnity.Rendering
         throw new AgXUnity.Exception( "Shape debug render mesh mismatch." );
 
       Matrix4x4 scaledToWorld  = mesh.transform.localToWorldMatrix;
-      Vector3[] sourceVertices = mesh.SourceObject.vertices;
+      Vector3[] sourceVertices = source.vertices;
 
       // Transforms each vertex from local to world given scales, then
       // transforms each vertex back to local again - unscaled.

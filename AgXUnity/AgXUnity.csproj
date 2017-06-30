@@ -56,8 +56,9 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="agxDotNet">
-      <HintPath>D:\Algoryx\AgX-(rc)-2.15.0.3\bin\x64\agxDotNet.dll</HintPath>
+    <Reference Include="agxDotNet, Version=0.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\agx_unity\installed\bin\x64\agxDotNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEngine">
@@ -69,6 +70,7 @@
     <Compile Include="AttachmentPair.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="Cable.cs" />
+    <Compile Include="CableAttachment.cs" />
     <Compile Include="CableProperties.cs" />
     <Compile Include="CableRoute.cs" />
     <Compile Include="CableRouteNode.cs" />
@@ -81,23 +83,34 @@
     <Compile Include="Collide\Shape.cs" />
     <Compile Include="ConstraintAttachmentPair.cs" />
     <Compile Include="ConstraintFrame.cs" />
+    <Compile Include="ConstraintMergeSplitThresholds.cs" />
     <Compile Include="ElementaryConstraint.cs" />
     <Compile Include="ElementaryConstraintRowData.cs" />
     <Compile Include="Frame.cs" />
+    <Compile Include="GeometryContactMergeSplitThresholds.cs" />
     <Compile Include="IFrame.cs" />
+    <Compile Include="IO\RestoredAGXFile.cs" />
+    <Compile Include="IO\Uuid.cs" />
     <Compile Include="Legacy\CableRouteData.cs" />
     <Compile Include="Legacy\WireRouteData.cs" />
+    <Compile Include="MergeSplitProperties.cs" />
+    <Compile Include="MergeSplitThresholds.cs" />
     <Compile Include="PickHandler.cs" />
     <Compile Include="Rendering\CableRenderer.cs" />
+    <Compile Include="Rendering\Material.cs" />
     <Compile Include="Rendering\PickHandlerRenderer.cs" />
     <Compile Include="Rendering\SegmentSpawner.cs" />
+    <Compile Include="Rendering\ShapeVisual.cs" />
     <Compile Include="Rendering\SpawnerUtils.cs" />
     <Compile Include="Route.cs" />
     <Compile Include="RouteNode.cs" />
     <Compile Include="StepCallbackFunctions.cs" />
     <Compile Include="Utils\ConstraintUtils.cs" />
     <Compile Include="Utils\DisposableCallback.cs" />
+    <Compile Include="Utils\GUI.cs" />
     <Compile Include="Utils\InvokeWrapper.cs" />
+    <Compile Include="Utils\MeshMerger.cs" />
+    <Compile Include="Utils\MeshSplitter.cs" />
     <Compile Include="Utils\Raycast.cs" />
     <Compile Include="Utils\ShapeInitializationData.cs" />
     <Compile Include="Utils\ShapeUtils.cs" />

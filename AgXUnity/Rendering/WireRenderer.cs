@@ -36,6 +36,17 @@ namespace AgXUnity.Rendering
         Render( wire );
     }
 
+    public void InitializeRenderer( bool destructLast = false )
+    {
+      if ( destructLast && m_segmentSpawner != null ) {
+        m_segmentSpawner.Destroy();
+        m_segmentSpawner = null;
+      }
+
+      m_segmentSpawner = new SegmentSpawner( GetComponent<Wire>(), @"Wire/WireSegment", @"Wire/WireSegmentBegin" );
+      m_segmentSpawner.Initialize( gameObject );
+    }
+
     protected override bool Initialize()
     {
       InitializeRenderer( true );
@@ -84,17 +95,6 @@ namespace AgXUnity.Rendering
       }
 
       m_segmentSpawner.End();
-    }
-
-    private void InitializeRenderer( bool destructLast = false )
-    {
-      if ( destructLast && m_segmentSpawner != null ) {
-        m_segmentSpawner.Destroy();
-        m_segmentSpawner = null;
-      }
-
-      m_segmentSpawner = new SegmentSpawner( GetComponent<Wire>(),  @"Wire/WireSegment", @"Wire/WireSegmentBegin" );
-      m_segmentSpawner.Initialize( gameObject );
     }
 
     private void Render( Wire wire )

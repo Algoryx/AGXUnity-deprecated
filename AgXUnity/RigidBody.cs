@@ -269,6 +269,22 @@ namespace AgXUnity
 
       return true;
     }
+
+    public void RestoreLocalDataFrom( agx.RigidBody native )
+    {
+      if ( native == null )
+        throw new ArgumentNullException( "native", "Native object is null." );
+
+      MassProperties.RestoreLocalDataFrom( native.getMassProperties() );
+
+      enabled                = native.getEnable();
+      MotionControl          = native.getMotionControl();
+      HandleAsParticle       = native.getHandleAsParticle();
+      LinearVelocity         = native.getVelocity().ToHandedVector3();
+      LinearVelocityDamping  = native.getLinearVelocityDamping().ToHandedVector3();
+      AngularVelocity        = native.getAngularVelocity().ToHandedVector3();
+      AngularVelocityDamping = native.getAngularVelocityDamping().ToHandedVector3();
+    }
     #endregion
 
     #region Protected Virtual Methods

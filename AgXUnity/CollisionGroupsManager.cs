@@ -11,7 +11,7 @@ namespace AgXUnity
   /// Object containing two collision group entries that are
   /// disabled against each other.
   /// </summary>
-  [System.Serializable]
+  [Serializable]
   public class CollisionGroupEntryPair
   {
     public CollisionGroupEntry First = new CollisionGroupEntry();

@@ -218,7 +218,7 @@ namespace AgXUnity
 
       foreach ( Cable cable in data.Cables )
         if ( cable.GetInitialized<Cable>() != null )
-          cable.GetInitialized<Cable>().Native.getImplementation().addGroupID( entry.Tag.To32BitFnv1aHash() );
+          cable.GetInitialized<Cable>().Native.addGroup( entry.Tag.To32BitFnv1aHash() );
     }
 
     private void RemoveGroup( CollisionGroupEntry entry, Data data )
@@ -233,7 +233,7 @@ namespace AgXUnity
 
       foreach ( Cable cable in data.Cables ) {
         if ( cable.GetInitialized<Cable>() != null )
-          cable.GetInitialized<Cable>().Native.getImplementation().removeGroupID( entry.Tag.To32BitFnv1aHash() );
+          cable.GetInitialized<Cable>().Native.removeGroup( entry.Tag.To32BitFnv1aHash() );
       }
     }
   }

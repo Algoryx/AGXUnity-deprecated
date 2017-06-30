@@ -36,7 +36,6 @@ namespace AgXUnityEditor
   /// </example>
   public class SceneViewWindow
   {
-
     /// <summary>
     /// Window data object, holding callback, size, position etc. of the window.
     /// </summary>

@@ -33,6 +33,10 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="agxDotNet, Version=0.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\agx_unity\installed\bin\x64\agxDotNet.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="UnityEditor">
       <HintPath>..\..\..\..\Program Files\Unity\Editor\Data\Managed\UnityEditor.dll</HintPath>
@@ -42,13 +46,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AssetPostprocessorHandler.cs" />
     <Compile Include="Attributes.cs" />
     <Compile Include="BaseEditor.cs" />
     <Compile Include="EditorData.cs" />
     <Compile Include="EditorDataEntry.cs" />
     <Compile Include="EditorSettings.cs" />
+    <Compile Include="IO\AGXFileInfo.cs" />
+    <Compile Include="IO\InputAGXFile.cs" />
+    <Compile Include="IO\InputAGXFileTree.cs" />
+    <Compile Include="IO\InputAGXFileTreeNode.cs" />
+    <Compile Include="IO\UuidObjectDb.cs" />
     <Compile Include="Manager.cs" />
     <Compile Include="Menus\AssetsMenu.cs" />
+    <Compile Include="Menus\GameObjectMenu.cs" />
     <Compile Include="Menus\TopMenu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Tools\AssemblyTool.cs" />
@@ -59,6 +70,7 @@
     <Compile Include="Tools\ConstraintCreateTool.cs" />
     <Compile Include="Tools\ConstraintTool.cs" />
     <Compile Include="Tools\ContactMaterialManagerTool.cs" />
+    <Compile Include="Tools\DebugRenderManagerTool.cs" />
     <Compile Include="Tools\DirectionTool.cs" />
     <Compile Include="Tools\DisableCollisionsTool.cs" />
     <Compile Include="Tools\EdgeDetectionTool.cs" />
@@ -66,13 +78,16 @@
     <Compile Include="Tools\FrameTool.cs" />
     <Compile Include="Tools\PickHandlerTool.cs" />
     <Compile Include="Tools\RigidBodyTool.cs" />
+    <Compile Include="Tools\RigidBodyVisualCreateTool.cs" />
     <Compile Include="Tools\RouteNodeTool.cs" />
     <Compile Include="Tools\RouteTool.cs" />
     <Compile Include="Tools\SelectGameObjectDropdownMenuTool.cs" />
     <Compile Include="Tools\ShapeCreateTool.cs" />
+    <Compile Include="Tools\ShapeMeshTool.cs" />
     <Compile Include="Tools\ShapeTool.cs" />
     <Compile Include="Tools\SelectGameObjectTool.cs" />
     <Compile Include="Tools\ShapeResizeTool.cs" />
+    <Compile Include="Tools\ShapeVisualCreateTool.cs" />
     <Compile Include="Tools\Tool.cs" />
     <Compile Include="Tools\WireTool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />

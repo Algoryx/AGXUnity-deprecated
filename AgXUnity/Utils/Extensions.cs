@@ -174,12 +174,37 @@ namespace AgXUnity.Utils
   public static partial class Extensions
   {
     /// <summary>
+    /// Direct convert from agx.Vec2 to Vector2.
+    /// </summary>
+    public static Vector2 ToVector2( this agx.Vec2 v )
+    {
+      return new Vector2( (float)v.x, (float)v.y );
+    }
+
+    /// <summary>
+    /// Direct convert from agx.Vec2f to Vector2.
+    /// </summary>
+    public static Vector2 ToVector2( this agx.Vec2f v )
+    {
+      return new Vector3( v.x, v.y );
+    }
+
+    /// <summary>
     /// Direct convert from agx.Vec3 to Vector3.
     /// </summary>
     /// <seealso cref="ToHandedVector3(agx.Vec3)"/>
     public static Vector3 ToVector3( this agx.Vec3 v )
     {
       return new Vector3( (float)v.x, (float)v.y, (float)v.z );
+    }
+
+    /// <summary>
+    /// Direct convert from agx.Vec3f to Vector3.
+    /// </summary>
+    /// <seealso cref="ToHandedVector3(agx.Vec3)"/>
+    public static Vector3 ToVector3( this agx.Vec3f v )
+    {
+      return new Vector3( v.x, v.y, v.z );
     }
 
     /// <summary>
@@ -216,6 +241,42 @@ namespace AgXUnity.Utils
     public static agx.Vec3 ToHandedVec3( this Vector3 v )
     {
       return new agx.Vec3( -(double)v.x, (double)v.y, (double)v.z );
+    }
+
+    /// <summary>
+    /// Convert from agx.Vec3f to Vector3 - flipping x axis, transforming from
+    /// left/right handed to right/left handed coordinate system.
+    /// </summary>
+    public static Vector3 ToHandedVector3( this agx.Vec3f v )
+    {
+      return new Vector3( -v.x, v.y, v.z );
+    }
+
+    /// <summary>
+    /// Convert from Vector3 to agx.Vec3f - flipping x axis, transforming from
+    /// left/right handed to right/left handed coordinate system.
+    /// </summary>
+    public static agx.Vec3f ToHandedVec3f( this Vector3 v )
+    {
+      return new agx.Vec3f( -v.x, v.y, v.z );
+    }
+
+    /// <summary>
+    /// Convert from agx.Vec4 to UnityEngine.Color.
+    /// </summary>
+    /// <returns>Vec4 as Color.</returns>
+    public static Color ToColor( this agx.Vec4 v )
+    {
+      return new Color( (float)v.x, (float)v.y, (float)v.z, (float)v.w );
+    }
+
+    /// <summary>
+    /// Convert from agx.Vec4f to UnityEngine.Color.
+    /// </summary>
+    /// <returns>Vec4f as Color.</returns>
+    public static Color ToColor( this agx.Vec4f v )
+    {
+      return new Color( v.x, v.y, v.z, v.w );
     }
 
     /// <summary>
@@ -259,7 +320,7 @@ namespace AgXUnity.Utils
     /// </summary>
     public static agx.Quat ToHandedQuat( this Quaternion q )
     {
-      return new agx.Quat( -(double)q.x, (double)q.y, (double)q.z, -(double)q.w );
+      return new agx.Quat( -q.x, q.y, q.z, -q.w );
     }
 
     // Extensions GetTranslate, GetRotation and GetScale:
@@ -416,6 +477,63 @@ namespace AgXUnity.Utils
         return str;
 
       return str.First().ToString().ToUpper() + str.Substring( 1 );
+    }
+  }
+
+  /// <summary>
+  /// Extensions for UnityEngine.Material.
+  /// </summary>
+  public static partial class Extensions
+  {
+    /// <summary>
+    /// Set blend mode from script. Taken from:
+    /// https://forum.unity3d.com/threads/standard-material-shader-ignoring-setfloat-property-_mode.344557/#post-2229980
+    /// </summary>
+    /// <param name="blendMode"></param>
+    public static void SetBlendMode( this Material material, Rendering.BlendMode blendMode )
+    {
+      switch ( blendMode ) {
+        case Rendering.BlendMode.Opaque:
+          material.SetOverrideTag( "RenderType", "" );
+          material.SetInt( "_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One );
+          material.SetInt( "_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero );
+          material.SetInt( "_ZWrite", 1 );
+          material.DisableKeyword( "_ALPHATEST_ON" );
+          material.DisableKeyword( "_ALPHABLEND_ON" );
+          material.DisableKeyword( "_ALPHAPREMULTIPLY_ON" );
+          material.renderQueue = -1;
+          break;
+        case Rendering.BlendMode.Cutout:
+          material.SetOverrideTag( "RenderType", "TransparentCutout" );
+          material.SetInt( "_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One );
+          material.SetInt( "_DstBlend", (int)UnityEngine.Rendering.BlendMode.Zero );
+          material.SetInt( "_ZWrite", 1 );
+          material.EnableKeyword( "_ALPHATEST_ON" );
+          material.DisableKeyword( "_ALPHABLEND_ON" );
+          material.DisableKeyword( "_ALPHAPREMULTIPLY_ON" );
+          material.renderQueue = 2450;
+          break;
+        case Rendering.BlendMode.Fade:
+          material.SetOverrideTag( "RenderType", "Transparent" );
+          material.SetInt( "_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha );
+          material.SetInt( "_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha );
+          material.SetInt( "_ZWrite", 0 );
+          material.DisableKeyword( "_ALPHATEST_ON" );
+          material.EnableKeyword( "_ALPHABLEND_ON" );
+          material.DisableKeyword( "_ALPHAPREMULTIPLY_ON" );
+          material.renderQueue = 3000;
+          break;
+        case Rendering.BlendMode.Transparent:
+          material.SetOverrideTag( "RenderType", "Transparent" );
+          material.SetInt( "_SrcBlend", (int)UnityEngine.Rendering.BlendMode.One );
+          material.SetInt( "_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha );
+          material.SetInt( "_ZWrite", 0 );
+          material.DisableKeyword( "_ALPHATEST_ON" );
+          material.DisableKeyword( "_ALPHABLEND_ON" );
+          material.EnableKeyword( "_ALPHAPREMULTIPLY_ON" );
+          material.renderQueue = 3000;
+          break;
+      }
     }
   }
 }

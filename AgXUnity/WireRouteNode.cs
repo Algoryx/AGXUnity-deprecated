@@ -143,8 +143,10 @@ namespace AgXUnity
     private void OnNodeType()
     {
       if ( m_winch != null ) {
-        if ( Wire == null || Type != Wire.NodeType.WinchNode )
+        if ( Wire == null || Type != Wire.NodeType.WinchNode ) {
           ScriptComponent.DestroyImmediate( m_winch );
+          m_winch = null;
+        }
       }
       else if ( Wire != null && Type == Wire.NodeType.WinchNode ) {
         m_winch = Wire.gameObject.AddComponent<WireWinch>();

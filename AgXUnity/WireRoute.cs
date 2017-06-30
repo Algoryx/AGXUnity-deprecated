@@ -106,6 +106,74 @@ namespace AgXUnity
       return node;
     }
 
+    /// <summary>
+    /// Add route node given native winch instance. Data will be copied from
+    /// native to the created route node.
+    /// </summary>
+    /// <param name="nativeWinch">Native winch.</param>
+    /// <param name="parent">Parent game object as in nativeWinch.getRigidBody().</param>
+    /// <returns>Winch route node if added, otherwise null.</returns>
+    public WireRouteNode Add( agxWire.WireWinchController nativeWinch, GameObject parent )
+    {
+      if ( nativeWinch == null )
+        return null;
+
+      var node = WireRouteNode.Create( Wire.NodeType.WinchNode, parent );
+      if ( !Add( node ) )
+        return null;
+
+      node.LocalPosition = nativeWinch.getStopNode().getPosition().ToHandedVector3();
+      node.LocalRotation = Quaternion.LookRotation( nativeWinch.getNormal().ToHandedVector3(), Vector3.up );
+
+      node.Winch.RestoreLocalDataFrom( nativeWinch );
+
+      return node;
+    }
+
+    /// <summary>
+    /// Add route node given native node instance. If the node type is unsupported
+    /// this method returns null, ignoring the node.
+    /// </summary>
+    /// <remarks>
+    /// If the given node is a lumped node it will be assumed to be NodeType.FreeNode.
+    /// </remarks>
+    /// <param name="nativeNode">Native node instance.</param>
+    /// <param name="parent">Parent game object as in nativeNode.getRigidBody().</param>
+    /// <returns>Wire route node if added, otherwise null.</returns>
+    public WireRouteNode Add( agxWire.Node nativeNode, GameObject parent )
+    {
+      if ( nativeNode == null )
+        return null;
+
+      var nodeType = Wire.Convert( nativeNode.getType() );
+      if ( nodeType == Wire.NodeType.Unknown )
+        return null;
+
+      // Assume free if lumped node.
+      if ( nodeType == Wire.NodeType.BodyFixedNode && agxWire.Wire.isLumpedNode( nativeNode.getRigidBody() ) )
+        nodeType = Wire.NodeType.FreeNode;
+
+      var node = WireRouteNode.Create( nodeType, parent );
+      if ( !Add( node ) )
+        return null;
+
+      if ( nodeType != Wire.NodeType.FreeNode )
+        node.LocalPosition = nativeNode.getPosition().ToHandedVector3();
+      else
+        node.Position = nativeNode.getWorldPosition().ToHandedVector3();
+
+      return node;
+    }
+
+    public override void Clear()
+    {
+      var nodes = this.ToArray();
+      for ( int i = 0; i < nodes.Length; ++i )
+        OnRemovedFromList( nodes[ i ], i );
+
+      base.Clear();
+    }
+
     private WireRoute()
     {
       OnNodeAdded   += this.OnAddedToList;

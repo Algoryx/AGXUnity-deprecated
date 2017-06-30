@@ -2,6 +2,7 @@
 using UnityEngine;
 using UnityEditor;
 using AgXUnity;
+using AgXUnity.Utils;
 using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
@@ -16,6 +17,17 @@ namespace AgXUnityEditor.Tools
     {
       Wire = wire;
       NodeVisualRadius += () => { return Wire.Radius; };
+    }
+
+    protected override string GetNodeTypeString( RouteNode node )
+    {
+      var wireNode = node as WireRouteNode;
+      return GUI.AddColorTag( wireNode.Type.ToString().SplitCamelCase(), GetColor( wireNode ) );
+    }
+
+    protected override Color GetNodeColor( RouteNode node )
+    {
+      return GetColor( node as WireRouteNode );
     }
 
     public override void OnPostTargetMembersGUI( GUISkin skin )
@@ -53,6 +65,21 @@ namespace AgXUnityEditor.Tools
         newNode.Type = refNode.Type;
       else
         newNode.Type = Wire.NodeType.FreeNode;
+    }
+
+    private Color GetColor( WireRouteNode node )
+    {
+      return node.Type == Wire.NodeType.BodyFixedNode ?
+               Color.HSVToRGB( 26.0f / 300.0f, 0.77f, 0.52f ) :
+             node.Type == Wire.NodeType.FreeNode ?
+               Color.HSVToRGB( 200.0f / 300.0f, 0.77f, 0.92f ) :
+             node.Type == Wire.NodeType.ConnectingNode ?
+               Color.blue :
+             node.Type == Wire.NodeType.ContactNode ?
+               new Color( 0.85f, 0.15f, 1.0f ) :
+             node.Type == Wire.NodeType.EyeNode ?
+               Color.Lerp( Color.green, Color.black, 0.1f ) :
+               Color.Lerp( Color.red, Color.black, 0.1f );
     }
   }
 }

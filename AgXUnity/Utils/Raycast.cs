@@ -82,8 +82,9 @@ namespace AgXUnity.Utils
 
       Collide.Shape shape = Target.GetComponent<Collide.Shape>();
       if ( shape != null ) {
-        if ( shape is Collide.Mesh )
-          hit.Triangle = MeshUtils.FindClosestTriangle( ( shape as Collide.Mesh ).SourceObject, shape.gameObject, ray, rayLength );
+        if ( shape is Collide.Mesh ) {
+          hit.Triangle = MeshUtils.FindClosestTriangle( ( shape as Collide.Mesh ).SourceObjects, shape.gameObject, ray, rayLength );
+        }
         else if ( shape is Collide.HeightField )
           hit.Triangle = TriangleHit.Invalid;
         else {
@@ -147,15 +148,7 @@ namespace AgXUnity.Utils
       foreach ( Transform child in target.transform )
         hitList.Add( Test( child.gameObject, ray, rayLength, true ) );
 
-      Hit bestHit = Hit.Invalid;
-      foreach ( Hit hit in hitList ) {
-        if ( hit.Triangle.Valid && hit.Triangle.Distance < bestHit.Triangle.Distance )
-          bestHit.Triangle = hit.Triangle;
-        if ( hit.ClosestEdge.Valid && hit.ClosestEdge.Distance < bestHit.ClosestEdge.Distance )
-          bestHit.ClosestEdge = hit.ClosestEdge;
-      }
-
-      return bestHit;
+      return FindBestHit( hitList );
     }
 
     public static List<Hit> TestChildren( GameObject parent, Ray ray, float rayLength = 500.0f, Predicate<GameObject> objectPredicate = null )
@@ -178,13 +171,26 @@ namespace AgXUnity.Utils
       return result;
     }
 
+    private static Hit FindBestHit( List<Hit> hitList )
+    {
+      Hit bestHit = Hit.Invalid;
+      foreach ( Hit hit in hitList ) {
+        if ( hit.Triangle.Valid && hit.Triangle.Distance < bestHit.Triangle.Distance )
+          bestHit.Triangle = hit.Triangle;
+        if ( hit.ClosestEdge.Valid && hit.ClosestEdge.Distance < bestHit.ClosestEdge.Distance )
+          bestHit.ClosestEdge = hit.ClosestEdge;
+      }
+
+      return bestHit;
+    }
+
     private MeshUtils.Edge[] FindPrincipalEdges( Collide.Shape shape, float principalEdgeExtension )
     {
       if ( shape != null && shape.GetUtils() != null )
         return shape.GetUtils().GetPrincipalEdgesWorld( principalEdgeExtension );
 
       Mesh mesh = shape is Collide.Mesh ?
-                    ( shape as Collide.Mesh ).SourceObject :
+                    ( shape as Collide.Mesh ).SourceObjects.FirstOrDefault() :
                   Target.GetComponent<MeshFilter>() != null ?
                     Target.GetComponent<MeshFilter>().sharedMesh :
                   null;

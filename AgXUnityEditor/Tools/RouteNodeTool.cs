@@ -12,6 +12,7 @@ namespace AgXUnityEditor.Tools
     private Action<RouteNode> m_setSelected = null;
     private Predicate<RouteNode> m_hasNode = null;
     private Func<float> m_radius = null;
+    private Func<RouteNode, Color> m_color = null;
 
     public ScriptComponent Parent { get; private set; }
 
@@ -22,7 +23,7 @@ namespace AgXUnityEditor.Tools
       get { return GetChild<FrameTool>(); }
     }
 
-    public Utils.VisualPrimitiveSphere Visual { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveSphere>( "cableRouteNode" ); } }
+    public Utils.VisualPrimitiveSphere Visual { get { return GetOrCreateVisualPrimitive<Utils.VisualPrimitiveSphere>( "RouteNodeVisual" ); } }
 
     public bool Selected
     {
@@ -36,7 +37,8 @@ namespace AgXUnityEditor.Tools
                           Func<RouteNode> getSelected,
                           Action<RouteNode> setSelected,
                           Predicate<RouteNode> hasNode,
-                          Func<float> radius )
+                          Func<float> radius,
+                          Func<RouteNode, Color> color )
     {
       Node = node;
       Parent = parent;
@@ -51,8 +53,9 @@ namespace AgXUnityEditor.Tools
       m_setSelected = setSelected;
       m_hasNode = hasNode;
       m_radius = radius ?? new Func<float>( () => { return 0.05f; } );
+      m_color = color;
 
-      Visual.Color = Color.yellow;
+      Visual.Color = m_color( Node );
       Visual.MouseOverColor = new Color( 0.1f, 0.96f, 0.15f, 1.0f );
       Visual.OnMouseClick += OnClick;
     }
@@ -66,7 +69,7 @@ namespace AgXUnityEditor.Tools
 
       float radius = ( Selected ? 3.01f : 3.0f ) * m_radius();
       Visual.Visible = !EditorApplication.isPlaying;
-      Visual.Color = Selected ? Visual.MouseOverColor : Color.yellow;
+      Visual.Color = Selected ? Visual.MouseOverColor : m_color( Node );
       Visual.SetTransform( Node.Position, Node.Rotation, radius, true, 1.2f * m_radius(), Mathf.Max( 1.5f * m_radius(), 0.25f ) );
     }
 

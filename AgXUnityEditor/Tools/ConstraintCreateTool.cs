@@ -81,30 +81,14 @@ namespace AgXUnityEditor.Tools
 
       GUI.Separator3D();
 
-      bool createConstraintPressed = false;
-      bool cancelPressed = false;
-      GUILayout.BeginHorizontal();
-      {
-        GUILayout.FlexibleSpace();
-
-        GUILayout.BeginVertical();
-        {
-          GUILayout.Space( 13 );
-          using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.red, 0.1f ) ) )
-            cancelPressed = GUILayout.Button( GUI.MakeLabel( "Cancel", false ), skin.button, GUILayout.Width( 96 ), GUILayout.Height( 16 ) );
-          GUILayout.EndVertical();
-        }
-
-        UnityEngine.GUI.enabled = m_createConstraintData.AttachmentPair.ReferenceObject != null && m_createConstraintData.AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>() != null;
-        using ( new GUI.ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
-          createConstraintPressed = GUILayout.Button( GUI.MakeLabel( "Create", true, "Create the constraint" ), skin.button, GUILayout.Width( 120 ), GUILayout.Height( 26 ) );
-        UnityEngine.GUI.enabled = true;
-      }
-      GUILayout.EndHorizontal();
+      var createCancelState = GUI.CreateCancelButtons( m_createConstraintData.AttachmentPair.ReferenceObject != null &&
+                                                       m_createConstraintData.AttachmentPair.ReferenceObject.GetComponentInParent<RigidBody>() != null,
+                                                       skin,
+                                                       "Create the constraint" );
 
       GUI.Separator3D();
 
-      if ( createConstraintPressed ) {
+      if ( createCancelState == GUI.CreateCancelState.Create ) {
         GameObject constraintGameObject = Factory.Create( m_createConstraintData.ConstraintType,
                                                           m_createConstraintData.AttachmentPair );
         Constraint constraint           = constraintGameObject.GetComponent<Constraint>();
@@ -119,7 +103,7 @@ namespace AgXUnityEditor.Tools
         m_createConstraintData.Reset();
       }
 
-      if ( cancelPressed || createConstraintPressed )
+      if ( createCancelState != GUI.CreateCancelState.Nothing )
         PerformRemoveFromParent();
     }
 

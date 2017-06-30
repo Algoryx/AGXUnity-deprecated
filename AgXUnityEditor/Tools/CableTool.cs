@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using AgXUnity;
+using AgXUnity.Utils;
 using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor.Tools
@@ -15,6 +16,17 @@ namespace AgXUnityEditor.Tools
     {
       Cable = cable;
       NodeVisualRadius = () => { return Cable.Radius; };
+    }
+
+    protected override string GetNodeTypeString( RouteNode node )
+    {
+      var cableNode = node as CableRouteNode;
+      return GUI.AddColorTag( cableNode.Type.ToString().SplitCamelCase(), GetColor( cableNode ) );
+    }
+
+    protected override Color GetNodeColor( RouteNode node )
+    {
+      return GetColor( node as CableRouteNode );
     }
 
     protected override void OnPreFrameGUI( CableRouteNode node, GUISkin skin )
@@ -32,6 +44,13 @@ namespace AgXUnityEditor.Tools
         newNode.Type = refNode.Type;
       else
         newNode.Type = Cable.NodeType.FreeNode;
+    }
+
+    private Color GetColor( CableRouteNode node )
+    {
+      return node.Type == Cable.NodeType.BodyFixedNode ?
+               Color.HSVToRGB( 26.0f / 300.0f, 0.77f, 0.52f ) :
+               Color.HSVToRGB( 200.0f / 300.0f, 0.77f, 0.92f );
     }
   }
 

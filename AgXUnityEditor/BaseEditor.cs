@@ -7,6 +7,7 @@ using AgXUnity;
 using AgXUnity.Utils;
 using UnityEngine;
 using UnityEditor;
+using GUI = AgXUnityEditor.Utils.GUI;
 
 namespace AgXUnityEditor
 {
@@ -64,6 +65,9 @@ namespace AgXUnityEditor
 
     public void OnEnable()
     {
+      if ( target == null )
+        return;
+
       GUISkin guiSkin = EditorGUIUtility.GetBuiltinSkin( EditorSkin.Inspector );
       guiSkin.label.richText = true;
       guiSkin.toggle.richText = true;
@@ -160,9 +164,9 @@ namespace AgXUnityEditor
                            Utils.GUI.MakeLabel( attribute.Label ) :
                            MakeLabel( methodInfo );
 
-      bool guiWasEnabled = GUI.enabled;
+      bool guiWasEnabled = UnityEngine.GUI.enabled;
       if ( attribute.OnlyInStatePlay && !( EditorApplication.isPlaying || EditorApplication.isPaused ) )
-        GUI.enabled = false;
+        UnityEngine.GUI.enabled = false;
 
       bool invoked = false;
       if ( GUILayout.Button( label, skin.button, new GUILayoutOption[]{} ) ) {
@@ -170,7 +174,7 @@ namespace AgXUnityEditor
         invoked = true;
       }
 
-      GUI.enabled = guiWasEnabled;
+      UnityEngine.GUI.enabled = guiWasEnabled;
 
       return invoked;
     }
@@ -295,7 +299,7 @@ namespace AgXUnityEditor
         IFrame frame = wrapper.Get<IFrame>();
         Utils.GUI.HandleFrame( frame, skin );
       }
-      else if ( ( type.BaseType == typeof( ScriptAsset ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
+      else if ( ( typeof( ScriptAsset ).IsAssignableFrom( type ) || type.BaseType == typeof( UnityEngine.Object ) || type.BaseType == typeof( ScriptComponent ) ) && wrapper.CanRead() ) {
         bool allowSceneObject         = type == typeof( GameObject ) ||
                                         type.BaseType == typeof( ScriptComponent );
         UnityEngine.Object valInField = wrapper.Get<UnityEngine.Object>();
@@ -306,16 +310,18 @@ namespace AgXUnityEditor
 
           GUILayout.BeginHorizontal();
           {
-            GUI.enabled = valInField != null;
+            var objFieldLabel = MakeLabel( wrapper.Member );
+            var buttonSize = skin.label.CalcHeight( objFieldLabel, Screen.width );
+            UnityEngine.GUI.enabled = valInField != null;
             foldoutData.Bool = GUILayout.Button( Utils.GUI.MakeLabel( foldoutData.Bool ? "-" : "+" ),
                                                  skin.button,
-                                                 new GUILayoutOption[] { GUILayout.Width( 20 ), GUILayout.Height( 14 ) } ) ?
+                                                 new GUILayoutOption[] { GUILayout.Width( 20.0f ), GUILayout.Height( buttonSize ) } ) ?
                                  // Button clicked - toggle current value.
                                  !foldoutData.Bool :
                                  // If foldout were enabled but valInField has changed to null - foldout will become disabled.
                                  valInField != null && foldoutData.Bool;
-            GUI.enabled = true;
-            value = EditorGUILayout.ObjectField( MakeLabel( wrapper.Member ), valInField, type, allowSceneObject, new GUILayoutOption[] { } );
+            UnityEngine.GUI.enabled = true;
+            value = EditorGUILayout.ObjectField( objFieldLabel, valInField, type, allowSceneObject, new GUILayoutOption[] { } );
           }
           GUILayout.EndHorizontal();
 
@@ -360,7 +366,7 @@ namespace AgXUnityEditor
       else if ( type.IsClass && wrapper.CanRead() ) {
       }
 
-      return GUI.changed &&
+      return UnityEngine.GUI.changed &&
              ( value != null || isNullable ) &&
              wrapper.ConditionalSet( value );
     }

@@ -236,6 +236,13 @@ namespace AgXUnity
       }
     }
 
+    protected override void Construct( agx.ElementaryConstraint tmpEc )
+    {
+      base.Construct( tmpEc );
+
+      m_range = new RangeReal( agx.RangeController.safeCast( tmpEc ).getRange() );
+    }
+
     protected override void Construct( ElementaryConstraint source )
     {
       base.Construct( source );
@@ -290,6 +297,14 @@ namespace AgXUnity
         if ( Native != null )
           agx.TargetSpeedController.safeCast( Native ).setLockedAtZeroSpeed( m_lockAtZeroSpeed );
       }
+    }
+
+    protected override void Construct( agx.ElementaryConstraint tmpEc )
+    {
+      base.Construct( tmpEc );
+
+      m_speed = Convert.ToSingle( agx.TargetSpeedController.safeCast( tmpEc ).getSpeed() );
+      m_lockAtZeroSpeed = agx.TargetSpeedController.safeCast( tmpEc ).getLockedAtZeroSpeed();
     }
 
     protected override void Construct( ElementaryConstraint source )
@@ -357,6 +372,13 @@ namespace AgXUnity
         if ( Native != null )
           agx.ScrewController.safeCast( Native ).setLead( m_lead );
       }
+    }
+
+    protected override void Construct( agx.ElementaryConstraint tmpEc )
+    {
+      base.Construct( tmpEc );
+
+      m_lead = Convert.ToSingle( agx.ScrewController.safeCast( tmpEc ).getLead() );
     }
 
     protected override void Construct( ElementaryConstraint source )

@@ -84,6 +84,17 @@ namespace AgXUnity
       }
     }
 
+    public void RestoreLocalDataFrom( agxWire.WireWinchController native )
+    {
+      if ( native == null )
+        return;
+
+      Speed           = Convert.ToSingle( native.getSpeed() );
+      PulledInLength  = Convert.ToSingle( native.getPulledInWireLength() );
+      ForceRange      = new RangeReal( native.getForceRange() );
+      BrakeForceRange = new RangeReal( native.getBrakeForceRange() );
+    }
+
     protected override bool Initialize()
     {
       if ( Wire == null ) {

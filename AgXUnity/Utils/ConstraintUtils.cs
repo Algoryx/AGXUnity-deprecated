@@ -56,6 +56,7 @@ namespace AgXUnity.Utils
             int translationalRow = ec.NativeName == "D2_U" ? 0 :
                                    ec.NativeName == "D2_V" ? 1 :
                                    ec.NativeName == "D2_N" ? 2 :
+                                   ec.NativeName == "CN"   ? 2 :
                                                             -1;
             // Dot1 for single rotational row ("D1_VN" about U and "D1_UN" about V ).
             int rotationalRow = ec.NativeName == "D1_VN" ? 0 :

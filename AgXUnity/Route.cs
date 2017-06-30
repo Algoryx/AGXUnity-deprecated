@@ -132,6 +132,14 @@ namespace AgXUnity
       return true;
     }
 
+    /// <summary>
+    /// Complete clear of this route.
+    /// </summary>
+    public virtual void Clear()
+    {
+      m_nodes.Clear();
+    }
+
     protected override bool Initialize()
     {
       foreach ( var node in this )

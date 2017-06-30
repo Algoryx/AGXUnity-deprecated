@@ -1,4 +1,6 @@
-﻿using AgXUnity.Utils;
+﻿using System;
+using System.Collections.Generic;
+using AgXUnity.Utils;
 using UnityEngine;
 
 namespace AgXUnity.Collide
@@ -31,6 +33,26 @@ namespace AgXUnity.Collide
     /// </summary>
     [HideInInspector]
     public float MinimumLength { get { return 1.0E-5f; } }
+
+    /// <summary>
+    /// Collisions of shape enabled/disabled. Default enabled.
+    /// </summary>
+    [SerializeField]
+    private bool m_collisionsEnabled = true;
+
+    /// <summary>
+    /// Enable/disable collisions for this shape.
+    /// </summary>
+    public bool CollisionsEnabled
+    {
+      get { return m_collisionsEnabled; }
+      set
+      {
+        m_collisionsEnabled = value;
+        if ( NativeGeometry != null )
+          NativeGeometry.setEnableCollisions( m_collisionsEnabled );
+      }
+    }
 
     /// <summary>
     /// Shape material instance paired with property Material.
@@ -93,6 +115,19 @@ namespace AgXUnity.Collide
     /// </summary>
     [HideInInspector]
     public RigidBody RigidBody { get { return GetComponentInParent<RigidBody>(); } }
+
+    private Rendering.ShapeVisual m_visual = null;
+
+    [HideInInspector]
+    public Rendering.ShapeVisual Visual
+    {
+      get
+      {
+        if ( m_visual == null )
+          m_visual = Rendering.ShapeVisual.Find( this );
+        return m_visual;
+      }
+    }
 
     /// <summary>
     /// Abstract scale. Mainly used in debug rendering which uses unit size
@@ -166,15 +201,17 @@ namespace AgXUnity.Collide
 
     /// <summary>
     /// Call this method when the size of the shape has been changed.
-    /// This method will call any rigid body object that this shape
-    /// is part, for it to update the mass etc.
     /// </summary>
     public void SizeUpdated()
     {
       // Avoids calling sync of debug rendering when the properties
       // are being synchronized during initialize.
-      if ( !IsSynchronizingProperties )
+      if ( !IsSynchronizingProperties ) {
         Rendering.DebugRenderManager.SynchronizeScale( this );
+
+        if ( Visual != null )
+          Visual.OnSizeUpdated();
+      }
     }
 
     /// <summary>
@@ -186,6 +223,20 @@ namespace AgXUnity.Collide
       if ( m_utils == null )
         m_utils = ShapeUtils.Create( this );
       return m_utils;
+    }
+
+    /// <summary>
+    /// Finds all objects that may be affected when changing a shape. E.g., shape visual.
+    /// </summary>
+    /// <returns>Array of objects that may be affected when changing this instance.</returns>
+    public UnityEngine.Object[] GetUndoCollection()
+    {
+      var collection = new List<UnityEngine.Object>();
+      collection.Add( this );
+      collection.AddRange( GetComponentsInChildren<Rendering.ShapeVisual>() );
+      collection.AddRange( GetComponentsInChildren<MeshRenderer>() );
+      collection.AddRange( GetComponentsInChildren<MeshFilter>() );
+      return collection.ToArray();
     }
 
     /// <summary>

@@ -21,7 +21,48 @@ namespace AgXUnity
       ConnectingNode,
       EyeNode,
       ContactNode,
-      WinchNode
+      WinchNode,
+      Unknown
+    }
+
+    /// <summary>
+    /// Converts from native type to NodeType.
+    /// </summary>
+    /// <param name="nativeType">Native node type.</param>
+    /// <returns>NodeType if supported - otherwise NodeType.Unknwon.</returns>
+    public static NodeType Convert( agxWire.Node.Type nativeType )
+    {
+      return nativeType == agxWire.Node.Type.BODY_FIXED ?
+               NodeType.BodyFixedNode :
+             nativeType == agxWire.Node.Type.FREE ?
+               NodeType.FreeNode :
+             nativeType == agxWire.Node.Type.CONNECTING ?
+               NodeType.ConnectingNode :
+             nativeType == agxWire.Node.Type.EYE ?
+               NodeType.EyeNode :
+             nativeType == agxWire.Node.Type.CONTACT || nativeType == agxWire.Node.Type.SHAPE_CONTACT ?
+               NodeType.ContactNode :
+               NodeType.Unknown;
+    }
+
+    /// <summary>
+    /// Converts from NodeType to native node type.
+    /// </summary>
+    /// <param name="nodeType">Node type.</param>
+    /// <returns>Native node type given NodeType.</returns>
+    public static agxWire.Node.Type Convert( NodeType nodeType )
+    {
+      return nodeType == NodeType.BodyFixedNode ?
+               agxWire.Node.Type.BODY_FIXED :
+             nodeType == NodeType.FreeNode ?
+               agxWire.Node.Type.FREE :
+             nodeType == NodeType.ConnectingNode ?
+               agxWire.Node.Type.CONNECTING :
+             nodeType == NodeType.EyeNode ?
+               agxWire.Node.Type.EYE :
+             nodeType == NodeType.ContactNode ?
+               agxWire.Node.Type.SHAPE_CONTACT :
+               agxWire.Node.Type.NOT_DEFINED;
     }
 
     /// <summary>
@@ -183,6 +224,20 @@ namespace AgXUnity
 
     public Wire()
     {
+    }
+
+    /// <summary>
+    /// Copies data from native instance to this wire.
+    /// </summary>
+    /// <param name="native">Native instance.</param>
+    public void RestoreLocalDataFrom( agxWire.Wire native )
+    {
+      if ( native == null )
+        return;
+
+      Radius                  = System.Convert.ToSingle( native.getRadius() );
+      ResolutionPerUnitLength = System.Convert.ToSingle( native.getResolutionPerUnitLength() );
+      ScaleConstant           = System.Convert.ToSingle( native.getParameterController().getScaleConstant() );
     }
 
     protected override bool Initialize()

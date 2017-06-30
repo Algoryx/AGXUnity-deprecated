@@ -30,6 +30,8 @@ namespace AgXUnityEditor
     private string m_string = string.Empty;
     [SerializeField]
     private ScriptableObject m_scriptableObject = null;
+    [SerializeField]
+    private UnityEngine.Object m_asset = null;
 
     public bool Bool
     {
@@ -93,6 +95,17 @@ namespace AgXUnityEditor
       set
       {
         m_scriptableObject = value;
+
+        OnValueChanged();
+      }
+    }
+
+    public UnityEngine.Object Asset
+    {
+      get { return m_asset; }
+      set
+      {
+        m_asset = value;
 
         OnValueChanged();
       }

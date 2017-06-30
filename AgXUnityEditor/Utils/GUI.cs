@@ -8,7 +8,7 @@ using AgXUnity.Utils;
 
 namespace AgXUnityEditor.Utils
 {
-  public partial class GUI
+  public partial class GUI : AgXUnity.Utils.GUI
   {
     public static class Symbols
     {
@@ -17,6 +17,7 @@ namespace AgXUnityEditor.Utils
 
       public const char ShapeResizeTool         = '\u21C4';
       public const char ShapeCreateTool         = '\u210C';
+      public const char ShapeVisualCreateTool   = '\u274D';
 
       public const char SelectInSceneViewTool   = 'p';
       public const char SelectPointTool         = '\u22A1';
@@ -32,120 +33,6 @@ namespace AgXUnityEditor.Utils
       public const char ListEraseElement        = 'x';
 
       public const char Synchronized            = '\u2194';
-    }
-
-    /// <summary>
-    /// Indent block.
-    /// </summary>
-    /// <example>
-    /// using ( new GUI.Indent( 16.0f ) ) {
-    ///   GUILayout.Label( "This label is indented 16 pixels." );
-    /// }
-    /// GUILayout.Label( "This label isn't indented." );
-    /// </example>
-    public class Indent : IDisposable
-    {
-      public Indent( float numPixels )
-      {
-        GUILayout.BeginHorizontal();
-        GUILayout.Space( numPixels );
-        GUILayout.BeginVertical();
-      }
-
-      public void Dispose()
-      {
-        GUILayout.EndVertical();
-        GUILayout.EndHorizontal();
-      }
-    }
-
-    public class AlignBlock : IDisposable
-    {
-      public enum Alignment { Left, Center, Right };
-
-      public static AlignBlock Left { get { return new AlignBlock( Alignment.Left ); } }
-      public static AlignBlock Center { get { return new AlignBlock( Alignment.Center ); } }
-      public static AlignBlock Right { get { return new AlignBlock( Alignment.Right ); } }
-
-      private Alignment m_alignment = Alignment.Center;
-
-      private AlignBlock( Alignment alignment )
-      {
-        m_alignment = alignment;
-
-        GUILayout.BeginHorizontal();
-        if ( m_alignment != Alignment.Left )
-          GUILayout.FlexibleSpace();
-        GUILayout.BeginVertical();
-      }
-
-      public void Dispose()
-      {
-        GUILayout.EndVertical();
-        if ( m_alignment == Alignment.Center )
-          GUILayout.FlexibleSpace();
-        GUILayout.EndHorizontal();
-      }
-    }
-
-    public class ColorBlock : IDisposable
-    {
-      private Color m_prevColor = default( Color );
-
-      public ColorBlock( Color color )
-      {
-        m_prevColor = UnityEngine.GUI.color;
-        UnityEngine.GUI.color = color;
-      }
-
-      public void Dispose()
-      {
-        UnityEngine.GUI.color = m_prevColor;
-      }
-    }
-
-    public class Prefs
-    {
-      public static string CreateKey( object obj )
-      {
-        return obj.GetType().ToString();
-      }
-
-      public static bool GetOrCreateBool( object obj, bool defaultValue = false )
-      {
-        string key = CreateKey( obj );
-        if ( EditorPrefs.HasKey( key ) )
-          return EditorPrefs.GetBool( key );
-        return SetBool( obj, defaultValue );
-      }
-
-      public static int GetOrCreateInt( object obj, int defaultValue = -1 )
-      {
-        string key = CreateKey( obj );
-        if ( EditorPrefs.HasKey( key ) )
-          return EditorPrefs.GetInt( key );
-        return SetInt( obj, defaultValue );
-      }
-
-      public static bool SetBool( object obj, bool value )
-      {
-        string key = CreateKey( obj );
-        EditorPrefs.SetBool( key, value );
-        return value;
-      }
-
-      public static int SetInt( object obj, int value )
-      {
-        string key = CreateKey( obj );
-        EditorPrefs.SetInt( key, value );
-        return value;
-      }
-
-      public static void RemoveInt( object obj )
-      {
-        string key = CreateKey( obj );
-        EditorPrefs.DeleteKey( key );
-      }
     }
 
     public static void TargetEditorEnable<T>( T target, GUISkin skin ) where T : class
@@ -183,52 +70,6 @@ namespace AgXUnityEditor.Utils
     public static void PostTargetMembers<T>( T target, GUISkin skin ) where T : class
     {
       OnToolInspectorGUI( target, skin, TargetToolGUICallbackType.Post );
-    }
-
-    public static string AddColorTag( string str, Color color )
-    {
-      return @"<color=" + color.ToHexStringRGBA() + @">" + str + @"</color>";
-    }
-
-    public static GUIContent MakeLabel( string text, bool bold = false, string toolTip = "" )
-    {
-      GUIContent label = new GUIContent();
-      string boldBegin = bold ? "<b>" : "";
-      string boldEnd   = bold ? "</b>" : "";
-      label.text       = boldBegin + text + boldEnd;
-
-      if ( toolTip != string.Empty )
-        label.tooltip = toolTip;
-
-      return label;
-    }
-
-    public static GUIContent MakeLabel( string text, int size, bool bold = false, string toolTip = "" )
-    {
-      GUIContent label = MakeLabel( text, bold, toolTip );
-      label.text       = @"<size=" + size + @">" + label.text + @"</size>";
-      return label;
-    }
-
-    public static GUIContent MakeLabel( string text, Color color, bool bold = false, string toolTip = "" )
-    {
-      GUIContent label = MakeLabel( text, bold, toolTip );
-      label.text       = AddColorTag( text, color );
-      return label;
-    }
-
-    public static GUIContent MakeLabel( string text, Color color, int size, bool bold = false, string toolTip = "" )
-    {
-      GUIContent label = MakeLabel( text, size, bold, toolTip );
-      label.text       = AddColorTag( label.text, color );
-      return label;
-    }
-
-    public static GUIStyle Align( GUIStyle style, TextAnchor anchor )
-    {
-      GUIStyle copy = new GUIStyle( style );
-      copy.alignment = anchor;
-      return copy;
     }
 
     public static Vector3 Vector3Field( GUIContent content, Vector3 value, GUIStyle style = null )
@@ -270,10 +111,10 @@ namespace AgXUnityEditor.Utils
       MethodInfo floatMethod   = typeof( EditorGUILayout ).GetMethod( "FloatField", new[] { typeof( string ), typeof( float ), typeof( GUILayoutOption[] ) } );
       MethodInfo vector3Method = typeof( EditorGUILayout ).GetMethod( "Vector3Field", new[] { typeof( string ), typeof( Vector3 ), typeof( GUILayoutOption[] ) } );
       MethodInfo method        = typeof( ValueT ) == typeof( float ) ?
-                                  floatMethod :
+                                   floatMethod :
                                  typeof( ValueT ) == typeof( Vector3 ) ?
-                                  vector3Method :
-                                  null;
+                                   vector3Method :
+                                   null;
       if ( method == null )
         throw new NullReferenceException( "Unknown DefaultAndUserValue type: " + typeof( ValueT ).Name );
 
@@ -308,7 +149,7 @@ namespace AgXUnityEditor.Utils
       }
 
       if ( updateDefaultValue )
-        valInField.FireOnForcedUpdate();
+        valInField.OnForcedUpdate();
 
       return newValue;
     }
@@ -373,11 +214,16 @@ namespace AgXUnityEditor.Utils
 
     public static bool Foldout( EditorDataEntry state, GUIContent label, GUISkin skin, Action<bool> onStateChanged = null )
     {
+      return FoldoutEx( state, skin.button, label, skin.label, onStateChanged );
+    }
+
+    public static bool FoldoutEx( EditorDataEntry state, GUIStyle buttonStyle, GUIContent label, GUIStyle labelStyle, Action<bool> onStateChanged = null )
+    {
       GUILayout.BeginHorizontal();
       {
-        bool expandPressed = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) );
-        //state.Bool = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), skin.button, GUILayout.Width( 20 ), GUILayout.Height( 14 ) ) ? !state.Bool : state.Bool;
-        GUILayout.Label( label, skin.label, GUILayout.ExpandWidth( true ) );
+        var buttonSize = labelStyle.CalcHeight( label, Screen.width );
+        bool expandPressed = GUILayout.Button( MakeLabel( state.Bool ? "-" : "+" ), buttonStyle, GUILayout.Width( 20.0f ), GUILayout.Height( buttonSize ) );
+        GUILayout.Label( label, labelStyle, GUILayout.ExpandWidth( true ) );
         if ( expandPressed ||
              ( GUILayoutUtility.GetLastRect().Contains( Event.current.mousePosition ) &&
                Event.current.type == EventType.MouseDown &&
@@ -387,7 +233,7 @@ namespace AgXUnityEditor.Utils
           onStateChanged?.Invoke( state.Bool );
 
           if ( !expandPressed )
-          GUIUtility.ExitGUI();
+            GUIUtility.ExitGUI();
         }
       }
       GUILayout.EndHorizontal();
@@ -426,17 +272,6 @@ namespace AgXUnityEditor.Utils
       }
     }
 
-    private static GUISkin m_editorGUISkin = null;
-    public static GUISkin Skin
-    {
-      get
-      {
-        if ( m_editorGUISkin == null )
-          m_editorGUISkin = Resources.Load<GUISkin>( "AgXEditorGUISkin" );
-        return m_editorGUISkin ?? UnityEngine.GUI.skin;
-      }
-    }
-
     public static void Separator( float height = 1.0f, float space = 2.0f )
     {
       Texture2D lineTexture = EditorGUIUtility.isProSkin ?
@@ -449,7 +284,6 @@ namespace AgXUnityEditor.Utils
         EditorGUI.DrawPreviewTexture( EditorGUILayout.GetControlRect( new GUILayoutOption[] { GUILayout.ExpandWidth( true ), GUILayout.Height( height ) } ), lineTexture );
       }
       GUILayout.EndVertical();
-      //GUILayout.Space( space );
     }
 
     public static void Separator3D( float space = 2.0f )
@@ -483,26 +317,6 @@ namespace AgXUnityEditor.Utils
       return false;
     }
 
-    public static Texture2D CreateColoredTexture( int width, int height, Color color )
-    {
-      Texture2D texture = new Texture2D( width, height );
-      for ( int i = 0; i < width; ++i )
-        for ( int j = 0; j < height; ++j )
-          texture.SetPixel( i, j, color );
-
-      texture.Apply();
-
-      return texture;
-    }
-
-    public static GUIStyle CreateSelectedStyle( GUIStyle orgStyle )
-    {
-      GUIStyle selectedStyle = new GUIStyle( orgStyle );
-      selectedStyle.normal = orgStyle.onActive;
-
-      return selectedStyle;
-    }
-
     public static Color ProBackgroundColor = new Color32( 56, 56, 56, 255 );
     public static Color IndieBackgroundColor = new Color32( 194, 194, 194, 255 );
 
@@ -519,6 +333,108 @@ namespace AgXUnityEditor.Utils
     public static GUIStyle ConditionalCreateSelectedStyle( bool selected, GUIStyle orgStyle )
     {
       return selected ? CreateSelectedStyle( orgStyle ) : orgStyle;
+    }
+
+    public static void MaterialEditor( GUIContent objFieldLabel,
+                                       float objFieldLabelWidth,
+                                       Material material,
+                                       GUISkin skin,
+                                       Action<Material> onMaterialChanged,
+                                       bool forceEnableEditing = false )
+    {
+      Material newMaterial = null;
+      bool createNewMaterialButton = false;
+      GUILayout.BeginHorizontal();
+      {
+        var buttonSize = skin.label.CalcHeight( objFieldLabel, Screen.width );
+        GUILayout.Label( objFieldLabel, skin.label, GUILayout.Width( objFieldLabelWidth ) );
+        newMaterial = EditorGUILayout.ObjectField( material, typeof( Material ), false ) as Material;
+        GUILayout.Space( 4 );
+        using ( new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
+          createNewMaterialButton = GUILayout.Button( MakeLabel( "New", false, "Create new material" ),
+                                                      GUILayout.Width( 42 ),
+                                                      GUILayout.Height( buttonSize ) );
+      }
+      GUILayout.EndHorizontal();
+
+      bool isBuiltInMaterial = material == null ||
+                               !AssetDatabase.GetAssetPath( material ).StartsWith( "Assets" ) ||
+                               material == Manager.GetOrCreateShapeVisualDefaultMaterial();
+
+      var materialEditor = Editor.CreateEditor( material, typeof( MaterialEditor ) ) as MaterialEditor;
+      using ( new EditorGUI.DisabledGroupScope( !forceEnableEditing && isBuiltInMaterial ) ) {
+        if ( materialEditor != null ) {
+          materialEditor.DrawHeader();
+          materialEditor.OnInspectorGUI();
+        }
+      }
+
+      if ( createNewMaterialButton ) {
+        string result = EditorUtility.SaveFilePanel( "Create new material", "Assets", "new material.mat", "mat" );
+        if ( result != string.Empty ) {
+          System.IO.FileInfo info = new System.IO.FileInfo( result );
+          var relativePath = IO.AGXFileInfo.MakeRelative( result, Application.dataPath );
+
+          newMaterial = new Material( material ?? Manager.GetOrCreateShapeVisualDefaultMaterial() );
+          newMaterial.name = info.Name;
+          AssetDatabase.CreateAsset( newMaterial, relativePath + ( info.Extension == ".mat" ? "" : ".mat" ) );
+          AssetDatabase.SaveAssets();
+          AssetDatabase.Refresh();
+        }
+      }
+
+      Editor.DestroyImmediate( materialEditor );
+
+      if ( newMaterial != null && newMaterial != material )
+        onMaterialChanged?.Invoke( newMaterial );
+    }
+
+    public enum CreateCancelState
+    {
+      Nothing,
+      Create,
+      Cancel
+    }
+
+    public static CreateCancelState CreateCancelButtons( bool validToPressCreate, GUISkin skin, string tooltip = "" )
+    {
+      bool createPressed = false;
+      bool cancelPressed = false;
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.FlexibleSpace();
+
+        GUILayout.BeginVertical();
+        {
+          GUILayout.Space( 13 );
+          using ( new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.red, 0.1f ) ) )
+            cancelPressed = GUILayout.Button( MakeLabel( "Cancel", false ), skin.button, GUILayout.Width( 96 ), GUILayout.Height( 16 ) );
+          GUILayout.EndVertical();
+        }
+
+        using ( new EditorGUI.DisabledGroupScope( !validToPressCreate ) )
+        using ( new ColorBlock( Color.Lerp( UnityEngine.GUI.color, Color.green, 0.1f ) ) )
+          createPressed = GUILayout.Button( MakeLabel( "Create", true, tooltip ), skin.button, GUILayout.Width( 120 ), GUILayout.Height( 26 ) );
+        UnityEngine.GUI.enabled = true;
+      }
+      GUILayout.EndHorizontal();
+
+      return createPressed ? CreateCancelState.Create :
+             cancelPressed ? CreateCancelState.Cancel :
+                             CreateCancelState.Nothing;
+    }
+
+    public static Mesh ShapeMeshSourceGUI( Mesh currentSource, GUISkin skin )
+    {
+      Mesh newSource = null;
+      GUILayout.BeginHorizontal();
+      {
+        GUILayout.Label( MakeLabel( "Source:" ), skin.label, GUILayout.Width( 76 ) );
+        newSource = EditorGUILayout.ObjectField( currentSource, typeof( Mesh ), false ) as Mesh;
+      }
+      GUILayout.EndHorizontal();
+
+      return newSource != currentSource ? newSource : null;
     }
 
     private static void OnToolInspectorGUI( object target, GUISkin skin, TargetToolGUICallbackType callbackType )

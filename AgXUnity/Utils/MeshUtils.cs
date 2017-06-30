@@ -191,9 +191,29 @@ namespace AgXUnity.Utils
     /// <param name="worldRay">Ray in world coordinate frame.</param>
     /// <param name="rayLength">Length of the ray.</param>
     /// <returns>Data with result, result.Valid == true if the ray intersects a triangle.</returns>
-    public static Raycast.TriangleHit FindClosestTriangle( UnityEngine.Mesh mesh, GameObject parent, Ray worldRay, float rayLength = 500.0f )
+    public static Raycast.TriangleHit FindClosestTriangle( Mesh mesh, GameObject parent, Ray worldRay, float rayLength = 500.0f )
     {
       return TestAllTriangles( worldRay, rayLength, mesh, parent );
+    }
+
+    /// <summary>
+    /// Finds closest triangle to ray start given array of meshes.
+    /// </summary>
+    /// <param name="meshes">The meshes.</param>
+    /// <param name="parent">Parent game object that transforms the mesh.</param>
+    /// <param name="worldRay">Ray in world coordinate frame.</param>
+    /// <param name="rayLength">Length of the ray.</param>
+    /// <returns>Data with result, result.Valid == true if the ray intersects a triangle.</returns>
+    public static Raycast.TriangleHit FindClosestTriangle( Mesh[] meshes, GameObject parent, Ray worldRay, float rayLength = 500.0f )
+    {
+      if ( meshes.Length == 0 )
+        return Raycast.TriangleHit.Invalid;
+
+      Raycast.TriangleHit[] results = new Raycast.TriangleHit[ meshes.Length ];
+      for ( int i = 0; i < meshes.Length; ++i )
+        results[ i ] = FindClosestTriangle( meshes[ i ], parent, worldRay, rayLength );
+
+      return FindBestResult( results );
     }
 
     /// <summary>
@@ -208,7 +228,7 @@ namespace AgXUnity.Utils
       if ( parentGameObject == null )
         return Raycast.TriangleHit.Invalid;
 
-      UnityEngine.MeshFilter[] meshFilters = parentGameObject.GetComponentsInChildren<UnityEngine.MeshFilter>();
+      MeshFilter[] meshFilters = parentGameObject.GetComponentsInChildren<UnityEngine.MeshFilter>();
       if ( meshFilters.Length == 0 )
         return Raycast.TriangleHit.Invalid;
 

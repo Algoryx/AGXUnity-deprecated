@@ -37,6 +37,7 @@ namespace AgXUnity
         if ( !m_destroyed && m_instance == null && ( m_instance = FindObjectOfType( typeof( T ) ) as T ) == null ) {
           string name = ( typeof( T ).Namespace != null ? typeof( T ).Namespace + "." : "" ) + typeof( T ).Name;
           m_instance = ( new GameObject( name ) ).AddComponent<T>();
+          m_instance.transform.hideFlags = HideFlags.NotEditable;
         }
         return m_instance;
       }

@@ -40,7 +40,12 @@ namespace AgXUnityEditor.Tools
       }
     }
 
-    RouteNodeTool SelectedTool { get { return FindActive<RouteNodeTool>( this, tool => tool.Node == m_selected ); } }
+    public RouteNodeTool SelectedTool { get { return FindActive<RouteNodeTool>( this, tool => tool.Node == m_selected ); } }
+
+    /// <summary>
+    /// Not visual in scene view when the editor is playing or selected in project (asset).
+    /// </summary>
+    public bool VisualInSceneView { get; private set; }
 
     public bool DisableCollisionsTool
     {
@@ -60,13 +65,17 @@ namespace AgXUnityEditor.Tools
     {
       Parent = parent;
       Route = route;
+
+      VisualInSceneView = true;
     }
 
     public override void OnAdd()
     {
+      VisualInSceneView = !EditorApplication.isPlaying && !AssetDatabase.Contains( Parent.gameObject );
+
       HideDefaultHandlesEnableWhenRemoved();
 
-      if ( !EditorApplication.isPlaying ) {
+      if ( VisualInSceneView ) {
         foreach ( var node in Route ) {
           CreateRouteNodeTool( node );
           if ( GetFoldoutData( node ).Bool )
@@ -77,7 +86,7 @@ namespace AgXUnityEditor.Tools
 
     public override void OnSceneViewGUI( SceneView sceneView )
     {
-      if ( EditorApplication.isPlaying )
+      if ( !VisualInSceneView )
         return;
 
       // Something happens to our child tools when Unity is performing
@@ -120,7 +129,8 @@ namespace AgXUnityEditor.Tools
         DisableCollisionsTool = !DisableCollisionsTool;
     }
 
-    protected virtual string GetNodeTypeString() { return string.Empty; }
+    protected virtual string GetNodeTypeString( RouteNode node ) { return string.Empty; }
+    protected virtual Color GetNodeColor( RouteNode node ) { return Color.yellow; }
     protected virtual void OnPreFrameGUI( NodeT node, GUISkin skin ) { }
     protected virtual void OnPostFrameGUI( NodeT node, GUISkin skin ) { }
     protected virtual void OnNodeCreate( NodeT newNode, NodeT refNode, bool addPressed ) { }
@@ -158,7 +168,7 @@ namespace AgXUnityEditor.Tools
               GUILayout.BeginVertical( invalidNodeStyle );
 
             if ( GUI.Foldout( GetFoldoutData( node ),
-                              GUI.MakeLabel( GetNodeTypeString() + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Parent ).text,
+                              GUI.MakeLabel( GetNodeTypeString( node ) + " | " + SelectGameObjectDropdownMenuTool.GetGUIContent( node.Parent ).text,
                                              !validatedNode.Valid,
                                              validatedNode.ErrorString ),
                               skin,
@@ -277,7 +287,8 @@ namespace AgXUnityEditor.Tools
                                    () => { return Selected; },
                                    ( selected ) => { Selected = selected as NodeT; },
                                    ( n ) => { return Route.Contains( n as NodeT ); },
-                                   NodeVisualRadius ) );
+                                   NodeVisualRadius,
+                                   GetNodeColor ) );
     }
 
     private EditorDataEntry GetData( NodeT node, string identifier, Action<EditorDataEntry> onCreate = null )

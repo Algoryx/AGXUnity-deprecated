@@ -229,56 +229,40 @@ namespace AgXUnityEditor
     #endregion
 
     #region Managers
-    [MenuItem( "AgXUnity/Debug Render Manager" )]
+    [ MenuItem( "AgXUnity/Debug Render Manager" ) ]
     public static GameObject DebugRenderer()
     {
-      if ( AgXUnity.Rendering.DebugRenderManager.Instance == null )
-        AgXUnity.Rendering.DebugRenderManager.ResetDestroyedState();
-
-      return Selection.activeGameObject = AgXUnity.Rendering.DebugRenderManager.Instance.gameObject;
+      return Selection.activeGameObject = GetOrCreateUniqueGameObject<AgXUnity.Rendering.DebugRenderManager>().gameObject;
     }
 
     [MenuItem( "AgXUnity/Simulation" )]
     public static GameObject Simulation()
     {
-      if ( AgXUnity.Simulation.Instance == null )
-        AgXUnity.Simulation.ResetDestroyedState();
-
-      return Selection.activeGameObject = AgXUnity.Simulation.Instance.gameObject;
+      return Selection.activeGameObject = GetOrCreateUniqueGameObject<Simulation>().gameObject;
     }
 
     [MenuItem( "AgXUnity/Collision Groups Manager" )]
-    public static GameObject CollisionsGroupManager()
+    public static GameObject CollisionGroupsManager()
     {
-      if ( AgXUnity.CollisionGroupsManager.Instance == null )
-        AgXUnity.CollisionGroupsManager.ResetDestroyedState();
-
-      return Selection.activeGameObject = AgXUnity.CollisionGroupsManager.Instance.gameObject;
+      return Selection.activeGameObject = GetOrCreateUniqueGameObject<CollisionGroupsManager>().gameObject;
     }
 
     [MenuItem( "AgXUnity/Contact Material Manager" )]
     public static GameObject ContactMaterialManager()
     {
-      if ( AgXUnity.ContactMaterialManager.Instance == null )
-        AgXUnity.ContactMaterialManager.ResetDestroyedState();
-      return Selection.activeGameObject = AgXUnity.ContactMaterialManager.Instance.gameObject;
+      return Selection.activeGameObject = GetOrCreateUniqueGameObject<ContactMaterialManager>().gameObject;
     }
 
     [MenuItem( "AgXUnity/Wind and Water Manager" )]
     public static GameObject WindAndWaterManager()
     {
-      if ( AgXUnity.WindAndWaterManager.Instance == null )
-        AgXUnity.WindAndWaterManager.ResetDestroyedState();
-      return Selection.activeGameObject = AgXUnity.WindAndWaterManager.Instance.gameObject;
+      return Selection.activeGameObject = GetOrCreateUniqueGameObject<WindAndWaterManager>().gameObject;
     }
 
     [MenuItem( "AgXUnity/Pick Handler (Game View)" )]
     public static GameObject PickHandler()
     {
-      if ( AgXUnity.PickHandler.Instance == null )
-        AgXUnity.PickHandler.ResetDestroyedState();
-
-      return Selection.activeGameObject = AgXUnity.PickHandler.Instance.gameObject;
+      return Selection.activeGameObject = GetOrCreateUniqueGameObject<PickHandler>().gameObject;
     }
     #endregion
 
@@ -287,6 +271,20 @@ namespace AgXUnityEditor
     public static void GenerateEditors()
     {
       Utils.CustomEditorGenerator.Generate();
+    }
+
+    public static T GetOrCreateUniqueGameObject<T>()
+      where T : ScriptComponent
+    {
+      bool hadInstance = UniqueGameObject<T>.HasInstance;
+      if ( UniqueGameObject<T>.Instance == null )
+        UniqueGameObject<T>.ResetDestroyedState();
+
+      T obj = UniqueGameObject<T>.Instance;
+      if ( !hadInstance && obj != null )
+        Undo.RegisterCreatedObjectUndo( obj.gameObject, "Created " + obj.name );
+
+      return obj;
     }
     #endregion
   }

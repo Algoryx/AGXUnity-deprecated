@@ -188,7 +188,7 @@ namespace AgXUnityEditor.Tools
         else if ( m_buttons.Selected.State.ShapeType == ShapeType.Mesh ) {
           CreateShape<Mesh>( shapeInitData, m_buttons.Selected.State.ShapeAsParent, mesh =>
           {
-            mesh.SourceObject = shapeInitData.Filter.sharedMesh;
+            mesh.SetSourceObject( shapeInitData.Filter.sharedMesh );
             // We don't want to set the position given the center of the bounds
             // since we're one-to-one with the mesh filter.
             mesh.transform.position = shapeInitData.Filter.transform.position;

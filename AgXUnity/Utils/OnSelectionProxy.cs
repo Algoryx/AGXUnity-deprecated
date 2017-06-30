@@ -3,6 +3,7 @@
 namespace AgXUnity.Utils
 {
   [AddComponentMenu( "" )]
+  [HideInInspector]
   [DisallowMultipleComponent]
   public class OnSelectionProxy : ScriptComponent
   {
