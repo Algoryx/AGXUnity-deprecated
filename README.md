@@ -17,7 +17,7 @@ AGXUnity is still rather in a premature state. It give you a starting point for 
 
 **Note:** that AGXUnity is an interface/binding to AGX Dynamics, and access the dynamic simulation, requires a binary installation of AgX Dynamics including a valid  license.
 
-##Building AGXUnity
+## Building AGXUnity
 See [Doc/DeveloperGuide.md](Doc/DeveloperGuide.md) for detailed information on how to install/develop and deploy AGXUnity.
 
 For your convenience we have also some pre-built packages which *might* work. 
@@ -33,7 +33,7 @@ For some reason you need to run two times (and clear the console) before the Nul
 
 - **However, we recommend that you check out the code and build from scratch.**
  
-##Tutorials
+## Tutorials
 [Creating your first scene tutorial](Doc/tutorial1/tutorial1.md) show you how to create a scene populated with simulated AGX objects.
 
 
@@ -46,9 +46,9 @@ On YouTube you can find a few video tutorials demonstrating the use of AGXUnity:
 - [Modelling with wires](https://www.youtube.com/watch?v=Accpit3LmIA)
 
 
-##Quick error handling
+## Quick error handling
 
-###agxDotNet.dll missing
+### agxDotNet.dll missing
 If you get this error in the console:
 
 ![](Doc/error-loading-agxDotNet.png)
@@ -56,7 +56,7 @@ If you get this error in the console:
 It is because **agxDotNet.dll** cannot be located. Make sure you have it in your project\Assets\Plugins directory.
 
 
-###agxDotNetRuntime.dll missing
+### agxDotNetRuntime.dll missing
 
 ![](Doc/error-loading-agxDotNetRuntime.png)
 

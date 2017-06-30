@@ -1,4 +1,4 @@
-# AGX Unity plugin#
+# AGX Unity plugin
 
 The AGX Unity plugin is a set of wrapper, utility and rendering aid classes using the C# API of the AGX Dynamics physics engine. The AGXUnity plugin is a compiled, class library dll.
 
