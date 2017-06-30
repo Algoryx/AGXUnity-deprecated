@@ -11,8 +11,8 @@ AGXUnity is still rather in a premature state. It give you a starting point for 
 
  
 - AGXUnity allows you to utilize AGX Dynamics inside Unity3D.
-- Currently it is built and tested with Visual Studio 2015 SP1.
-- The plugin is tested with Unity 5.3.4 and 5.4.1f
+- Currently it is built and tested with Visual Studio 2015 SP1 and Visual Studio 2017
+- The latest version of AGXUnity requires 5.6.2
 - AGXUnity is free, for more details see: [LICENSE](LICENSE)
 
 **Note:** that AGXUnity is an interface/binding to AGX Dynamics, and access the dynamic simulation, requires a binary installation of AgX Dynamics including a valid  license.
