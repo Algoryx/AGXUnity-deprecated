@@ -1,12 +1,12 @@
-#AGX Unity plugin#
+# AGX Unity plugin#
 
 The AGX Unity plugin is a set of wrapper, utility and rendering aid classes using the C# API of the AGX Dynamics physics engine. The AGXUnity plugin is a compiled, class library dll.
 
 The AGXUnity plugin is preferably developed in Visual Studio with the latest version of Unity 3D (currently 5.4.1), 64-bit versions of AGX Dynamics and Unity 3D.
 
-##Getting started (Windows)##
+## Getting started (Windows)
 
-###Build AgXUnity.dll###
+### Build AgXUnity.dll
 1. Download and install Unity 3D: https://unity3d.com/get-unity/download
 2. Download and install Visual Studio Tools for Unity: [https://visualstudiogallery.msdn.microsoft.com/8d26236e-4a64-4d64-8486-7df95156aba9](https://visualstudiogallery.msdn.microsoft.com/8d26236e-4a64-4d64-8486-7df95156aba9) 
 3. Follow the instructions how to enable debugging in Unity:
@@ -29,7 +29,7 @@ The AGXUnity plugin is preferably developed in Visual Studio with the latest ver
 
 The next section describes how to install the folder hierarchy, resources and editor extensions using the pre-exported Unity packages.
 
-###Unity 3D project with AGXUnity###
+### Unity 3D project with AGXUnity
 After a successfull build of AGXUnity you should have two new dll-files: AgXUnity.dll and AgXUnityEditor.dll in your output directory.
 
 
@@ -73,7 +73,7 @@ AgXUnity.dll and AgXUnity.pdb will be copied to the Unity project AgXUnity plugi
 
 It’s currently not possible to copy the agxDotNet.dll each time you build because the dll is not automatically unloaded by Unity.
 
-##AGXUnity.ScriptComponent extends UnityEngine.MonoBehaviour##
+## AGXUnity.ScriptComponent extends UnityEngine.MonoBehaviour
 Since we’re managing native objects and MonoBehaviour in general has a bit undeterministic behavior, all objects handling native objects should inherit from ScriptComponent rather than MonoBehaviour.
 There’re also native objects that depends on other native objects. One example of this is constraints. The native constraints has to have native instances to the rigid bodies when the constraints are instantiated. To enable this, ScriptComponent has two important methods. “Initialize” where all native objects should be instantiated and “GetInitialized” which guarantees that the returned component is initialized with a valid native instance.
 
@@ -147,13 +147,13 @@ The main benefit of this property synchronization is to write data to the native
 2. ScriptComponent objects are initialized (“Initialize” is called) – native objects are created.
 3. Property synchronization.
 
-##Extending the Unity 3D editor##
+## Extending the Unity 3D editor
 The AGXUnity plugin is linked to the native AGX Dynamics physics engine – having the simulated objects in the native environment. When values/properties etc. are changed from within the editor or a script, the data has to be propagated to the native environment – when needed.
 
 The native objects are in general instantiated when Unity performs the “Start” calls. This means that all data has to be stored in the managed environment and then written down to the native environment when the managed object receives the “Start”/initialize call. Since all data is present in the Unity managed environment the serialization is trivial (automatic).
 
 
-###<a name="propagation"> Propagation of data with AgXUnityEditor.BaseEditor<T></a>###
+### <a name="propagation"> Propagation of data with AgXUnityEditor.BaseEditor<T></a>
 The BaseEditor class is essential for the propagation of data from the managed to the native environment while using the editor. BaseEditor extends UnityEditor.Editor and it’s basically GUI code that you see in the “Inspector” tab in Unity:
 
 ![](inspector.png)
@@ -202,7 +202,7 @@ public float Mass
 
 Since “m\_mass” is private, it won’t be shown in the Inspector tab. Property “Mass” is public so it will be visualized and using BaseEditor the “set” method will be invoked when the value of the mass has been changed. If we have an instance of the native object, we can assign the new value directly.
 
-###How to enable AgXUnityEditor.BaseEditor for an object###
+### How to enable AgXUnityEditor.BaseEditor for an object
 For Unity to use a custom editor to render the GUI under the “Inspector” tab, the class implementing the “OnInspectorGUI” method has to carry the attribute “CustomEditor”.
 Consider the following, simple class that prints the input value to property “Test”:
 
