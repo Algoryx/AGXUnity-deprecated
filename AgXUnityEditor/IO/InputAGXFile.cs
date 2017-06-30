@@ -47,7 +47,10 @@ namespace AgXUnityEditor.IO
     /// <param name="info">AGX file info.</param>
     public InputAGXFile( AGXFileInfo info )
     {
-      FileInfo = info ?? throw new ArgumentNullException( "info", "File info object is null." );
+      if (info == null)
+        throw new ArgumentNullException("info", "File info object is null.");
+      else
+        FileInfo = info;
 
       if ( !FileInfo.Exists )
         throw new FileNotFoundException( "File not found: " + FileInfo.FullName );
