@@ -299,11 +299,16 @@ namespace AgXUnityEditor.IO
       if ( path == "" )
         return;
 
-      m_fileInfo     = new FileInfo( path );
-      Name           = Path.GetFileNameWithoutExtension( m_fileInfo.Name );
-      Type           = FindType( m_fileInfo );
-      RootDirectory  = MakeRelative( m_fileInfo.Directory.FullName, Application.dataPath ).Replace( '\\', '/' );
-      DataDirectory  = RootDirectory + "/" + Name + "_Data";
+      m_fileInfo    = new FileInfo( path );
+      Name          = Path.GetFileNameWithoutExtension( m_fileInfo.Name );
+      Type          = FindType( m_fileInfo );
+      RootDirectory = MakeRelative( m_fileInfo.Directory.FullName, Application.dataPath ).Replace( '\\', '/' );
+      // If the file is located in the root Assets folder the relative directory
+      // is the empty string and Unity requires the relative path to include "Assets".
+      if ( RootDirectory == string.Empty )
+        RootDirectory = "Assets";
+
+      DataDirectory = RootDirectory + "/" + Name + "_Data";
 
       ExistingPrefab = AssetDatabase.LoadAssetAtPath<GameObject>( PrefabPath );
     }
