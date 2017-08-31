@@ -88,6 +88,7 @@
     <Compile Include="Tools\SelectGameObjectTool.cs" />
     <Compile Include="Tools\ShapeResizeTool.cs" />
     <Compile Include="Tools\ShapeVisualCreateTool.cs" />
+    <Compile Include="Tools\SimulationTool.cs" />
     <Compile Include="Tools\Tool.cs" />
     <Compile Include="Tools\WireTool.cs" />
     <Compile Include="Utils\AssetFactory.cs" />

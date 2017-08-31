@@ -109,6 +109,22 @@ namespace AgXUnity
     /// </summary>
     public StepCallbackFunctions StepCallbacks { get { return m_stepCallbackFunctions; } }
 
+    /// <summary>
+    /// Save current simulation/scene to an AGX native file (.agx or .aagx).
+    /// </summary>
+    /// <param name="filename">Filename including path.</param>
+    /// <returns>True if objects were written to file - otherwise false.</returns>
+    public bool SaveToNativeFile( string filename )
+    {
+      if ( m_simulation == null ) { 
+        Debug.LogWarning( "Simulation isn't active - ignoring save scene to file: " + filename );
+        return false;
+      }
+
+      uint numObjects = m_simulation.write( filename );
+      return numObjects > 0;
+    }
+
     protected override bool Initialize()
     {
       GetOrCreateSimulation();
@@ -229,8 +245,10 @@ namespace AgXUnity
 
     private agxSDK.Simulation GetOrCreateSimulation()
     {
-      if ( m_simulation == null )
+      if ( m_simulation == null ) {
+        agx.Thread.registerAsAgxThread();
         m_simulation = new agxSDK.Simulation();
+      }
 
       return m_simulation;
     }
@@ -284,8 +302,7 @@ if not alreadyInitialized then
   end
 end";
 
-      uint numObjects = m_simulation.write( path + tmpFilename );
-      if ( numObjects == 0 ) {
+      if ( !SaveToNativeFile( path + tmpFilename ) ) {
         Debug.Log( "Unable to start viewer.", this );
         return;
       }
