@@ -97,6 +97,24 @@ namespace AgXUnity
       }
     }
 
+    [SerializeField]
+    private bool m_savePreFirstStep = false;
+    [HideInInspector]
+    public bool SavePreFirstStep
+    {
+      get { return m_savePreFirstStep; }
+      set { m_savePreFirstStep = value; }
+    }
+
+    [SerializeField]
+    private string m_savePreFirstStepPath = string.Empty;
+    [HideInInspector]
+    public string SavePreFirstStepPath
+    {
+      get { return m_savePreFirstStepPath; }
+      set { m_savePreFirstStepPath = value; }
+    }
+
     /// <summary>
     /// Get the native instance, if not deleted.
     /// </summary>
@@ -137,6 +155,15 @@ namespace AgXUnity
       if ( m_simulation != null ) {
         //if ( m_simulation.getTimeStamp() < 0.5f * TimeStep )
         //  OpenInAgXViewer();
+        bool savePreFirstTimeStep = Application.isEditor &&
+                                    SavePreFirstStep &&
+                                    SavePreFirstStepPath != string.Empty &&
+                                    m_simulation.getTimeStamp() == 0.0;
+        if ( savePreFirstTimeStep ) {
+          var saveSuccess = SaveToNativeFile( SavePreFirstStepPath );
+          if ( saveSuccess )
+            Debug.Log( "Successfully wrote initial state to: " + SavePreFirstStepPath );
+        }
 
         StepCallbacks.PreStepForward?.Invoke();
         StepCallbacks.PreSynchronizeTransforms?.Invoke();
@@ -253,7 +280,6 @@ namespace AgXUnity
       return m_simulation;
     }
 
-    [InvokableInInspector( "Open in AGX native viewer", true )]
     public void OpenInAgXViewer()
     {
       if ( m_simulation == null ) {
