@@ -41,6 +41,8 @@ namespace AgXUnity
 
       ScriptAssetManager.InitializationState state = ScriptAssetManager.Instance.Report( this );
       if ( state == ScriptAssetManager.InitializationState.NotInitialized ) {
+        NativeHandler.Instance.MakeMainThread();
+
         if ( Initialize() )
           Utils.PropertySynchronizer.Synchronize( this );
         else {

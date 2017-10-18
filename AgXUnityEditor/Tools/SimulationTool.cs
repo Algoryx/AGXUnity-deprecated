@@ -33,13 +33,13 @@ namespace AgXUnityEditor.Tools
       GUI.Separator();
       using ( new GUILayout.HorizontalScope() ) {
         EditorGUI.BeginDisabledGroup( !Application.isPlaying );
-        if( GUILayout.Button( GUI.MakeLabel( "Save current step as (.agx)...",
+        if ( GUILayout.Button( GUI.MakeLabel( "Save current step as (.agx)...",
                                               false,
                                               "Save scene in native file format when the editor is in play mode." ), skin.button ) ) {
           string result = EditorUtility.SaveFilePanel( "Save scene as .agx", "Assets", UnityEditor.SceneManagement.EditorSceneManager.GetActiveScene().name, "agx" );
-          if( result != string.Empty ) {
+          if ( result != string.Empty ) {
             var success = Simulation.SaveToNativeFile( result );
-            if( success )
+            if ( success )
               Debug.Log( "Successfully wrote simulation to file: " + result );
           }
         }

@@ -40,7 +40,7 @@ namespace AgXUnityEditor.Utils
           toolsSelections.Add( activeTool.VisualizedSelection );
       } );
 
-      bool highlightMouseOverObject = DebugRenderManager.HasInstance && DebugRenderManager.Instance.HighlightMouseOverObject;
+      bool highlightMouseOverObject = manager.HighlightMouseOverObject;
 
       // Find if we've any active selections.
       bool selectionActive = ( highlightMouseOverObject && Manager.MouseOverObject != null ) ||

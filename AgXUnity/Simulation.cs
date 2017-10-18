@@ -273,7 +273,8 @@ namespace AgXUnity
     private agxSDK.Simulation GetOrCreateSimulation()
     {
       if ( m_simulation == null ) {
-        agx.Thread.registerAsAgxThread();
+        NativeHandler.Instance.MakeMainThread();
+
         m_simulation = new agxSDK.Simulation();
       }
 

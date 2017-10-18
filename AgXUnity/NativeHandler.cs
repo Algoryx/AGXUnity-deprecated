@@ -80,8 +80,6 @@ namespace AgXUnity
 
         m_ai = new agx.AutoInit();
 
-        agx.Thread.registerAsAgxThread();
-
         agx.agxSWIG.setNumThreads( 4 );
 
         agxIO.Environment.instance().getFilePath( agxIO.Environment.Type.RUNTIME_PATH ).pushbackPath( binaryPath );
@@ -157,6 +155,18 @@ namespace AgXUnity
 
     public void Unregister( ScriptComponent component )
     {
+    }
+
+    public void MakeMainThread()
+    {
+      if ( !agx.Thread.isMainThread() )
+        agx.Thread.makeCurrentThreadMainThread();
+    }
+
+    public void RegisterCurrentThread()
+    {
+      if ( !agx.Thread.isMainThread() )
+        agx.Thread.registerAsAgxThread();
     }
   }
 }

@@ -35,8 +35,6 @@ namespace AgXUnity
       IsSynchronizingProperties = false;
 
       NativeHandler.Instance.Register( this );
-
-      agx.Thread.registerAsAgxThread();
     }
 
     /// <summary>
@@ -76,6 +74,8 @@ namespace AgXUnity
         throw new Exception( "Initialize call when object is being initialized. Implement wait until initialized?" );
 
       if ( State == States.AWAKE ) {
+        NativeHandler.Instance.MakeMainThread();
+
         State = States.INITIALIZING;
         bool success = Initialize();
         State = success ? States.INITIALIZED : States.AWAKE;
