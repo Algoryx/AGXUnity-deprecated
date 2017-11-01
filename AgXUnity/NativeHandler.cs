@@ -89,6 +89,10 @@ namespace AgXUnity
         agxIO.Environment.instance().getFilePath( agxIO.Environment.Type.RESOURCE_PATH ).pushbackPath( pluginPath );
         agxIO.Environment.instance().getFilePath( agxIO.Environment.Type.RESOURCE_PATH ).pushbackPath( dataPath );
         agxIO.Environment.instance().getFilePath( agxIO.Environment.Type.RESOURCE_PATH ).pushbackPath( cfgPath );
+
+
+        if ( !agx.Runtime.instance().isValid() )
+          Debug.LogError( "AGX Dynamics: " + agx.Runtime.instance().getStatus() );
       }
       catch ( System.Exception e ) {
         throw new AgXUnity.Exception( "Unable to instantiate first AgX object. Some dependencies seems missing: " + e.ToString() );
