@@ -66,6 +66,13 @@ namespace AgXUnity
     public bool IsSynchronizingProperties { get; private set; }
 
     /// <summary>
+    /// Cached synchronized properties.
+    /// </summary>
+    [HideInInspector]
+    [NonSerialized]
+    public Utils.PropertySynchronizer.FieldPropertyPair[] SynchronizedProperties = null;
+
+    /// <summary>
     /// Internal method when initialize callback should be fired.
     /// </summary>
     protected ScriptComponent InitializeCallback()

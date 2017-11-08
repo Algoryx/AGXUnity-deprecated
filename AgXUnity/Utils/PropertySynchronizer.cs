@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Reflection;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using System.Linq;
+using System.Linq.Expressions;
 
 namespace AgXUnity.Utils
 {
@@ -16,6 +19,53 @@ namespace AgXUnity.Utils
   /// </summary>
   public static class PropertySynchronizer
   {
+    /// <summary>
+    /// Object with field getter and property setter optimized to
+    /// not use reflection. This is about twice as fast as reflection
+    /// for a single object.
+    /// </summary>
+    public class FieldPropertyPair
+    {
+      private Func<object, object> m_getter = null;
+      private Action<object> m_setter = null;
+
+      public bool IsValid { get { return m_getter != null && m_setter != null; } }
+
+      public FieldPropertyPair( object obj, FieldInfo field, PropertyInfo property )
+      {
+        {
+          var setMethod = property.GetSetMethod();
+          var parameterType = setMethod.GetParameters().First().ParameterType;
+          var parameter = Expression.Parameter( typeof( object ), "val" );
+          var methodCall = Expression.Call( Expression.Constant( obj ), setMethod, Expression.Convert( parameter, parameterType ) );
+          m_setter = Expression.Lambda<Action<object>>( methodCall, parameter ).Compile();
+        }
+
+        {
+          var objParam = Expression.Parameter( typeof( object ), "obj" );
+          var valParam = Expression.Parameter( typeof( object ), "val" );
+
+          var objConverted = Expression.Convert( objParam, field.DeclaringType );
+          var valConverted = Expression.Convert( valParam, field.FieldType );
+
+          var memberField = Expression.Field( objConverted, field );
+
+          Expression getterMember = field.FieldType.IsValueType ?
+                                      Expression.Convert( memberField, typeof( object ) ) :
+                                      (Expression)memberField;
+          m_getter = Expression.Lambda<Func<object, object>>( getterMember, objParam ).Compile();
+        }
+      }
+
+      public void Invoke( object obj )
+      {
+        if ( !IsValid )
+          return;
+
+        m_setter( m_getter( obj ) );
+      }
+    }
+
     /// <summary>
     /// Searches for field + property match:
     ///   - Field:    m_example ->
@@ -41,8 +91,52 @@ namespace AgXUnity.Utils
     /// </summary>
     public static void Synchronize( object obj )
     {
-      if ( obj != null )
-        ParseAndUpdateProperties( obj, obj.GetType() );
+      if ( obj is ScriptComponent ) {
+        var component = obj as ScriptComponent;
+        if ( component.SynchronizedProperties == null )
+          component.SynchronizedProperties = CreateSynchronizedProperties( component, component.GetType() );
+
+        Synchronize( component, component.SynchronizedProperties );
+      }
+      else if ( obj is ScriptAsset ) {
+        var asset = obj as ScriptAsset;
+        if ( asset.SynchronizedProperties == null )
+          asset.SynchronizedProperties = CreateSynchronizedProperties( asset, asset.GetType() );
+
+        Synchronize( asset, asset.SynchronizedProperties );
+      }
+      else if ( obj != null )
+        FindAndUpdateProperties( obj, obj.GetType() );
+    }
+
+    /// <summary>
+    /// Synchronizes properties given object and synchronized properties array.
+    /// </summary>
+    /// <param name="obj">Object with field and properties to synchronize.</param>
+    /// <param name="synchronizedProperties">List of fields and properties.</param>
+    public static void Synchronize( object obj, FieldPropertyPair[] synchronizedProperties )
+    {
+      for ( int i = 0; i < synchronizedProperties.Length; ++i )
+        synchronizedProperties[ i ].Invoke( obj );
+    }
+
+    /// <summary>
+    /// Creates list of matching field and property pairs for a given type.
+    /// For synchronization simply: fieldPropertyPair.Invoke( obj )
+    /// </summary>
+    /// <param name="type">Object type.</param>
+    /// <returns>Array of matching field and property pairs.</returns>
+    public static FieldPropertyPair[] CreateSynchronizedProperties( object obj, Type type )
+    {
+      var synchronziedProperties = new List<FieldPropertyPair>();
+      Action<FieldInfo, PropertyInfo> collector = ( field, property ) =>
+      {
+        synchronziedProperties.Add( new FieldPropertyPair( obj, field, property ) );
+      };
+
+      FindSynchronizedProperties( type, collector );
+
+      return synchronziedProperties.ToArray();
     }
 
     /// <summary>
@@ -51,7 +145,22 @@ namespace AgXUnity.Utils
     /// </summary>
     /// <param name="obj">Object to parse and update.</param>
     /// <param name="type">Type of the object.</param>
-    private static void ParseAndUpdateProperties( object obj, Type type )
+    private static void FindAndUpdateProperties( object obj, Type type )
+    {
+      Action<FieldInfo, PropertyInfo> invoker = ( field, property ) =>
+      {
+        property.SetValue( obj, field.GetValue( obj ), null );
+      };
+
+      FindSynchronizedProperties( type, invoker );
+    }
+
+    /// <summary>
+    /// Finds matching field and property and invokes <paramref name="matchCallback"/>.
+    /// </summary>
+    /// <param name="type">Object type.</param>
+    /// <param name="matchCallback">Callback when matching field and property is found.</param>
+    private static void FindSynchronizedProperties( Type type, Action<FieldInfo, PropertyInfo> matchCallback )
     {
       FieldInfo[] fields = type.GetFields( BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly );
       foreach ( FieldInfo field in fields ) {
@@ -69,14 +178,28 @@ namespace AgXUnity.Utils
           string propertyName = nameMatch.Groups[ 2 ].ToString().ToUpper() + nameMatch.Groups[ 3 ];
           PropertyInfo property = type.GetProperty( propertyName );
           // If the property exists and has a "set" defined - execute it.
-          if ( property != null && property.GetSetMethod() != null && property.GetCustomAttributes( typeof( IgnoreSynchronization ), false ).Length == 0 )
-            property.SetValue( obj, field.GetValue( obj ), null );
+          if ( property != null &&
+               property.GetSetMethod() != null &&
+               property.GetCustomAttributes( typeof( IgnoreSynchronization ), false ).Length == 0 )
+            matchCallback( field, property );
         }
       }
 
       // Unsure if this is necessary to recursively update supported objects...
-      if ( type.BaseType != null && type.BaseType != obj.GetType() )
-        ParseAndUpdateProperties( obj, type.BaseType );
+      if ( TypeSupportsUpdate( type.BaseType ) )
+        FindSynchronizedProperties( type.BaseType, matchCallback );
+    }
+
+    /// <summary>
+    /// Checks if the given type is ScriptComponent or ScriptAsset.
+    /// </summary>
+    /// <param name="type">Type to check.</param>
+    /// <returns>True if <paramref name="type"/> is ScriptComponent or ScriptAsset - otherwise false.</returns>
+    private static bool TypeSupportsUpdate( Type type )
+    {
+      return type != null &&
+             ( typeof( ScriptComponent ).IsAssignableFrom( type ) ||
+               typeof( ScriptAsset ).IsAssignableFrom( type ) );
     }
   }
 }

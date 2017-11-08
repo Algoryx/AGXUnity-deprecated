@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace AgXUnity
 {
@@ -65,6 +66,13 @@ namespace AgXUnity
       Simulation simulation = Simulation.Instance;
       return simulation ? simulation.Native : null;
     }
+
+    /// <summary>
+    /// Cached synchronized properties.
+    /// </summary>
+    [HideInInspector]
+    [NonSerialized]
+    public Utils.PropertySynchronizer.FieldPropertyPair[] SynchronizedProperties = null;
 
     /// <summary>
     /// Scene is taken down. Destroy/unreference any native object(s).
