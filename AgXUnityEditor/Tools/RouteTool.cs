@@ -28,6 +28,8 @@ namespace AgXUnityEditor.Tools
         if ( m_selected != null ) {
           GetFoldoutData( m_selected ).Bool = false;
           SelectedTool.FrameTool.TransformHandleActive = false;
+          // Not selected anymore - enable picking (OnMouseClick callback).
+          SelectedTool.Visual.Pickable = true;
         }
 
         m_selected = value;
@@ -35,6 +37,12 @@ namespace AgXUnityEditor.Tools
         if ( m_selected != null ) {
           GetFoldoutData( m_selected ).Bool = true;
           SelectedTool.FrameTool.TransformHandleActive = true;
+          // This flags that we don't expect OnMouseClick when the
+          // node is already selected. This solves transform handles
+          // completely inside the visual (otherwise Manager will
+          // swallow the mouse click and it's not possible to move
+          // the nodes).
+          SelectedTool.Visual.Pickable = false;
           EditorUtility.SetDirty( Parent );
         }
       }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using AgXUnity.Utils;
 
@@ -194,6 +195,157 @@ namespace AgXUnity
       }      
     }
 
+    private PointCurve m_routePointCurve              = null;
+    private float m_routePointResulutionPerUnitLength = -1.0f;
+    private Vector3[] m_routePointsCache              = new Vector3[] { };
+
+    /// <summary>
+    /// Route point data:  o-----------x-----------x-----------------o
+    ///                 CurrNode   CurrPoint   NextPoint          NextNode
+    ///                        Position/Rotation
+    /// </summary>
+    public struct RoutePointData
+    {
+      /// <summary>
+      /// Begin route node in current segment.
+      /// </summary>
+      public CableRouteNode CurrNode;
+
+      /// <summary>
+      /// End route node in current segment.
+      /// </summary>
+      public CableRouteNode NextNode;
+
+      /// <summary>
+      /// Position of the node.
+      /// </summary>
+      public Vector3 Position;
+
+      /// <summary>
+      /// Rotation of the node.
+      /// </summary>
+      public Quaternion Rotation;
+
+      /// <summary>
+      /// Current segment point.
+      /// </summary>
+      public PointCurve.SegmentPoint CurrPoint;
+
+      /// <summary>
+      /// Next segment point.
+      /// </summary>
+      public PointCurve.SegmentPoint NextPoint;
+
+      /// <summary>
+      /// Segment type.
+      /// </summary>
+      public PointCurve.SegmentType SegmentType;
+    }
+
+    /// <summary>
+    /// Checks if route point curve is up to date.
+    /// </summary>
+    public bool RoutePointCurveUpToDate
+    {
+      get
+      {
+        return m_routePointCurve != null &&
+               Mathf.Approximately( m_routePointResulutionPerUnitLength, ResolutionPerUnitLength ) &&
+               Route.IsSynchronized( m_routePointCurve, 1.0E-4f );
+      }
+    }
+
+    /// <summary>
+    /// Traverse route points given current route nodes.
+    /// </summary>
+    /// <param name="callback">Callback for each route point.</param>
+    /// <returns>True if point route is successful - otherwise false.</returns>
+    public bool TraverseRoutePoints( Action<RoutePointData> callback )
+    {
+      if ( callback == null )
+        return false;
+
+      var result = SynchronizeRoutePointCurve();
+      if ( !result.Successful )
+        return false;
+
+      m_routePointCurve.Traverse( ( curr, next, type ) =>
+      {
+        var routePointData = new RoutePointData()
+        {
+          CurrPoint = curr,
+          NextPoint = next,
+          SegmentType = type
+        };
+
+        var currIndex = m_routePointCurve.FindIndex( curr.Time );
+        var nextIndex = currIndex + 1;
+        routePointData.CurrNode = Route[ currIndex ];
+        routePointData.NextNode = Route[ nextIndex ];
+
+        var currRotation = routePointData.CurrNode.Rotation;
+        var nextRotation = routePointData.NextNode.Rotation;
+        var dirToNext    = ( next.Point - curr.Point ) / Vector3.Distance( curr.Point, next.Point );
+
+        // Naive from-to rotation to dir.
+        routePointData.Rotation = Quaternion.FromToRotation( Vector3.forward, dirToNext );
+        var nodeX               = routePointData.Rotation * Vector3.right;
+        var nodeY               = routePointData.Rotation * Vector3.up;
+
+        // Current and next route node x and y axes in the 'dirToNext' plane.
+        var currInPlaneX = Vector3.Normalize( Vector3.ProjectOnPlane( currRotation * Vector3.right, dirToNext ) );
+        var currInPlaneY = Vector3.Normalize( Vector3.ProjectOnPlane( currRotation * Vector3.up, dirToNext ) );
+        var nextInPlaneX = Vector3.Normalize( Vector3.ProjectOnPlane( nextRotation * Vector3.right, dirToNext ) );
+        var nextInPlaneY = Vector3.Normalize( Vector3.ProjectOnPlane( nextRotation * Vector3.up, dirToNext ) );
+
+        // Rotating from current rotation (naive rotate from forward to dir) to
+        // curr route node rotation.
+        var twistToCurr         = Utils.Math.SignedAngle( nodeX, currInPlaneX, nodeY );
+        routePointData.Rotation = Quaternion.AngleAxis( twistToCurr, dirToNext ) * routePointData.Rotation;
+
+        // Calculating rotation angle from curr node to next node (note: not points!),
+        // and lerp the current twist given local time of the current point.
+        var twistCurrToNext     = Utils.Math.SignedAngle( currInPlaneX, nextInPlaneX, currInPlaneY );
+        var lerpedTwistAngle    = Mathf.LerpAngle( 0.0f, twistCurrToNext, curr.LocalTime );
+
+        routePointData.Rotation = Quaternion.AngleAxis( lerpedTwistAngle, dirToNext ) * routePointData.Rotation;
+        routePointData.Position = curr.Point;
+
+        callback( routePointData );
+      }, result.SegmentLength );
+
+
+      return true;
+    }
+
+    /// <summary>
+    /// Calculates route points given current route nodes and resolution.
+    /// </summary>
+    /// <returns>Array of, equally distant, points defining the cable route.</returns>
+    public Vector3[] GetRoutePoints()
+    {
+      if ( RoutePointCurveUpToDate )
+        return m_routePointsCache;
+
+      m_routePointsCache = new Vector3[] { };
+
+      var result = SynchronizeRoutePointCurve();
+      if ( result.Successful || Mathf.Abs( result.Error ) < 5.0E-3f ) {
+        m_routePointResulutionPerUnitLength = ResolutionPerUnitLength;
+        List<Vector3> routePoints = new List<Vector3>();
+        m_routePointCurve.Traverse( ( curr, next, type ) =>
+        {
+          routePoints.Add( curr.Point );
+          if ( type == PointCurve.SegmentType.Last && Mathf.Abs( next.Time - 1.0f ) < Mathf.Abs( curr.Time - 1 ) )
+            routePoints.Add( next.Point );
+        }, result.SegmentLength );
+
+        m_routePointsCache = routePoints.ToArray();
+      }
+
+      return m_routePointsCache;
+    }
+
     public void RestoreLocalDataFrom( agxCable.Cable native )
     {
       if ( native == null )
@@ -217,28 +369,57 @@ namespace AgXUnity
 
     protected override bool Initialize()
     {
-      if ( ResolutionPerUnitLength < 1.0-6f ) {
-        Debug.LogWarning( "Cable resolution is too low: " + ResolutionPerUnitLength + " segments per unit length. Ignoring cable.", this );
-      }
-
       try {
         if ( Route.NumNodes < 2 )
           throw new Exception( "Invalid number of nodes. Minimum number of route nodes is two." );
 
-        var cable = RouteAlgorithm == RouteType.Segmenting ?
-                      new agxCable.Cable( Convert.ToDouble( Radius ), Convert.ToDouble( ResolutionPerUnitLength ) ) :
-                      new agxCable.Cable( Convert.ToDouble( Radius ), new agxCable.IdentityRoute( ResolutionPerUnitLength ) );
-        cable.addComponent( new agxCable.CablePlasticity() );
-        cable.getCablePlasticity().setYieldPoint( double.PositiveInfinity, agxCable.Direction.ALL_DIRECTIONS );
+        agxCable.Cable cable = null;
+        if ( RouteAlgorithm == RouteType.Segmenting ) {
+          var result = SynchronizeRoutePointCurve();
+          if ( !result.Successful )
+            throw new Exception( "Invalid cable route. Unable to initialize cable with " +
+                                 Route.NumNodes +
+                                 " nodes and resolution/length = " + ResolutionPerUnitLength + "." );
 
-        CableRouteNode prev = null;
-        foreach ( var node in Route ) {
-          bool tooClose = prev != null && Vector3.Distance( prev.Position, node.Position ) < 0.5f / ResolutionPerUnitLength;
-          if ( !tooClose && !cable.add( node.GetInitialized<CableRouteNode>().Native ) )
-            throw new Exception( "Unable to add node to cable." );
-          if ( tooClose )
-            Debug.LogWarning( "Ignoring route node with index: " + Route.IndexOf( node ) + ", since it's too close to its neighbor.", this );
-          prev = node;
+          cable = CreateNative( result.NumSegments / Route.TotalLength );
+
+          var handledNodes = new HashSet<CableRouteNode>();
+          var success = TraverseRoutePoints( routePointData =>
+          {
+            var routeNode = CableRouteNode.Create( NodeType.FreeNode, routePointData.CurrNode.Parent );
+            routeNode.Position = routePointData.Position;
+            routeNode.Rotation = routePointData.Rotation;
+
+            var attachmentNode = routePointData.SegmentType == PointCurve.SegmentType.First && routePointData.CurrNode.Type != NodeType.FreeNode ?
+                                   routePointData.CurrNode :
+                                 routePointData.SegmentType == PointCurve.SegmentType.Last && routePointData.NextNode.Type != NodeType.FreeNode ?
+                                   routePointData.NextNode :
+                                 routePointData.SegmentType == PointCurve.SegmentType.Intermediate && routePointData.CurrNode.Type != NodeType.FreeNode ?
+                                    routePointData.CurrNode :
+                                    null;
+
+            if ( attachmentNode != null && !handledNodes.Contains( attachmentNode ) ) {
+              handledNodes.Add( attachmentNode );
+              routeNode.Add( CableAttachment.AttachmentType.Rigid,
+                             attachmentNode.Parent,
+                             attachmentNode.LocalPosition,
+                             attachmentNode.LocalRotation );
+            }
+
+            if ( !cable.add( routeNode.GetInitialized<CableRouteNode>().Native ) )
+              throw new Exception( "Unable to add node to cable." );
+          } );
+
+          if ( !success )
+            throw new Exception( string.Format( "Invalid route - unable to find segment length given resolution/length = {0}",
+                                                ResolutionPerUnitLength ) );
+        }
+        else {
+          cable = CreateNative( ResolutionPerUnitLength );
+          foreach ( var node in Route ) {
+            if ( !cable.add( node.GetInitialized<CableRouteNode>().Native ) )
+              throw new Exception( "Unable to add node to cable." );
+          }
         }
 
         Native = cable;
@@ -256,6 +437,15 @@ namespace AgXUnity
       SynchronizeProperties();
 
       return true;
+    }
+
+    private agxCable.Cable CreateNative( float resolutionPerUnitLength )
+    {
+      var native = new agxCable.Cable( Radius, new agxCable.IdentityRoute( resolutionPerUnitLength ) );
+      native.addComponent( new agxCable.CablePlasticity() );
+      native.getCablePlasticity().setYieldPoint( double.PositiveInfinity, agxCable.Direction.ALL_DIRECTIONS );
+
+      return native;
     }
 
     private void SynchronizeProperties()
@@ -281,6 +471,36 @@ namespace AgXUnity
         if ( plasticityComponent != null )
           plasticityComponent.setYieldPoint( Convert.ToDouble( Properties[ dir ].YieldPoint ), CableProperties.ToNative( dir ) );
       }
+    }
+
+    private PointCurve.SegmentationResult SynchronizeRoutePointCurve()
+    {
+      if ( RoutePointCurveUpToDate && m_routePointCurve.LastSuccessfulResult.Successful )
+        return m_routePointCurve.LastSuccessfulResult;
+
+      if ( m_routePointCurve == null )
+        m_routePointCurve = new PointCurve();
+
+      m_routePointCurve.LastSuccessfulResult = new PointCurve.SegmentationResult() { Error = float.PositiveInfinity, Successful = false };
+
+      if ( m_routePointCurve.NumPoints == Route.NumNodes ) {
+        for ( int i = 0; i < Route.NumNodes; ++i )
+          m_routePointCurve[ i ] = Route[ i ].Position;
+      }
+      else {
+        m_routePointCurve.Clear();
+        foreach ( var node in Route )
+          m_routePointCurve.Add( node.Position );
+      }
+
+      if ( m_routePointCurve.Finalize() ) {
+        var numSegments = Mathf.Max( Mathf.CeilToInt( ResolutionPerUnitLength * Route.TotalLength ), 1 );
+        var result = m_routePointCurve.FindSegmentLength( numSegments, PointCurve.DefaultErrorFunc, 5.0E-3f, 1.0E-3f );
+        if ( result.Successful )
+          return result;
+      }
+
+      return new PointCurve.SegmentationResult() { Error = float.PositiveInfinity, Successful = false };
     }
   }
 }

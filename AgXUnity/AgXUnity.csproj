@@ -111,6 +111,7 @@
     <Compile Include="Utils\InvokeWrapper.cs" />
     <Compile Include="Utils\MeshMerger.cs" />
     <Compile Include="Utils\MeshSplitter.cs" />
+    <Compile Include="Utils\PointCurve.cs" />
     <Compile Include="Utils\Raycast.cs" />
     <Compile Include="Utils\ShapeInitializationData.cs" />
     <Compile Include="Utils\ShapeUtils.cs" />
@@ -161,6 +162,8 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>echo f | xcopy "$(TargetDir)$(TargetName).*" "D:\Unity\AGXUnityCable01\Assets\AgXUnity\Plugins" /Y
+
+echo f | xcopy "$(TargetDir)$(TargetName).*" "D:\Unity\AGXUnityScenes_01\Assets\AgXUnity\Plugins" /Y
 </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

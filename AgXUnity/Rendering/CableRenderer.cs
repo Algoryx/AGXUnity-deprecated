@@ -81,9 +81,12 @@ namespace AgXUnity.Rendering
 
       m_segmentSpawner.Begin();
       try {
-        CableRouteNode[] nodes = route.ToArray();
-        for ( int i = 1; i < nodes.Length; ++i )
-          m_segmentSpawner.CreateSegment( nodes[ i - 1 ].Position, nodes[ i ].Position, radius );
+        var points = Cable.GetRoutePoints();
+        for ( int i = 1; i < points.Length; ++i )
+          m_segmentSpawner.CreateSegment( points[ i - 1 ], points[ i ], radius );
+        //CableRouteNode[] nodes = route.ToArray();
+        //for ( int i = 1; i < nodes.Length; ++i )
+        //  m_segmentSpawner.CreateSegment( nodes[ i - 1 ].Position, nodes[ i ].Position, radius );
       }
       catch ( System.Exception e ) {
         Debug.LogException( e, this );

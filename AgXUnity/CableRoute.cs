@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 using AgXUnity.Utils;
 
@@ -9,6 +10,7 @@ namespace AgXUnity
   /// This object is an IEnumerable, add "using System.Linq" to
   /// get a wide range of "features" such as ToArray().
   /// </summary>
+  [AddComponentMenu( "" )]
   [HideInInspector]
   public class CableRoute : Route<CableRouteNode>
   {
@@ -89,6 +91,23 @@ namespace AgXUnity
       }
 
       return node;
+    }
+
+    /// <summary>
+    /// Checks if this route is synchronized with the given point curve.
+    /// </summary>
+    /// <param name="pointCurve">Point curve.</param>
+    /// <param name="tolerance">Max position change tolerance.</param>
+    /// <returns>True if synchronized, otherwise false.</returns>
+    public bool IsSynchronized( PointCurve pointCurve, float tolerance )
+    {
+      if ( pointCurve == null || pointCurve.NumPoints != NumNodes )
+        return false;
+
+      for ( int i = 0; i < NumNodes; ++i )
+        if ( Vector3.Distance( this[ i ].Position, pointCurve[ i ] ) > tolerance )
+          return false;
+      return true;
     }
 
     public override void Clear()

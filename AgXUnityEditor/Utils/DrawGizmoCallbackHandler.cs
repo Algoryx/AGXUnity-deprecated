@@ -14,6 +14,31 @@ namespace AgXUnityEditor.Utils
   {
     private static ObjectsGizmoColorHandler m_colorHandler = new ObjectsGizmoColorHandler();
 
+    [DrawGizmo( GizmoType.Active | GizmoType.Selected)]
+    public static void OnDrawGizmosCable( Cable cable, GizmoType gizmoType )
+    {
+      // Do not render initialized cables.
+      if ( cable.Native != null )
+        return;
+
+      cable.TraverseRoutePoints( routePointData =>
+      {
+        var lineLength = 2.5f * cable.Radius;
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawLine( routePointData.Position,
+                         routePointData.Position + lineLength * ( routePointData.Rotation * Vector3.right ) );
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawLine( routePointData.Position,
+                         routePointData.Position + lineLength * ( routePointData.Rotation * Vector3.up ) );
+
+        Gizmos.color = Color.blue;
+        Gizmos.DrawLine( routePointData.Position,
+                         routePointData.Position + lineLength * ( routePointData.Rotation * Vector3.forward ) );
+      } );
+    }
+
     [DrawGizmo( GizmoType.Active | GizmoType.NotInSelectionHierarchy )]
     public static void OnDrawGizmosDebugRenderManager( DebugRenderManager manager, GizmoType gizmoType )
     {

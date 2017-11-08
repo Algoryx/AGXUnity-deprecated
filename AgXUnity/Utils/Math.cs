@@ -20,6 +20,11 @@ namespace AgXUnity.Utils
       return System.Math.Abs( value ) < epsilon;
     }
 
+    public static bool Equivalent( float a, float b, float epsilon = float.Epsilon )
+    {
+      return Mathf.Abs( a - b ) < epsilon;
+    }
+
     public static float ClampAbove( float value, float minimum )
     {
       return Mathf.Max( value, minimum );
@@ -30,6 +35,11 @@ namespace AgXUnity.Utils
       return ( v.x - v.y ) <= eps &&
              ( v.x - v.z ) <= eps &&
              ( v.y - v.z ) <= eps;
+    }
+
+    public static float SignedAngle( Vector3 from, Vector3 to, Vector3 refAxis )
+    {
+      return Mathf.Rad2Deg * Mathf.Atan2( Vector3.Dot( to, refAxis ), Vector3.Dot( from, to ) );
     }
   }
 }

@@ -64,6 +64,31 @@ namespace AgXUnity
     public int NumNodes { get { return m_nodes.Count; } }
 
     /// <summary>
+    /// Get node at index <paramref name="index"/>.
+    /// </summary>
+    /// <param name="index">Index of node.</param>
+    /// <returns>Node given index.</returns>
+    public T this[ int index ]
+    {
+      get { return m_nodes[ index ]; }
+    }
+
+    /// <summary>
+    /// Calculates and returns the total length of this route.
+    /// </summary>
+    public float TotalLength
+    {
+      get
+      {
+        float totalLength = 0.0f;
+        for ( int i = 1; i < NumNodes; ++i )
+          totalLength += Vector3.Distance( this[ i - 1 ].Position, this[ i ].Position );
+
+        return totalLength;
+      }
+    }
+
+    /// <summary>
     /// Finds index of the node in the list.
     /// </summary>
     /// <param name="node">Node to find index of.</param>
