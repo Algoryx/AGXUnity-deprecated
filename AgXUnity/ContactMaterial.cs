@@ -169,6 +169,19 @@ namespace AgXUnity
       }
     }
 
+    [SerializeField]
+    private bool m_useContactArea = false;
+    public bool UseContactArea
+    {
+      get { return m_useContactArea; }
+      set
+      {
+        m_useContactArea = value;
+        if ( Native != null )
+          Native.setUseContactAreaApproach( m_useContactArea );
+      }
+    }
+
     public ContactMaterial RestoreLocalDataFrom( agx.ContactMaterial contactMaterial )
     {
       YoungsModulus        = Convert.ToSingle( contactMaterial.getYoungsModulus() );
