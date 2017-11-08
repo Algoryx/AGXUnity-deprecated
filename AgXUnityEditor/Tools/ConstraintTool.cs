@@ -51,6 +51,10 @@ namespace AgXUnityEditor.Tools
 
       GUI.Separator();
 
+      Constraint.ConnectedFrameNativeSyncEnabled = ConstraintConnectedFrameSyncGUI( Constraint.ConnectedFrameNativeSyncEnabled, skin );
+
+      GUI.Separator();
+
       ConstraintRowsGUI( skin );
     }
 
@@ -96,6 +100,15 @@ namespace AgXUnityEditor.Tools
       GUILayout.EndHorizontal();
 
       return solveType;
+    }
+
+    public static bool ConstraintConnectedFrameSyncGUI( bool enabled, GUISkin skin )
+    {
+      using ( new GUI.Indent( 12 ) ) {
+        enabled = GUI.Toggle( GUI.MakeLabel( "Connected frame animated", true ), enabled, skin.button, skin.label );
+      }
+
+      return enabled;
     }
 
     public void ConstraintRowsGUI( GUISkin skin )

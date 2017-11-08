@@ -250,6 +250,11 @@ namespace AgXUnityEditor
                                         }
 
                                         EatMouseEvents( data );
+
+                                        // Explicit repaint when the mouse is moved so that the window
+                                        // seems active.
+                                        if ( windowEventType == EventType.MouseMove )
+                                          SceneView.RepaintAll();
                                       },
                                       data.Title,
                                       Utils.GUI.Skin.window,
