@@ -318,6 +318,56 @@ namespace AgXUnity
     }
 
     /// <summary>
+    /// Calculates the current angle for given degree of freedom when this
+    /// constraint is active.
+    /// </summary>
+    /// <param name="controllerType">Working dimension (translational or rotational). It's
+    ///                              normally enough with Primary if this constraint isn't
+    ///                              a CylindricalJoint. If cylindrical - primary == Translational.</param>
+    /// <returns>Current angle of the active constraint.</returns>
+    public float GetCurrentAngle( ControllerType controllerType = ControllerType.Primary )
+    {
+      if ( Native != null ) {
+        var c1d = agx.Constraint1DOF.safeCast( Native );
+        if ( c1d != null )
+          return System.Convert.ToSingle( c1d.getAngle() );
+
+        var c2d = agx.Constraint2DOF.safeCast( Native );
+        if ( c2d != null )
+          return controllerType == ControllerType.Primary || controllerType == ControllerType.Translational ?
+                   System.Convert.ToSingle( c2d.getAngle( agx.Constraint2DOF.DOF.FIRST ) ) :
+                   System.Convert.ToSingle( c2d.getAngle( agx.Constraint2DOF.DOF.SECOND ) );
+      }
+
+      return 0.0f;
+    }
+
+    /// <summary>
+    /// Calculates the current speed for given degree of freedom when this
+    /// constraint is active.
+    /// </summary>
+    /// <param name="controllerType">Working dimension (translational or rotational). It's
+    ///                              normally enough with Primary if this constraint isn't
+    ///                              a CylindricalJoint. If cylindrical - primary == Translational.</param>
+    /// <returns>Current speed of the active constraint.</returns>
+    public float GetCurrentSpeed( ControllerType controllerType = ControllerType.Primary )
+    {
+      if ( Native != null ) {
+        var c1d = agx.Constraint1DOF.safeCast( Native );
+        if ( c1d != null )
+          return System.Convert.ToSingle( c1d.getCurrentSpeed() );
+
+        var c2d = agx.Constraint2DOF.safeCast( Native );
+        if ( c2d != null )
+          return controllerType == ControllerType.Primary || controllerType == ControllerType.Translational ?
+                   System.Convert.ToSingle( c2d.getCurrentSpeed( agx.Constraint2DOF.DOF.FIRST ) ) :
+                   System.Convert.ToSingle( c2d.getCurrentSpeed( agx.Constraint2DOF.DOF.SECOND ) );
+      }
+
+      return 0.0f;
+    }
+
+    /// <summary>
     /// Transforms this instance from a version where the ElementaryConstraint instances
     /// were ScriptAsset to the new version where the ElementaryConstraint is ScriptComponent.
     /// All values are copied.
@@ -562,6 +612,17 @@ namespace AgXUnity
         return;
 
       SynchronizeNativeFramesWithAttachmentPair();
+
+      // It's not possible to check which properties an animator
+      // is controlling, for now we update all properties in the
+      // controllers if we have an animator. This could probably
+      // be a flag (IsAnimated).
+      var isAnimated = GetComponent<Animator>() != null;
+      if ( isAnimated ) {
+        var controllers = GetElementaryConstraintControllers();
+        for ( int i = 0; i < controllers.Length; ++i )
+          PropertySynchronizer.Synchronize( controllers[ i ] );
+      }
     }
 
     private void SynchronizeNativeFramesWithAttachmentPair()
