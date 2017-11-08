@@ -40,6 +40,12 @@ namespace AgXUnityEditor.Tools
 
     public Utils.KeyHandler PickHandlerKeyHandler { get { return EditorSettings.Instance.BuiltInToolsTool_PickHandlerKeyHandler; } }
 
+    public AgXUnity.ShapeMaterial DroppedShapeMaterial
+    {
+      get { return EditorData.Instance.GetStaticData( "BuiltInToolsTool.DroppedShapeMaterial" ).Asset as AgXUnity.ShapeMaterial; }
+      set { EditorData.Instance.GetStaticData( "BuiltInToolsTool.DroppedShapeMaterial" ).Asset = value; }
+    }
+
     public bool SelectGameObjectTrigger( Event current, SceneView sceneView )
     {
       return SelectGameObjectKeyHandler.IsDown &&
@@ -84,6 +90,7 @@ namespace AgXUnityEditor.Tools
 
       HandleSceneViewSelectTool( currentEvent, sceneView );
       HandlePickHandler( currentEvent, sceneView );
+      HandleDragDrop( currentEvent, sceneView );
     }
 
     private void HandleSceneViewSelectTool( Event current, SceneView sceneView )
@@ -152,6 +159,83 @@ namespace AgXUnityEditor.Tools
       }
 
       PickHandler = new PickHandlerTool( dofTypes, removePredicate );
+    }
+
+    private void HandleDragDrop( Event current, SceneView sceneView )
+    {
+      var mouseOverSceneView = EditorWindow.mouseOverWindow == sceneView;
+      var mouseOverHierarchy = !mouseOverSceneView &&
+                               EditorWindow.mouseOverWindow != null &&
+                               EditorWindow.mouseOverWindow.GetType().FullName == "UnityEditor.SceneHierarchyWindow";
+      var dragDropSceneViewActive = ( mouseOverSceneView || mouseOverHierarchy ) &&
+                                    ( current.type == EventType.DragPerform || current.type == EventType.DragUpdated );
+      if ( !dragDropSceneViewActive )
+        return;
+
+      Manager.UpdateMouseOverPrimitives( current, true );
+
+      var mouseOverShapes         = HasShapeMaterialProperty( Manager.MouseOverObject );
+      var isDraggingShapeMaterial = DragAndDrop.objectReferences.Length == 1 &&
+                                    DragAndDrop.objectReferences[ 0 ] is AgXUnity.ShapeMaterial;
+      DragAndDrop.visualMode      = isDraggingShapeMaterial && mouseOverShapes ?
+                                      DragAndDropVisualMode.Copy :
+                                      DragAndDropVisualMode.Rejected;
+      if ( mouseOverShapes &&
+           isDraggingShapeMaterial &&
+           Event.current.type == EventType.DragPerform ) {
+        DragAndDrop.AcceptDrag();
+
+        DroppedShapeMaterial = DragAndDrop.objectReferences[ 0 ] as AgXUnity.ShapeMaterial;
+
+        var menuTool = new SelectGameObjectDropdownMenuTool() { Target = Manager.MouseOverObject };
+        menuTool.OnSelect = go =>
+        {
+          AgXUnity.Collide.Shape[] shapes = go.GetComponentsInChildren<AgXUnity.Collide.Shape>();
+          AgXUnity.Wire[] wires           = go.GetComponentsInChildren<AgXUnity.Wire>();
+          AgXUnity.Cable[] cables         = go.GetComponentsInChildren<AgXUnity.Cable>();
+          Action assignAll                = () =>
+          {
+            Undo.SetCurrentGroupName( "Assigning shape materials." );
+            var undoGroup = Undo.GetCurrentGroup();
+            foreach ( var shape in shapes ) {
+              Undo.RecordObject( shape, "New shape material" );
+              shape.Material = DroppedShapeMaterial;
+            }
+            foreach ( var wire in wires ) {
+              Undo.RecordObject( wire, "New shape material" );
+              wire.Material = DroppedShapeMaterial;
+            }
+            foreach ( var cable in cables ) {
+              Undo.RecordObject( cable, "New shape material" );
+              cable.Material = DroppedShapeMaterial;
+            }
+            Undo.CollapseUndoOperations( undoGroup );
+          };
+
+          var sumSupported = shapes.Length + wires.Length + cables.Length;
+          if ( sumSupported == 0 )
+            Debug.LogWarning( "Object selected doesn't have shapes, wires or cables.", go );
+          else if ( sumSupported == 1 || EditorUtility.DisplayDialog( "Assign shape materials",
+                                                                      string.Format( "Assign materials to:\n  - #shapes: {0}\n  - #wires: {1}\n  - #cables: {2}",
+                                                                                     shapes.Length, wires.Length, cables.Length ), "Assign", "Ignore all" ) )
+            assignAll();
+
+          DroppedShapeMaterial = null;
+        };
+        menuTool.Show();
+        AddChild( menuTool );
+      }
+    }
+
+    private bool HasShapeMaterialProperty( GameObject gameObject )
+    {
+      if ( gameObject == null )
+        return false;
+
+      return gameObject.GetComponentsInChildren<AgXUnity.Collide.Shape>().Length > 0 ||
+             gameObject.GetComponentsInParent<AgXUnity.Collide.Shape>().Length > 0 ||
+             gameObject.GetComponentsInChildren<AgXUnity.Wire>().Length > 0 ||
+             gameObject.GetComponentsInChildren<AgXUnity.Cable>().Length > 0;
     }
   }
 }
