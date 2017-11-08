@@ -342,17 +342,14 @@ namespace AgXUnityEditor.Tools
       if ( tool == null )
         return null;
 
-      T typedTool = tool as T;
-      if ( typedTool != null && pred( typedTool ) )
-        return typedTool;
+      T result = tool as T;
+      if ( result != null && !pred( result ) )
+        return null;
 
-      foreach ( Tool child in tool.GetChildren() ) {
-        T result = FindActive( child, pred );
-        if ( result != null )
-          return result;
-      }
+      for ( int i = 0; result == null && i < tool.m_children.Count; ++i )
+        result = FindActive( tool.m_children[ i ], pred );
 
-      return null;
+      return result;
     }
 
     /// <summary>
@@ -414,7 +411,10 @@ namespace AgXUnityEditor.Tools
 
     public T GetChild<T>() where T : Tool
     {
-      return GetChildren<T>().FirstOrDefault();
+      for ( int i = 0; i < m_children.Count; ++i )
+        if ( m_children[ i ] is T )
+          return m_children[ i ] as T;
+      return null;
     }
 
     public T[] GetChildren<T>() where T : Tool
@@ -571,6 +571,21 @@ namespace AgXUnityEditor.Tools
     }
 
     private HideDefaultState m_hideDefaultState = null;
+
+    public bool IsHidingTools
+    {
+      get
+      {
+        if ( m_hideDefaultState != null )
+          return true;
+
+        for ( int i = 0; i < m_children.Count; ++i )
+          if ( m_children[ i ].IsHidingTools )
+            return true;
+
+        return false;
+      }
+    }
 
     protected void HideDefaultHandlesEnableWhenRemoved()
     {

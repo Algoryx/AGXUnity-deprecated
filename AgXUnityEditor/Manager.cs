@@ -167,7 +167,9 @@ namespace AgXUnityEditor
     public static UnityEngine.Object RouteObject( UnityEngine.Object obj )
     {
       GameObject gameObject = obj as GameObject;
-      var proxy = gameObject != null ? gameObject.GetComponent<OnSelectionProxy>() : null;
+      OnSelectionProxy proxy = null;
+      if ( gameObject != null )
+        proxy = gameObject.GetComponents<OnSelectionProxy>().FirstOrDefault();
       // If proxy target is null we're ignoring it.
       var result = proxy != null &&
                   !GetSelectedInHierarchyData( proxy ).Bool &&
@@ -300,19 +302,17 @@ namespace AgXUnityEditor
 
       if ( EditorData.Instance.SecondsSinceLastGC > 5.0 * 60 )
         EditorData.Instance.GC();
-
-      SceneView.RepaintAll();
     }
 
-    private static void UpdateMouseOverPrimitives( Event current )
+    public static void UpdateMouseOverPrimitives( Event current, bool forced = false )
     {
       // Can't perform picking during repaint event.
-      if ( current == null || !( current.isMouse || current.isKey ) )
+      if ( current == null || !( current.isMouse || current.isKey || forced ) )
         return;
 
       // Update mouse over before we reveal the VisualPrimitives.
       // NOTE: We're putting our "visual primitives" in the ignore list.
-      if ( current.isMouse ) {
+      if ( current.isMouse || forced ) {
         List<GameObject> ignoreList = new List<GameObject>();
         foreach ( var primitive in m_visualPrimitives ) {
           if ( !primitive.Visible )
@@ -584,41 +584,46 @@ namespace AgXUnityEditor
     /// </summary>
     private static void OnSelectionChanged()
     {
-      bool mouseOverHierarchy = EditorWindow.mouseOverWindow != null &&
-                                EditorWindow.mouseOverWindow.GetType().FullName == "UnityEditor.SceneHierarchyWindow";
+      var activeTool = Tools.Tool.GetActiveTool();
+      // If the active tool is hiding the position/rotation/scale handles
+      // we ignore this 'auto-hiding'.
+      if ( activeTool == null || !activeTool.IsHidingTools ) {
+        bool mouseOverHierarchy = EditorWindow.mouseOverWindow != null &&
+                                  EditorWindow.mouseOverWindow.GetType().FullName == "UnityEditor.SceneHierarchyWindow";
 
-      // Assigns and saves 'state' in editor data for game object with OnSelectionProxy.
-      // If OnSelectionProxy is present the given state is returned.
-      Func<GameObject, bool, bool> setOnSelectionProxyState = ( go, state ) =>
-      {
-        var proxy = go != null ? go.GetComponent<OnSelectionProxy>() : null;
-        if ( proxy != null )
-          return GetSelectedInHierarchyData( proxy ).Bool = state;
-        return false;
-      };
+        // Assigns and saves 'state' in editor data for game object with OnSelectionProxy.
+        // If OnSelectionProxy is present the given state is returned.
+        Func<GameObject, bool, bool> setOnSelectionProxyState = ( go, state ) =>
+        {
+          var proxy = go != null ? go.GetComponent<OnSelectionProxy>() : null;
+          if ( proxy != null )
+            return GetSelectedInHierarchyData( proxy ).Bool = state;
+          return false;
+        };
 
-      // Reset previously selected as "not selected in hierarchy".
-      foreach ( var prevSelected in m_previousSelection ) {
-        // Could be deleted - only valid to check if null.
-        if ( prevSelected == null )
-          continue;
+        // Reset previously selected as "not selected in hierarchy".
+        foreach ( var prevSelected in m_previousSelection ) {
+          // Could be deleted - only valid to check if null.
+          if ( prevSelected == null )
+            continue;
 
-        setOnSelectionProxyState( prevSelected as GameObject, false );
+          setOnSelectionProxyState( prevSelected as GameObject, false );
+        }
+
+        bool toolsHidden = false;
+        // If newly selected object(s) are selected in the hierarchy window we shouldn't
+        // route it in this.RouteObject.
+        foreach ( var selected in Selection.objects )
+          toolsHidden = setOnSelectionProxyState( selected as GameObject, mouseOverHierarchy ) || toolsHidden;
+
+        // Hides transform tool when e.g., DebugRenderManager is selected.
+        if ( !toolsHidden &&
+             Selection.activeGameObject != null &&
+             ( Selection.activeGameObject.transform.hideFlags & HideFlags.NotEditable ) != 0 )
+          toolsHidden = true;
+
+        UnityEditor.Tools.hidden = toolsHidden;
       }
-
-      bool toolsHidden = false;
-      // If newly selected object(s) are selected in the hierarchy window we shouldn't
-      // route it in this.RouteObject.
-      foreach ( var selected in Selection.objects )
-        toolsHidden = setOnSelectionProxyState( selected as GameObject, mouseOverHierarchy ) || toolsHidden;
-
-      // Hides transform tool when e.g., DebugRenderManager is selected.
-      if ( !toolsHidden &&
-           Selection.activeGameObject != null &&
-           ( Selection.activeGameObject.transform.hideFlags & HideFlags.NotEditable ) != 0 )
-        toolsHidden = true;
-
-      UnityEditor.Tools.hidden = toolsHidden;
 
       m_previousSelection = Selection.objects;
     }
