@@ -302,6 +302,35 @@ namespace AgXUnityEditor
 
       if ( EditorData.Instance.SecondsSinceLastGC > 5.0 * 60 )
         EditorData.Instance.GC();
+
+      if ( EditorSettings.Instance.ShouldCheckDllStatus( 2.0 ) ) {
+        Func<bool, bool> checkAndCopyFiles = isEditor =>
+        {
+          var dllName       = isEditor ? "AgXUnityEditor.dll" : "AgXUnity.dll";
+          var pdbName       = isEditor ? "AgXUnityEditor.pdb" : "AgXUnity.pdb";
+          var dllTargetPath = isEditor ? EditorSettings.AgXUnityEditorPath : EditorSettings.AgXUnityPath;
+          var checkoutDll   = new FileInfo( EditorSettings.Instance.AGXUnityCheckoutDir + @"\" + dllName );
+          var currDll       = new FileInfo( dllTargetPath + @"\Plugins\" + dllName );
+          var copyFile      = !currDll.Exists ||
+                              HasBeenChanged( currDll, checkoutDll );
+          if ( copyFile ) {
+            Debug.Log( "<color=green>New version of " + dllName + " located in: " + checkoutDll.Directory + ". Copying it to current project.</color>" );
+            checkoutDll.CopyTo( currDll.FullName, true );
+            var checkoutPdb = new FileInfo( EditorSettings.Instance.AGXUnityCheckoutDir + @"\" + pdbName );
+            if ( checkoutPdb.Exists )
+              checkoutPdb.CopyTo( dllTargetPath + @"\Plugins\" + pdbName, true );
+
+            return true;
+          }
+
+          return false;
+        };
+
+        var mainDllUpdated   = checkAndCopyFiles( false );
+        var editorDllUpdated = checkAndCopyFiles( true );
+        if ( mainDllUpdated || editorDllUpdated )
+          AssetDatabase.Refresh();
+      }
     }
 
     public static void UpdateMouseOverPrimitives( Event current, bool forced = false )
@@ -643,15 +672,23 @@ namespace AgXUnityEditor
       return true;
     }
 
-    private static bool VerifyCompatibility()
+    public static bool HasBeenChanged( FileInfo v1, FileInfo v2 )
     {
-      Func<FileInfo, byte[]> generateMd5 = ( fi ) =>
+      if ( v1 == null || !v1.Exists || v2 == null || !v2.Exists )
+        return false;
+
+      Func<FileInfo, byte[]> generateMd5 = fi =>
       {
         using ( var stream = fi.OpenRead() ) {
           return System.Security.Cryptography.MD5.Create().ComputeHash( stream );
         }
       };
 
+      return !generateMd5( v1 ).SequenceEqual( generateMd5( v2 ) );
+    }
+
+    private static bool VerifyCompatibility()
+    {
       // Initializes AGX and adds installed directory from registry to path if
       // AGX doesn't already exist in path.
       var nativeHandler = AgXUnity.NativeHandler.Instance;
@@ -668,10 +705,10 @@ namespace AgXUnityEditor
       }
 
       // Wasn't able to find any installed agxDotNet.dll - it's up to Unity to handle this...
-      if ( !installedDll.Exists )
+      if ( installedDll == null || !installedDll.Exists )
         return true;
 
-      if ( !currDll.Exists || !generateMd5( currDll ).SequenceEqual( generateMd5( installedDll ) ) ) {
+      if ( !currDll.Exists || HasBeenChanged( currDll, installedDll ) ) {
         Debug.Log( "<color=green>New version of agxDotNet.dll located in: " + installedDll.Directory + ". Copying it to current project.</color>" );
         installedDll.CopyTo( localDllFilename, true );
         return false;

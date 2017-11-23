@@ -13,12 +13,16 @@ namespace AgXUnity
     private agx.AutoInit m_ai = null;
     private EnvironmentVariableTarget m_envTarget = EnvironmentVariableTarget.Process;
 
+    public bool Initialized { get; private set; }
+
     /// <summary>
     /// Default constructor - configuring AgX, making sure dll's are
     /// in path etc.
     /// </summary>
     public InitShutdownAgX()
     {
+      Initialized = false;
+
       try {
         ConfigureAgX();
       }
@@ -90,9 +94,7 @@ namespace AgXUnity
         agxIO.Environment.instance().getFilePath( agxIO.Environment.Type.RESOURCE_PATH ).pushbackPath( dataPath );
         agxIO.Environment.instance().getFilePath( agxIO.Environment.Type.RESOURCE_PATH ).pushbackPath( cfgPath );
 
-
-        if ( !agx.Runtime.instance().isValid() )
-          Debug.LogError( "AGX Dynamics: " + agx.Runtime.instance().getStatus() );
+        Initialized = true;
       }
       catch ( System.Exception e ) {
         throw new AgXUnity.Exception( "Unable to instantiate first AgX object. Some dependencies seems missing: " + e.ToString() );
@@ -145,13 +147,23 @@ namespace AgXUnity
 
     NativeHandler()
     {
-      m_isAgx = new InitShutdownAgX() {};
+      HasValidLicense = false;
+      m_isAgx         = new InitShutdownAgX();
+
+      if ( m_isAgx.Initialized && !agx.Runtime.instance().isValid() )
+        Debug.LogError( "AGX Dynamics: " + agx.Runtime.instance().getStatus() );
+      else if ( m_isAgx.Initialized )
+        HasValidLicense = true;
     }
 
     ~NativeHandler()
     {
       m_isAgx = null;
     }
+
+    public bool HasValidLicense { get; private set; }
+
+    public bool Initialized { get { return m_isAgx != null && m_isAgx.Initialized; } }
 
     public void Register( ScriptComponent component )
     {

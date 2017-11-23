@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Linq;
-using System.Collections.Generic;
-using System.Reflection;
+using System.IO;
 using UnityEngine;
 using UnityEditor;
-using AgXUnity;
 using GUI = AgXUnityEditor.Utils.GUI;
-using Assembly = System.Reflection.Assembly;
 
 namespace AgXUnityEditor
 {
@@ -33,6 +29,9 @@ namespace AgXUnityEditor
 
     [HideInInspector]
     public static EditorSettings Instance { get { return GetOrCreateInstance(); } }
+
+    [HideInInspector]
+    public static readonly int ToggleButtonSize = 18;
     #endregion Static properties
 
     #region BuiltInToolsTool settings
@@ -40,6 +39,56 @@ namespace AgXUnityEditor
     public Utils.KeyHandler BuiltInToolsTool_SelectRigidBodyKeyHandler = new Utils.KeyHandler( KeyCode.B );
     public Utils.KeyHandler BuiltInToolsTool_PickHandlerKeyHandler = new Utils.KeyHandler( KeyCode.A );
     #endregion BuiltInToolsTool settings
+
+    public bool AutoFetchAGXUnityDlls
+    {
+      get { return EditorData.Instance.GetData( this, "AutoFetchDlls" ).Bool; }
+      set { EditorData.Instance.GetData( this, "AutoFetchDlls" ).Bool = value; }
+    }
+
+    public string AGXUnityCheckoutDir
+    {
+      get { return EditorData.Instance.GetData( this, "AGXUnityCheckoutDir" ).String; }
+      set
+      {
+        var curr = EditorData.Instance.GetData( this, "AGXUnityCheckoutDir" ).String;
+        if ( curr == value )
+          return;
+
+        EditorData.Instance.GetData( this, "AGXUnityCheckoutDir" ).String = value;
+        LastDllCheck = EditorApplication.timeSinceStartup + 3.0;
+      }
+    }
+
+    public bool AGXUnityCheckoutDirValid
+    {
+      get
+      {
+        return Directory.Exists( AGXUnityCheckoutDir ) &&
+               File.Exists( AGXUnityCheckoutDir + @"\AgXUnity.dll" ) &&
+               File.Exists( AGXUnityCheckoutDir + @"\AgXUnityEditor.dll" );
+      }
+    }
+
+    [NonSerialized]
+    public double LastDllCheck = -1.0;
+
+    public bool ShouldCheckDllStatus( double checkFrequencySeconds )
+    {
+      if ( EditorApplication.isPlaying ||
+           EditorApplication.isPaused ||
+           EditorApplication.isCompiling ||
+           !AutoFetchAGXUnityDlls ||
+           !AGXUnityCheckoutDirValid )
+        return false;
+
+      if ( LastDllCheck > 0.0 && EditorApplication.timeSinceStartup - LastDllCheck < checkFrequencySeconds )
+        return false;
+
+      LastDllCheck = EditorApplication.timeSinceStartup;
+
+      return true;
+    }
 
     #region Rendering GUI
     public void OnInspectorGUI( GUISkin skin )
@@ -49,22 +98,60 @@ namespace AgXUnityEditor
 
       GUI.Separator3D();
 
-      // Debug render manager.
-      {
-        using ( GUI.AlignBlock.Center )
-          GUILayout.Label( GUI.MakeLabel( "Debug render manager", 16, true ), skin.label );
-      }
-
       // BuiltInToolsTool settings GUI.
       {
         using ( GUI.AlignBlock.Center )
           GUILayout.Label( GUI.MakeLabel( "Built in tools", 16, true ), skin.label );
 
-        GUI.Separator();
+        //GUI.Separator();
 
         HandleKeyHandlerGUI( GUI.MakeLabel( "Select game object" ), BuiltInToolsTool_SelectGameObjectKeyHandler, skin );
         HandleKeyHandlerGUI( GUI.MakeLabel( "Select rigid body game object" ), BuiltInToolsTool_SelectRigidBodyKeyHandler, skin );
         HandleKeyHandlerGUI( GUI.MakeLabel( "Pick handler (scene view)" ), BuiltInToolsTool_PickHandlerKeyHandler, skin );
+
+        GUI.Separator();
+      }
+
+      // Developer settings.
+      {
+        using ( GUI.AlignBlock.Center )
+          GUILayout.Label( GUI.MakeLabel( "AGXUnity Developer", 16, true ), skin.label );
+
+        AutoFetchAGXUnityDlls = GUI.Toggle( GUI.MakeLabel( "Auto fetch AGXUnity/AGXUnityEditor" ),
+                                                           AutoFetchAGXUnityDlls,
+                                                           skin.button,
+                                                           GUI.Align( skin.label, TextAnchor.MiddleLeft ),
+                                                           new GUILayoutOption[]
+                                                           {
+                                                             GUILayout.Width( ToggleButtonSize ),
+                                                             GUILayout.Height( ToggleButtonSize )
+                                                           },
+                                                           new GUILayoutOption[]
+                                                           {
+                                                             GUILayout.Height( ToggleButtonSize )
+                                                           } );
+
+        using ( new EditorGUI.DisabledScope( !AutoFetchAGXUnityDlls ) ) {
+          using ( new GUILayout.HorizontalScope() ) {
+            GUILayout.Space( ToggleButtonSize + 4 );
+            GUILayout.Label( GUI.MakeLabel( "Checkout directory" ), skin.label, GUILayout.Width( 160 ) );
+            var statusColor = AGXUnityCheckoutDirValid ?
+                                Color.Lerp( Color.white, Color.green, 0.2f ) :
+                                Color.Lerp( Color.white, Color.red, 0.2f );
+            var textFieldStyle = new GUIStyle( skin.textField );
+            var prevColor = UnityEngine.GUI.backgroundColor;
+            UnityEngine.GUI.backgroundColor = statusColor;
+            AGXUnityCheckoutDir = GUILayout.TextField( AGXUnityCheckoutDir, skin.textField );
+            UnityEngine.GUI.backgroundColor = prevColor;
+            if ( GUILayout.Button( GUI.MakeLabel( "...", false, "Open file panel" ),
+                                   skin.button,
+                                   GUILayout.Width( 28 ) ) ) {
+              AGXUnityCheckoutDir = EditorUtility.OpenFolderPanel( "AGXUnity checkout directory", AGXUnityCheckoutDir, "" );
+            }
+          }
+        }
+
+        GUI.Separator();
       }
 
       GUI.Separator3D();
@@ -75,7 +162,6 @@ namespace AgXUnityEditor
     private void HandleKeyHandlerGUI( GUIContent name, Utils.KeyHandler keyHandler, GUISkin skin )
     {
       const int keyButtonWidth = 90;
-      const int keyButtonHeight = 18;
 
       GUILayout.BeginHorizontal();
       {
@@ -83,8 +169,8 @@ namespace AgXUnityEditor
                                         keyHandler.Enable,
                                         skin.button,
                                         GUI.Align( skin.label, TextAnchor.MiddleLeft ),
-                                        new GUILayoutOption[] { GUILayout.Width( keyButtonHeight ), GUILayout.Height( keyButtonHeight ) },
-                                        new GUILayoutOption[] { GUILayout.Height( keyButtonHeight ) } );
+                                        new GUILayoutOption[] { GUILayout.Width( ToggleButtonSize ), GUILayout.Height( ToggleButtonSize ) },
+                                        new GUILayoutOption[] { GUILayout.Height( ToggleButtonSize ) } );
         GUILayout.FlexibleSpace();
 
         UnityEngine.GUI.enabled = keyHandler.Enable;
@@ -94,13 +180,13 @@ namespace AgXUnityEditor
                                      GUI.MakeLabel( "Detecting..." ) :
                                      GUI.MakeLabel( keyHandler.Keys[ iKey ].ToString() );
 
-          bool toggleDetecting = GUILayout.Button( buttonLabel, skin.button, GUILayout.Width( keyButtonWidth ), GUILayout.Height( keyButtonHeight ) );
+          bool toggleDetecting = GUILayout.Button( buttonLabel, skin.button, GUILayout.Width( keyButtonWidth ), GUILayout.Height( ToggleButtonSize ) );
           if ( toggleDetecting )
             keyHandler.DetectKey( this, !keyHandler.IsDetectingKey( iKey ), iKey );
         }
 
         Rect dropDownButtonRect = new Rect();
-        GUILayout.BeginVertical( GUILayout.Height( keyButtonHeight ) );
+        GUILayout.BeginVertical( GUILayout.Height( ToggleButtonSize ) );
         {
           GUIStyle tmp = new GUIStyle( skin.button );
           tmp.fontSize = 6;
