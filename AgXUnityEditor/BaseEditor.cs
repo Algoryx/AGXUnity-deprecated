@@ -75,6 +75,9 @@ namespace AgXUnityEditor
       guiSkin.textArea.richText = true;
       guiSkin.textField.richText = true;
 
+      if ( EditorGUIUtility.isProSkin )
+        guiSkin.label.normal.textColor = 204.0f / 255.0f * Color.white;
+
       Utils.GUI.TargetEditorEnable<T>( target as T, guiSkin );
 
       // Entire class/component marked as hidden - enable "hide in inspector".
