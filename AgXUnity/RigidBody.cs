@@ -205,6 +205,27 @@ namespace AgXUnity
       } );
     }
 
+    public void SyncUnityTransform()
+    {
+      if ( m_rb == null )
+        return;
+
+      // Local or global here? If we have a parent that moves?
+      // If the parent moves, its transform has to be synced
+      // down, and that is hard.
+      transform.position = m_rb.getPosition().ToHandedVector3();
+      transform.rotation = m_rb.getRotation().ToHandedQuaternion();
+    }
+
+    public void SyncNativeTransform( agx.RigidBody nativeRb )
+    {
+      if ( nativeRb == null )
+        return;
+
+      nativeRb.setPosition( transform.position.ToHandedVec3() );
+      nativeRb.setRotation( transform.rotation.ToHandedQuat() );
+    }
+
     /// <summary>
     /// Peek at a temporary native instance or the current (if initialized).
     /// </summary>
@@ -356,18 +377,6 @@ namespace AgXUnity
       }
     }
 
-    private void SyncUnityTransform()
-    {
-      if ( m_rb == null )
-        return;
-
-      // Local or global here? If we have a parent that moves?
-      // If the parent moves, its transform has to be synced
-      // down, and that is hard.
-      transform.position = m_rb.getPosition().ToHandedVector3();
-      transform.rotation = m_rb.getRotation().ToHandedQuaternion();
-    }
-
     private void SyncProperties()
     {
       // TODO: If "get" has native we can return the current velocity? Still possible to set.
@@ -376,15 +385,6 @@ namespace AgXUnity
 
       m_linearVelocity = m_rb.getVelocity().ToHandedVector3();
       m_angularVelocity = m_rb.getAngularVelocity().ToHandedVector3();
-    }
-
-    private void SyncNativeTransform( agx.RigidBody nativeRb )
-    {
-      if ( nativeRb == null )
-        return;
-
-      nativeRb.setPosition( transform.position.ToHandedVec3() );
-      nativeRb.setRotation( transform.rotation.ToHandedQuat() );
     }
 
     private void VerifyConfiguration()

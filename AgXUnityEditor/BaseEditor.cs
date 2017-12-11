@@ -412,7 +412,7 @@ namespace AgXUnityEditor
           }
 
           if ( list.Count == 0 )
-            GUILayout.Label( Utils.GUI.MakeLabel( "Empty", true ) );
+            GUILayout.Label( Utils.GUI.MakeLabel( "Empty", true ), skin.label );
           else
             Utils.GUI.Separator();
         }
