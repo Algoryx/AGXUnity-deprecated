@@ -3,6 +3,8 @@ Algoryx Simulation AB 2017
 # AGXUnity
 *Unity3D bindings for [AGX Dynamics](http://www.algoryx.se/products/agx-dynamics/)* from [Algoryx Simulation](http://www.algoryx.se).
 
+**Note:** that AGXUnity is an interface/binding to AGX Dynamics, and access the dynamic simulation, requires a binary installation of AGX Dynamics including a valid  license.
+
 AGX Dynamics is a professional *physics engine* which deliver stable, robust and realistic dynamic simulations. AGX is being utilized in hundreds of training simulators and help engineers design and evaluate new mechanical systems in [Dynamics for SpaceClaim](http://www.algoryx.se/products/dynamics-for-spaceclaim/).
 
 With AGXUnity, it is possible to incorporate a *real* physics engine into a well known authoring environment for 3D real time content, Unity3D. 
@@ -15,7 +17,7 @@ AGXUnity is still rather in a premature state. It give you a starting point for 
 - The latest version of AGXUnity requires 5.6.2
 - AGXUnity is free, for more details see: [LICENSE](LICENSE)
 
-**Note:** that AGXUnity is an interface/binding to AGX Dynamics, and access the dynamic simulation, requires a binary installation of AgX Dynamics including a valid  license.
+
 
 ## Building AGXUnity
 See [Doc/DeveloperGuide.md](Doc/DeveloperGuide.md) for detailed information on how to install/develop and deploy AGXUnity.
