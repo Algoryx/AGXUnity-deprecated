@@ -1,4 +1,4 @@
-Algoryx Simulation AB 2016
+Algoryx Simulation AB 2017
 
 # AGXUnity
 *Unity3D bindings for [AGX Dynamics](http://www.algoryx.se/products/agx-dynamics/)* from [Algoryx Simulation](http://www.algoryx.se).
