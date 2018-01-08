@@ -1,4 +1,4 @@
-Algoryx Simulation AB 2017
+Algoryx Simulation AB 2018
 
 # AGXUnity
 *Unity3D bindings for [AGX Dynamics](http://www.algoryx.se/products/agx-dynamics/)* from [Algoryx Simulation](http://www.algoryx.se).
@@ -14,7 +14,7 @@ AGXUnity is still rather in a premature state. It give you a starting point for 
  
 - AGXUnity allows you to utilize AGX Dynamics inside Unity3D.
 - Currently it is built and tested with Visual Studio 2015 SP1 and Visual Studio 2017
-- The latest version of AGXUnity requires 5.6.2
+- The latest package version of AGXUnity requires 2017.1.1
 - AGXUnity is free, for more details see: [LICENSE](LICENSE)
 
 
@@ -33,8 +33,23 @@ If you use the exact same AGX Dynamics version as well as a matching Unity3D ver
 
 For some reason you need to run two times (and clear the console) before the NullReferenceException: Object reference not set to an instance of an object message disappears.
 
-- **However, we recommend that you check out the code and build from scratch.**
- 
+- **However, we strongly recommend that you check out the code and build from scratch.**
+
+## Sample scenes
+In the **Data** subdirectory we have a package named AGXUnityScenes.unitypackage. It contains a few sample scenes which can be used as an inspiration. 
+
+*Notice that you need to accept the AgXUnity.dll while importing the package. If you don't the scenes will probably not work.*
+
+### CableRobot
+![](Doc/CableRobot.png)
+
+A scene containing two robots moving synchonously with Cables attached to each robot.
+
+### CarOnTerrain
+![](Doc/CarOnTerrain.png)
+
+A car controlled using the keyboard driving over uneven terrain.
+
 ## Tutorials
 [Creating your first scene tutorial](Doc/tutorial1/tutorial1.md) show you how to create a scene populated with simulated AGX objects.
 
