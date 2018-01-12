@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using AgXUnity.Utils;
 using UnityEngine;
+using Debug = UnityEngine.Debug;
 
 namespace AgXUnity
 {
@@ -76,7 +78,7 @@ namespace AgXUnity
         m_displayStatistics = value;
 
         if ( m_displayStatistics && m_statisticsWindowData == null )
-          m_statisticsWindowData = new StatisticsWindowData( new Rect( new Vector2( 10, 10 ), new Vector2( 260, 175 ) ) );
+          m_statisticsWindowData = new StatisticsWindowData( new Rect( new Vector2( 10, 10 ), new Vector2( 275, 320 ) ) );
         else if ( !m_displayStatistics && m_statisticsWindowData != null ) {
           m_statisticsWindowData.Dispose();
           m_statisticsWindowData = null;
@@ -152,9 +154,10 @@ namespace AgXUnity
 
     protected void FixedUpdate()
     {
+      if ( !NativeHandler.Instance.HasValidLicense )
+        return;
+
       if ( m_simulation != null ) {
-        //if ( m_simulation.getTimeStamp() < 0.5f * TimeStep )
-        //  OpenInAgXViewer();
         bool savePreFirstTimeStep = Application.isEditor &&
                                     SavePreFirstStep &&
                                     SavePreFirstStepPath != string.Empty &&
@@ -165,15 +168,96 @@ namespace AgXUnity
             Debug.Log( "Successfully wrote initial state to: " + SavePreFirstStepPath );
         }
 
+        agx.Timer timer = null;
+        if ( DisplayStatistics )
+          timer = new agx.Timer( true );
+
+        MemoryAllocations.Snap( MemoryAllocations.Section.Begin );
+
         StepCallbacks.PreStepForward?.Invoke();
+
+        MemoryAllocations.Snap( MemoryAllocations.Section.PreStepForward );
+
         StepCallbacks.PreSynchronizeTransforms?.Invoke();
-       
+
+        MemoryAllocations.Snap( MemoryAllocations.Section.PreSynchronizeTransforms );
+
+        if ( timer != null )
+          timer.stop();
+
         m_simulation.stepForward();
 
+        if ( timer != null )
+          timer.start();
+
+        MemoryAllocations.Snap( MemoryAllocations.Section.StepForward );
+
         StepCallbacks.PostSynchronizeTransforms?.Invoke();
+
+        MemoryAllocations.Snap( MemoryAllocations.Section.PostSynchronizeTransforms );
+
         StepCallbacks.PostStepForward?.Invoke();
 
+        MemoryAllocations.Snap( MemoryAllocations.Section.PostStepForward );
+
         Rendering.DebugRenderManager.OnActiveSimulationPostStep( m_simulation );
+
+        if ( timer != null ) {
+          timer.stop();
+          m_statisticsWindowData.ManagedStepForward = Convert.ToSingle( timer.getTime() );
+        }
+      }
+    }
+
+    private class MemoryAllocations
+    {
+      public enum Section
+      {
+        Begin,
+        PreStepForward,
+        PreSynchronizeTransforms,
+        StepForward,
+        PostSynchronizeTransforms,
+        PostStepForward
+      }
+
+      public static MemoryAllocations Instance { get; set; }
+
+      public static void Snap( Section section )
+      {
+        if ( Instance == null )
+          return;
+
+        Instance[ section ] = GC.GetTotalMemory( false );
+      }
+
+      public static string GetDeltaString( Section section )
+      {
+        if ( Instance == null || section == Section.Begin )
+          return string.Empty;
+
+        var delta    = Instance[ section ] - Instance[ section - 1 ];
+        var absDelta = System.Math.Abs( delta );
+        var suffix   = " B";
+        var value    = Convert.ToSingle( delta );
+        if ( absDelta > 512 * 1024 ) {
+          suffix = "MB";
+          value  = Convert.ToSingle( delta ) / ( 1024.0f * 1024.0f );
+        }
+        else if ( absDelta > 512 ) {
+          suffix = "KB";
+          value  = Convert.ToSingle( delta ) / 1024.0f;
+        }
+
+        return string.Format( "{0:0.#} {1}", value, suffix );
+      }
+
+      private long[] m_allocations = new long[ Enum.GetValues( typeof( Section ) ).Length ];
+
+      public long this[ Section section ]
+      {
+        get { return m_allocations[ (int)section ]; }
+        set { m_allocations[ (int)section ] = value; }
       }
     }
 
@@ -183,12 +267,16 @@ namespace AgXUnity
       public Rect Rect { get; set; }
       public Font Font { get; private set; }
       public GUIStyle LabelStyle { get; set; }
+      public float ManagedStepForward { get; set; }
 
       public StatisticsWindowData( Rect rect )
       {
         agx.Statistics.instance().setEnable( true );
         Id = GUIUtility.GetControlID( FocusType.Passive );
         Rect = rect;
+
+        MemoryAllocations.Instance = new MemoryAllocations();
+        ManagedStepForward = 0.0f;
 
         var fonts = Font.GetOSInstalledFontNames();
         foreach ( var font in fonts )
@@ -202,6 +290,7 @@ namespace AgXUnity
 
       public void Dispose()
       {
+        MemoryAllocations.Instance = null;
         agx.Statistics.instance().setEnable( false );
       }
     }
@@ -210,7 +299,37 @@ namespace AgXUnity
 
     protected void OnGUI()
     {
-      if ( m_simulation == null || m_statisticsWindowData == null )
+      if ( m_simulation == null )
+        return;
+
+      if ( !NativeHandler.Instance.HasValidLicense ) {
+        GUILayout.Window( GUIUtility.GetControlID( FocusType.Passive ),
+                          new Rect( new Vector2( 16,
+                                                 0.5f * Screen.height ),
+                                    new Vector2( Screen.width - 32, 32 ) ),
+                          id =>
+                          {
+                            // Invalid license if initialized.
+                            if ( NativeHandler.Instance.Initialized && agx.Runtime.instance().getStatus().Length > 0 )
+                              GUILayout.Label( Utils.GUI.MakeLabel( "AGX Dynamics: " + agx.Runtime.instance().getStatus(),
+                                                                    Color.red,
+                                                                    18,
+                                                                    true ),
+                                               Utils.GUI.Skin.label );
+                            else
+                              GUILayout.Label( Utils.GUI.MakeLabel( "AGX Dynamics: Errors occurred during initialization of AGX Dynamics.",
+                                                                    Color.red,
+                                                                    18,
+                                                                    true ),
+                                               Utils.GUI.Skin.label );
+                          },
+                          "AGX Dynamics not properly initialized",
+                          Utils.GUI.Skin.window );
+
+        return;
+      }
+
+      if ( m_statisticsWindowData == null )
         return;
 
       var simColor      = Color.Lerp( Color.white, Color.blue, 0.2f );
@@ -218,6 +337,7 @@ namespace AgXUnity
       var dynamicsColor = Color.Lerp( Color.white, Color.yellow, 0.2f );
       var eventColor    = Color.Lerp( Color.white, Color.cyan, 0.2f );
       var dataColor     = Color.Lerp( Color.white, Color.magenta, 0.2f );
+      var memoryColor   = Color.Lerp( Color.white, Color.red, 0.2f );
 
       var labelStyle = m_statisticsWindowData.LabelStyle;
 
@@ -238,18 +358,27 @@ namespace AgXUnity
                         m_statisticsWindowData.Rect,
                         id =>
                         {
-                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "Total time:            ", simColor ) + simTime.current.ToString( "0.00" ) + " ms", 14, true ), labelStyle );
-                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre-collide step:      ", eventColor ) + preCollideTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
-                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Collision detection:   ", spaceColor ) + spaceTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
-                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre step:              ", eventColor ) + preTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
-                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Dynamics solvers:      ", dynamicsColor ) + dynamicsSystemTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
-                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Post step:             ", eventColor ) + postTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
-                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Last step:             ", eventColor ) + lastTime.current.ToString( "0.00" ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "Total time:            ", simColor ) + simTime.current.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms", 14, true ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre-collide step:      ", eventColor ) + preCollideTime.current.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Collision detection:   ", spaceColor ) + spaceTime.current.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre step:              ", eventColor ) + preTime.current.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Dynamics solvers:      ", dynamicsColor ) + dynamicsSystemTime.current.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Post step:             ", eventColor ) + postTime.current.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Last step:             ", eventColor ) + lastTime.current.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms" ), labelStyle );
                           GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "Data:                  ", dataColor ), 14, true ), labelStyle );
                           GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Update frequency:      ", dataColor ) + (int)( 1.0f / TimeStep + 0.5f ) + " Hz" ), labelStyle );
                           GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Number of bodies:      ", dataColor ) + numBodies ), labelStyle );
                           GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Number of shapes:      ", dataColor ) + numShapes ), labelStyle );
                           GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Number of constraints: ", dataColor ) + numConstraints ), labelStyle );
+                          GUILayout.Label( "" );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "StepForward (managed):", memoryColor ), 14, true ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Step forward:          ", memoryColor ) + m_statisticsWindowData.ManagedStepForward.ToString( "0.00" ).PadLeft( 5, ' ' ) + " ms" ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "Allocations (managed):", memoryColor ), 14, true ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre step callbacks:    ", memoryColor ) + MemoryAllocations.GetDeltaString( MemoryAllocations.Section.PreStepForward ).PadLeft( 6, ' ' ) ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Pre synchronize:       ", memoryColor ) + MemoryAllocations.GetDeltaString( MemoryAllocations.Section.PreSynchronizeTransforms ).PadLeft( 6, ' ' ) ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Step forward:          ", memoryColor ) + MemoryAllocations.GetDeltaString( MemoryAllocations.Section.StepForward ).PadLeft( 6, ' ' ) ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Post synchronize:      ", memoryColor ) + MemoryAllocations.GetDeltaString( MemoryAllocations.Section.PostSynchronizeTransforms ).PadLeft( 6, ' ' ) ), labelStyle );
+                          GUILayout.Label( Utils.GUI.MakeLabel( Utils.GUI.AddColorTag( "  - Post step callbacks:   ", memoryColor ) + MemoryAllocations.GetDeltaString( MemoryAllocations.Section.PostStepForward ).PadLeft( 6, ' ' ) ), labelStyle );
                         },
                         "AGX Dynamics statistics",
                         Utils.GUI.Skin.window );
@@ -304,23 +433,24 @@ namespace AgXUnity
 
       string luaFileContent = @"
 assert( requestPlugin( ""agxOSG"" ) )
-if not alreadyInitialized then
+function buildScene( sim, app, root )
+  assert( agxOSG.readFile( """ + path + tmpFilename + @""", sim, root ) )
+
+  local cameraData             = app:getCameraData()
+  cameraData.eye               = agx.Vec3( " + cameraData.Eye.x + ", " + cameraData.Eye.y + ", " + cameraData.Eye.z + @" )
+  cameraData.center            = agx.Vec3( " + cameraData.Center.x + ", " + cameraData.Center.y + ", " + cameraData.Center.z + @" )
+  cameraData.up                = agx.Vec3( " + cameraData.Up.x + ", " + cameraData.Up.y + ", " + cameraData.Up.z + @" )
+  cameraData.nearClippingPlane = " + cameraData.NearClippingPlane + @"
+  cameraData.farClippingPlane  = " + cameraData.FarClippingPlane + @"
+  cameraData.fieldOfView       = " + cameraData.FOV + @"
+  app:applyCameraData( cameraData )
+
+  return root
+end
+if arg and not alreadyInitialized then
   alreadyInitialized = true
   local app = agxOSG.ExampleApplication()
-  _G[ ""buildScene"" ] = function( sim, app, root )
-                           assert( agxOSG.readFile( """ + path + tmpFilename + @""", sim, root ) )
-
-                           local cameraData             = app:getCameraData()
-                           cameraData.eye               = agx.Vec3( " + cameraData.Eye.x + ", " + cameraData.Eye.y + ", " + cameraData.Eye.z + @" )
-                           cameraData.center            = agx.Vec3( " + cameraData.Center.x + ", " + cameraData.Center.y + ", " + cameraData.Center.z + @" )
-                           cameraData.up                = agx.Vec3( " + cameraData.Up.x + ", " + cameraData.Up.y + ", " + cameraData.Up.z + @" )
-                           cameraData.nearClippingPlane = " + cameraData.NearClippingPlane + @"
-                           cameraData.farClippingPlane  = " + cameraData.FarClippingPlane + @"
-                           cameraData.fieldOfView       = " + cameraData.FOV + @"
-                           app:applyCameraData( cameraData )
-
-                           return root
-                         end
+  _G[ ""buildScene"" ] = buildScene
   app:addScene( arg[ 0 ], ""buildScene"", string.byte( ""1"" ) )
   local argParser = agxIO.ArgumentParser()
   argParser:readArguments( arg )
@@ -336,7 +466,18 @@ end";
 
       System.IO.File.WriteAllText( path + tmpLuaFilename, luaFileContent );
 
-      System.Diagnostics.Process.Start( "luaagx.exe", path + tmpLuaFilename+ " -p --renderDebug 1" );
+      try {
+        Process.Start( "luaagx.exe", path + tmpLuaFilename + " -p --renderDebug 1" );
+      }
+      catch ( System.Exception ) {
+        // Installed version.
+        try {
+          Process.Start( path + tmpLuaFilename );
+        }
+        catch ( System.Exception e ) {
+          Debug.LogException( e );
+        }
+      }
     }
   }
 }

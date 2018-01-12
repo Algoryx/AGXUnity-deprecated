@@ -62,7 +62,7 @@ namespace AgXUnityEditor.Tools
       using ( new GUI.Indent( 12 ) ) {
         Undo.RecordObject( AttachmentPair, "Constraint Tool" );
 
-        GUILayout.Label( GUI.MakeLabel( "Reference frame", true ) );
+        GUILayout.Label( GUI.MakeLabel( "Reference frame", true ), skin.label );
         GUI.HandleFrame( AttachmentPair.ReferenceFrame, skin, 4 + 12 );
         GUILayout.BeginHorizontal();
         GUILayout.Space( 12 );
@@ -73,7 +73,7 @@ namespace AgXUnityEditor.Tools
           if ( AttachmentPair.Synchronized )
             ConnectedFrameTool.TransformHandleActive = false;
         }
-        GUILayout.Label( GUI.MakeLabel( "Connected frame", true ) );
+        GUILayout.Label( GUI.MakeLabel( "Connected frame", true ), skin.label );
         GUILayout.EndHorizontal();
         UnityEngine.GUI.enabled = !AttachmentPair.Synchronized;
         GUI.HandleFrame( AttachmentPair.ConnectedFrame, skin, 4 + 12 );

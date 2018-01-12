@@ -151,6 +151,9 @@ namespace AgXUnity
         return base.Initialize();
 
       Data[] data = new Data[] { CollectData( false ), CollectData( true ) };
+      if ( data[ 0 ].IsEmpty && data[ 1 ].IsEmpty )
+        Debug.LogWarning( "Collision groups has no effect. Are you missing a PropagateToChildren = true?", this );
+
       foreach ( var entry in m_groups )
         AddGroup( entry, data[ Convert.ToInt32( entry.PropagateToChildren ) ] );
 
@@ -162,6 +165,8 @@ namespace AgXUnity
       public Collide.Shape[] Shapes = new Collide.Shape[] { };
       public Wire[] Wires = new Wire[] { };
       public Cable[] Cables = new Cable[] { };
+
+      public bool IsEmpty { get { return Shapes.Length == 0 && Wires.Length == 0 && Cables.Length == 0; } }
     }
 
     private Data CollectData( bool propagateToChildren )
@@ -197,10 +202,6 @@ namespace AgXUnity
                       shape != null || rb != null           ? GetComponentsInChildren<Collide.Shape>() :
                                                               // Both shape and rb == null and PropagateToChildren == true.
                                                               GetComponentsInChildren<Collide.Shape>();
-      }
-      else {
-        // These groups has no effect.
-        Debug.LogWarning( "Collision groups has no effect. Are you missing a PropagateToChildren = true?", this );
       }
 
       return data;
