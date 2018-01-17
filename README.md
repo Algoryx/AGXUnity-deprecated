@@ -1,7 +1,24 @@
 Algoryx Simulation AB 2018
 
-# AGXUnity
+# [AGXUnity reboot](https://github.com/Algoryx/AGXUnity) - agxUnity moved to AGXUnity-deprecated
+Due to compatibility issues in Unity when building external class libraries - we've decided to deprecate our first approach (this repository) and restart with a compatible plugin structure where Unity is building all the scripts. The new approach is more future proof and doesn't require a certain IDE to edit scripts and build - simply:
+
+1. cd MyUnityProjects\MyProject\Assets
+1. git clone https://github.com/Algoryx/AGXUnity.git
+1. copy \<agx-dynamics-install-path\>\bin\x64\agxDotNet.dll AGXUnity\Plugins\x86_64
+
+or
+
+1. Download AGXUnity-x.y.unitypackage
+1. Drag and drop into your project assets folder.
+1. copy \<agx-dynamics-install-path\>\bin\x64\agxDotNet.dll AGXUnity\Plugins\x86_64
+
+**Note: AGXUnity-deprecated and AGXUnity isn't compatible (main reason we deprecated this repository) - meaning it's not possible to load scenes created with the class library version of AGXUnity in the new version. We're sorry for any inconvenience this may cause.**
+
+# [deprecated] AGXUnity
 *Unity3D bindings for [AGX Dynamics](http://www.algoryx.se/products/agx-dynamics/)* from [Algoryx Simulation](http://www.algoryx.se).
+
+**Note:** New to AGXUnity? [Checkout or main AGXUnity repository.](https://github.com/Algoryx/AGXUnity)
 
 **Note:** that AGXUnity is an interface/binding to AGX Dynamics, and access the dynamic simulation, requires a binary installation of AGX Dynamics including a valid  license.
 
@@ -16,8 +33,6 @@ AGXUnity is still rather in a premature state. It give you a starting point for 
 - Currently it is built and tested with Visual Studio 2015 SP1 and Visual Studio 2017
 - The latest package version of AGXUnity requires 2017.1.1
 - AGXUnity is free, for more details see: [LICENSE](LICENSE)
-
-
 
 ## Building AGXUnity
 See [Doc/DeveloperGuide.md](Doc/DeveloperGuide.md) for detailed information on how to install/develop and deploy AGXUnity.
@@ -43,7 +58,7 @@ In the **Data** subdirectory we have a package named AGXUnityScenes.unitypackage
 ### CableRobot
 ![](Doc/CableRobot.png)
 
-A scene containing two robots moving synchonously with Cables attached to each robot.
+A scene containing two robots moving synchronously with Cables attached to each robot.
 
 ### CarOnTerrain
 ![](Doc/CarOnTerrain.png)
@@ -81,7 +96,7 @@ This problem occurs because AGX Dynamics binary files either need to be in the P
 
 --------------------------------------
 > 
-> We *really* appreciate feedback. If you have suggestions for improvements, just make a pull request. Together we can make this a great bridge between the awsome graphics of Unity3D and the world class dynamic simulation of AGX Dynamics.
+> We *really* appreciate feedback. If you have suggestions for improvements, just make a pull request. Together we can make this a great bridge between the awesome graphics of Unity3D and the world class dynamic simulation of AGX Dynamics.
 
 
 For more information contact Algoryx Simulation: [contact@algoryx.se](mailto:contact@algoryx.se)
