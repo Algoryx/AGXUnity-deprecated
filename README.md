@@ -13,7 +13,29 @@ or
 1. Drag and drop into your project assets folder.
 1. copy \<agx-dynamics-install-path\>\bin\x64\agxDotNet.dll AGXUnity\Plugins\x86_64
 
-**Note: AGXUnity-deprecated and AGXUnity isn't compatible (main reason we deprecated this repository) - meaning it's not possible to load scenes created with the class library version of AGXUnity in the new version. We're sorry for any inconvenience this may cause.**
+## Migration
+
+Scenes, prefabs and other assets aren't directly compatible with the new version of AGXUnity. As long as the assets has been
+serialized as text it's possible to convert them from AGXUnity-deprected to AGXUnity by right clicking any folder or file in
+the project tab and select **_Patch AGXUnity asset(s)_**.
+
+Example 1:
+
+1. Create a new Unity project.
+1. Clone or install AGXUnity.
+1. Copy your previous project files into the new project.
+1. Right click `Assets` under the project tab and select **_Patch AGXUnity asset(s)_**.
+1. "Yes" to "Search sub-folders for files to patch?".
+1. Choose whether to save backups or not.
+
+Example 2:
+
+1. Make sure you have a full backup of your project.
+1. Delete the `Assets/AGXUnity` folder (the AGXUnity-deprecated package structure).
+1. Checkout or install AGXUnity.
+1. Right click `Assets` under the project tab and select **_Patch AGXUnity asset(s)_**.
+1. "Yes" to "Search sub-folders for files to patch?".
+1. Choose whether to save backups or not.
 
 # [deprecated] AGXUnity
 *Unity3D bindings for [AGX Dynamics](http://www.algoryx.se/products/agx-dynamics/)* from [Algoryx Simulation](http://www.algoryx.se).
